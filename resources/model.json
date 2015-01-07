@@ -1,0 +1,94 @@
+{
+  "name" : "Swagger",
+  "description" : "",
+  "root" : {
+    "p1401973674057" : {
+      "description" : "description",
+      "children" : {},
+      "index" : 1,
+      "canLinkTo" : null,
+      "name" : "Model",
+      "icon" : "sitemap",
+      "level" : 1,
+      "returnsValue" : false,
+      "id" : "p1401973674057"
+    },
+    "p1401973684058" : {
+      "description" : "description",
+      "children" : {
+        "p1401973689425" : {
+          "description" : "description",
+          "children" : {},
+          "index" : 1,
+          "canLinkTo" : [ 
+            "p1401973674057"
+          ],
+          "name" : "Operation",
+          "icon" : "wrench",
+          "level" : 2,
+          "returnsValue" : false,
+          "id" : "p1401973689425"
+        }
+      },
+      "index" : 2,
+      "canLinkTo" : null,
+      "name" : "Resource",
+      "icon" : "dashboard",
+      "level" : 1,
+      "returnsValue" : false,
+      "id" : "p1401973684058"
+    }
+  },
+  "referenceTypes" : {
+    "0" : {
+      "name" : "Asynchronous",
+      "id" : 0,
+      "line" : "dotted",
+      "color" : "blue",
+      "lineEnding" : "bottom",
+      "returnsValue" : true,
+      "charLine" : "=",
+      "svgStyle" : "stroke: blue;stroke-dasharray:2"
+    },
+    "1" : {
+      "name" : "Synchronous",
+      "id" : 1,
+      "line" : "solid",
+      "color" : "black",
+      "lineEnding" : "both",
+      "returnsValue" : true,
+      "charLine" : "-",
+      "svgStyle" : "stroke: black;"
+    },
+    "2" : {
+      "name" : "Implicit",
+      "id" : 2,
+      "line" : "dashed",
+      "color" : "red",
+      "lineEnding" : "none",
+      "returnsValue" : false,
+      "charLine" : "_",
+      "svgStyle" : "stroke: red;stroke-dasharray:10,5"
+    },
+    "3" : {
+      "name" : "Fire and forget",
+      "id" : 3,
+      "line" : "dotted",
+      "color" : "orange",
+      "lineEnding" : "both",
+      "returnsValue" : false,
+      "charLine" : "+",
+      "svgStyle" : "stroke: orange;stroke-dasharray:2"
+    },
+    "4" : {
+      "name" : "Data flow",
+      "id" : 4,
+      "line" : "solid",
+      "color" : "gray",
+      "lineEnding" : "circle",
+      "returnsValue" : false,
+      "charLine" : "?",
+      "svgStyle" : "stroke: gray;"
+    }
+  }
+}
