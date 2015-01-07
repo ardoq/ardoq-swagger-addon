@@ -44,10 +44,13 @@
 
 (defn client [{:keys [url token org]}]
   (let [default-options {:timeout 2000
-                         :query-params {:org org}}]
-    {:url url
-     :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
-                                                           "Content-Type" "application/json"}})}))
+                         :query-params {:org org}}
+        client {:url url
+                :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
+                                                                      "Content-Type" "application/json"
+                                                                      "User-Agent" "ardoq-clojure-client"}})}]
+    (println "Client configuration: " client)
+    client))
 
 (defn ok? [status]
   (and (< status 300)

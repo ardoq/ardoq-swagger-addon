@@ -13,5 +13,5 @@
 
 (defn -main []
   (println "Starting server...")
-  (srv/run-server (app {:base-url "https://app.ardoq.com"}) {})
+  (srv/run-server (app {:config {:base-url "https://app.ardoq.com"}}) {})
   (println "Server started!"))
