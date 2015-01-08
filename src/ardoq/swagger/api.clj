@@ -4,8 +4,10 @@
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [ring.util.response :refer [redirect-after-post]]
+            [clostache.parser :as tpl]
             [hiccup.core :refer [html]]
-            [hiccup.form :refer [form-to submit-button text-field label hidden-field]]))
+            [hiccup.form :refer [form-to submit-button text-field label hidden-field]]
+            [compojure.route :as route]))
 
 (defn- content-type
   "Return the content-type of the request, or nil if no content-type is set."
@@ -15,18 +17,11 @@
 
 (defn swagger-api [{:keys [config]}]
   (routes
-   (GET "/" {{:strs [org token]} :query-params} (html (cond-> (form-to [:post "/import"]
-                                                                       (label "url" "Url: ")
-                                                                       (text-field "url")
-                                                                       (label "wsname" "Workspace name: ")
-                                                                       (text-field "wsname"))
-                                                        token (conj (hidden-field "token" token))
-                                                        (not token) (-> (conj (label "token" "API token: "))
-                                                                        (conj (text-field "token")))
-                                                        org (conj (hidden-field "org" org))
-                                                        (not org) (-> (conj (label "org" "Organization label:"))
-                                                                      (conj (text-field "org")))
-                                                        true (conj (submit-button "Import")))))
+   (route/resources "/public")
+   (GET "/" {{:strs [org token]} :query-params} 
+        (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
+                                          :token-set (boolean token)
+                                          :token token}))
    (POST "/import" {{:strs [url token org wsname] :as params} :form-params}
          (let [wid (swagger/import-swagger (c/client {:url (:base-url config)
                                                       :org org
