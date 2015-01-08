@@ -1,87 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ardoq Swagger Add-on</title>
-    <link href="public/css/bootstrap.min.css" rel="stylesheet">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ardoq Swagger Add-on</title>
+  <link href="public/css/bootstrap.min.css" rel="stylesheet">
 
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-       </head>
-  <body style="width:90%; padding:20px;">
-    
-    
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
 
-    <div class="jumbotron">
-      <div class="container">
-        <img src="http://swagger.io/images/swaggerLogo360.png"
-             style="width:100px; float:right;"></img>
-        <h2>Swagger</h2>
-        <p>This add-on let's you import api documentation from swagger</p>
-      </div>
+</head>
+
+<body style="width:90%; padding:20px;">
+
+<div class="jumbotron">
+  <div class="container">
+    <img src="http://swagger.io/images/swaggerLogo360.png"
+         style="width:100px; float:right;"></img>
+
+    <h2>Swagger</h2>
+
+    <p>This add-on let's you import api documentation from swagger</p>
+  </div>
+</div>
+
+
+<form action="/import" method="POST" class="form-horizontal" id="swagger">
+
+
+  <div class="form-group">
+    <label for="url" class="col-sm-2 control-label">URL:</label>
+
+    <div class="col-sm-10">
+      <input type="url" class="form-control" id="url"
+             name="url"
+             placeholder="http://petstore.swagger.wordnik.com/api/api-docs"
+             required>
     </div>
+  </div>
+  <div class="form-group">
+    <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
 
+    <div class="col-sm-10">
+      <input type="text" class="form-control" id="wsname"
+             placeholder="Petstore api documentation"
+             name="wsname" required>
+    </div>
+  </div>
+  {{#org-set}}
+  <input type="hidden" name="org" value="{{org}}">
+  {{/org-set}}
 
+  {{^org-set}}
+  <div class="form-group">
+    <label for="org" class="col-sm-2 control-label">Organization label:</label>
 
-    <form action="/import" method="POST" class="form-horizontal">
-      
-      
-      <div class="form-group">
-        <label for="url" class="col-sm-2 control-label">URL:</label>
-        <div class="col-sm-10">
-          <input type="url" class="form-control" id="url"
-                 name="url"
-                 placeholder="http://petstore.swagger.wordnik.com/api/api-docs"
-                 required>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
-        <div class="col-sm-10">
-          <input type="text" class="form-control" id="wsname"
-                 placeholder="Petstore api documentation"
-                 name="wsname" required>
-        </div>
-      </div>
-      {{#org-set}}
-      <input type="hidden" name="org" value="{{org}}">
-      {{/org-set}}
+    <div class="col-sm-10">
+      <input type="text" class="form-control" id="org"
+             placeholder="Workspace name" name="org">
+    </div>
+  </div>
+  {{/org-set}}
+  {{#token-set}}
+  <input type="hidden" name="token" value="{{token}}">
+  {{/token-set}}
+  {{^token-set}}
+  <div class="form-group">
+    <label for="token" class="col-sm-2 control-label">Api token:</label>
 
-      {{^org-set}}
-      <div class="form-group">
-        <label for="org" class="col-sm-2 control-label">Organization label:</label>
-        <div class="col-sm-10">
-          <input type="text" class="form-control" id="org"
-                 placeholder="Workspace name" name="org">
-        </div>
-      </div>
-      {{/org-set}}
-      {{#token-set}}
-      <input type="hidden" name="token" value="{{token}}">
-      {{/token-set}}
-      {{^token-set}}
-      <div class="form-group">
-        <label for="token" class="col-sm-2 control-label">Api token:</label>
-        <div class="col-sm-10">
-          <input type="password" class="form-control" id="token"
-                 placeholder="Workspace name" name="token">
-        </div>
-      </div>
-      {{/token-set}}
-      <div class="form-group">
-        <div class="col-sm-offset-2 col-sm-10">
-          <button type="submit" class="btn btn-primary">Import</button>
-        </div>
-      </div>
-    </form>
-    
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="public/js/bootstrap.min.js"></script>
-  </body>
+    <div class="col-sm-10">
+      <input type="password" class="form-control" id="token"
+             placeholder="Workspace name" name="token">
+    </div>
+  </div>
+  {{/token-set}}
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <button type="submit" class="btn btn-primary">Import</button>
+    </div>
+  </div>
+</form>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="public/js/bootstrap.min.js"></script>
+
+<script>
+  $(function() {
+    $("form#swagger").on("submit", function(e) {
+      e.preventDefault();
+      $("form").append($('<img>', {src: '/public/img/ajax-loader.gif'}));
+      $.ajax({
+        type: "POST",
+        url: "/import",
+        data: $("form#swagger").serialize(), // serializes the form's elements.
+        success: function(data) {
+          window.top.location.href = data;
+        },
+        error: function() {
+          alert("An unexpected error occurred!");
+        }
+      });
+
+    })
+  })
+</script>
+</body>
 </html>

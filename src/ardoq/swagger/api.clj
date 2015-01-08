@@ -28,4 +28,5 @@
                                                       :token token})
                                            url
                                            wsname)]
-           (redirect-after-post (str (:base-url config) "/app/view/workspace/" wid "?org=" org))))))
+                                           (str (:base-url config) "/app/view/workspace/" wid "?org=" org)
+           ))))
