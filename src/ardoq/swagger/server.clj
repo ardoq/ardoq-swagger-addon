@@ -12,6 +12,12 @@
   (srv/run-server (app system) system))
 
 (defn -main []
-  (println "Starting server...")
-  (srv/run-server (app {:config {:base-url "https://app.ardoq.com"}}) {})
-  (println "Server started!"))
+  (if-let [base-url (or (.. System (getProperties) (get "API_BASE_URL"))
+                        (System/getenv "API_BASE_URL"))]
+    (do
+      (println "Starting server...")
+      (srv/run-server (app {:config {:base-url base-url}}) {})
+      (println "Server started! API: " base-url))
+    (do
+      (println "Unabel to start. Missing required environment variable: API_BASE_URL")
+      (System/exit 1))))
