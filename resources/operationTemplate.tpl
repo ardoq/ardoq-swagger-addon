@@ -4,9 +4,9 @@
 
 ####Parameters
 
-|Parameter|Description|Required|Parameter Type|
+|Name|Description|Required|Type|Parameter Type|Enum|Consumes|
 {{#parameters}}
-|{{name}}|{{description}}|{{required}}|{{paramType}}|
+|{{name}}|{{description}}|{{required}}|{{type}}|{{paramType}}|{{enum}}|{{consumes}}|
 {{/parameters}}
 
 ####Response messages

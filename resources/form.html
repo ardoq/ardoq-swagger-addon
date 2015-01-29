@@ -23,7 +23,8 @@
 
     <h2>Swagger</h2>
 
-    <p>This add-on let's you import api documentation from swagger</p>
+    <p>This add-on let's you import Swagger v1.x api documentation</br>
+    (v2 support coming soon)
   </div>
 </div>
 
@@ -48,6 +49,20 @@
       <input type="text" class="form-control" id="wsname"
              placeholder="Petstore api documentation"
              name="wsname" required>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="headers" class="col-sm-2 control-label">Optional
+      headers (json)</label>
+
+    <div class="col-sm-10">
+      <textarea id="headers" class="form-control" rows="3"
+                name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
+ "x-custom-header": "Swagger-addon"}'></textarea>
+
+      <!--   <input type="text" class="form-control"  -->
+      <!--          placeholder="Petstore api documentation" -->
+      <!--          name="wsname" required> -->
     </div>
   </div>
   {{#org-set}}
@@ -83,6 +98,20 @@
     </div>
   </div>
 </form>
+<div id="progress-dialog" style="display: none;">
+  <h4>Importing...</h4>
+
+  <div class="progress">
+    <div class="progress-bar progress-bar-striped active"
+         role="progressbar" aria-valuenow="45" aria-valuemin="0"
+         aria-valuemax="100" style="width: 45%"><span class="sr-only">45%
+        Complete</span></div>
+  </div>
+</div>
+<div id="error-dialog" class="alert alert-danger" role="alert" style="display: none;">
+  <p></p>
+  <button id="clear-form" class="btn btn-link">Back</button>
+</div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
@@ -91,9 +120,16 @@
 
 <script>
   $(function() {
+    $("#clear-form").click(function() {
+      $("form").find("input#url, input#wsname, textarea").val("");
+      $("form").show();
+      $("#error-dialog").hide();
+      $("#progress-dialog").hide();
+    });
     $("form#swagger").on("submit", function(e) {
       e.preventDefault();
-      $("form").append($('<img>', {src: '/public/img/ajax-loader.gif'}));
+      $("form").hide();
+      $("#progress-dialog").show();
       $.ajax({
         type: "POST",
         url: "/import",
@@ -102,7 +138,14 @@
           window.top.location.href = data;
         },
         error: function() {
-          alert("An unexpected error occurred!");
+          $("#progress-dialog").hide();
+          $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
+        },
+        statusCode: {
+          406: function(msg) {
+            $("#progress-dialog").hide();
+            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
+          }
         }
       });
 

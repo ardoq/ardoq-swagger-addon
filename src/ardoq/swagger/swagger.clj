@@ -7,7 +7,10 @@
    [clostache.parser :as tpl]
    [clojure.java.io :as io]
    [cheshire.core :refer [generate-string parse-string]]
+   [clojure.string :as s]
    [medley.core :refer [map-vals]]))
+
+(def ^:dynamic *custom-headers* {})
 
 (defn html-to-markdown [string]
   (doto string
@@ -60,10 +63,12 @@
         (api/create  client))))
 
 (defn get-resource-listing [url]
-  (let [{:keys [status body]} @(http/get (str (io/as-url url)))]
+  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers *custom-headers*})]
+    (println "\nResponse from " url "\n")
+    (clojure.pprint/pprint resp)
     (if (= 200 status)
       (parse-string body true)
-      (throw IllegalArgumentException "Bad swagger url!"))))
+      (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
@@ -92,11 +97,18 @@
      produces (assoc :produces produces)
      consumes (assoc :consumes consumes)) client))
 
-(defn create-operations [client {wid :_id model-id :componentModel :as w} parent model {:keys [path operations]}]
+(defn generate-operation-descripiton [data models]
+  (reduce
+   (fn [description [model-id {:keys [_id] :as model}]]
+     (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
+   (tpl/render-resource "operationTemplate.tpl" data)
+   models))
+
+(defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
      (-> (api/map->Component {:name (str method " " path)
-                              :description (tpl/render-resource "operationTemplate.tpl" data)
+                              :description (generate-operation-descripiton data models)
                               :rootWorkspace (str wid)
                               :model model-id
                               :parent (str (:_id parent))
@@ -107,11 +119,11 @@
                 :input-models (set (map keyword (keep :type parameters))))))
    operations))
 
-(defn create-api [client base-url workspace model {:keys [resource component]}]
+(defn create-api [client base-url workspace model models {:keys [resource component]}]
   (let [url (str base-url (:path resource))
         api-declaration (get-resource-listing url)]
     (update-comp client component api-declaration)
-    (mapcat (partial create-operations client workspace component model) (:apis api-declaration))))
+    (mapcat (partial create-operations client workspace component model models) (:apis api-declaration))))
 
 (defn find-nested-model-deps [model]
   (letfn [(keys-in [m] (if (map? m)
@@ -176,23 +188,24 @@
         (urly/relative? u) (str (.mutatePath (urly/url-like url) (urly/path-of u)))))
     url))
 
-(defn import-swagger [client base-url name]
-  (println "Importing swagger doc from " base-url ".")
-  (let [resource-listing (get-resource-listing base-url)
-        url (resolve-url resource-listing base-url)
-        model (find-or-create-model client)
-        workspace (create-workspace client url base-url name model resource-listing)
-        resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
-        models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
-                          (save-models client)))
-        operations (doall (mapcat (partial create-api client url workspace model) resources))
-        refs (doall (create-refs client operations models))
-        all {:workspace workspace
-             :resources resources
-             :models models
-             :operations operations
-             :refs refs}]
-    (find-or-create-fields client model)
-    (println "Done importing swagger doc from " base-url ".")
-    (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
-    (str (:_id workspace))))
+(defn import-swagger [client base-url name headers]
+  (binding [*custom-headers* headers]
+    (println "Importing swagger doc from " base-url ". Custom headers" *custom-headers*)
+    (let [resource-listing (get-resource-listing base-url)
+          url (resolve-url resource-listing base-url)
+          model (find-or-create-model client)
+          workspace (create-workspace client url base-url name model resource-listing)
+          resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
+          models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
+                            (save-models client)))
+          operations (doall (mapcat (partial create-api client url workspace model models) resources))
+          refs (doall (create-refs client operations models))
+          all {:workspace workspace
+               :resources resources
+               :models models
+               :operations operations
+               :refs refs}]
+      (find-or-create-fields client model)
+      (println "Done importing swagger doc from " base-url ".")
+      (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
+      (str (:_id workspace)))))
