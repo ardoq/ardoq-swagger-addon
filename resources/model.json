@@ -1,94 +1,99 @@
 {
   "name" : "Swagger",
   "description" : "",
-  "root" : {
-    "p1401973674057" : {
-      "description" : "description",
-      "children" : {},
-      "index" : 1,
-      "canLinkTo" : null,
-      "name" : "Model",
-      "icon" : "sitemap",
-      "level" : 1,
-      "returnsValue" : false,
-      "id" : "p1401973674057"
-    },
-    "p1401973684058" : {
-      "description" : "description",
-      "children" : {
-        "p1401973689425" : {
-          "description" : "description",
-          "children" : {},
-          "index" : 1,
-          "canLinkTo" : [ 
-            "p1401973674057"
-          ],
-          "name" : "Operation",
-          "icon" : "wrench",
-          "level" : 2,
-          "returnsValue" : false,
-          "id" : "p1401973689425"
-        }
-      },
-      "index" : 2,
-      "canLinkTo" : null,
-      "name" : "Resource",
-      "icon" : "dashboard",
-      "level" : 1,
-      "returnsValue" : false,
-      "id" : "p1401973684058"
-    }
-  },
   "referenceTypes" : {
-    "0" : {
-      "name" : "Asynchronous",
-      "id" : 0,
-      "line" : "dotted",
-      "color" : "blue",
-      "lineEnding" : "bottom",
-      "returnsValue" : true,
-      "charLine" : "=",
-      "svgStyle" : "stroke: blue;stroke-dasharray:2"
+    "4" : {
+      "lineEnding" : "top",
+      "name" : "N/A",
+      "svgStyle" : "stroke: gray;stroke-dasharray:10,5",
+      "returnsValue" : false,
+      "color" : "gray",
+      "charLine" : "?",
+      "id" : 4,
+      "line" : "dashed"
     },
     "1" : {
-      "name" : "Synchronous",
-      "id" : 1,
-      "line" : "solid",
-      "color" : "black",
       "lineEnding" : "both",
+      "name" : "Input parameter",
+      "svgStyle" : "stroke: orange;stroke-dasharray:2",
       "returnsValue" : true,
+      "color" : "orange",
       "charLine" : "-",
-      "svgStyle" : "stroke: black;"
-    },
-    "2" : {
-      "name" : "Implicit",
-      "id" : 2,
-      "line" : "dashed",
-      "color" : "red",
-      "lineEnding" : "none",
-      "returnsValue" : false,
-      "charLine" : "_",
-      "svgStyle" : "stroke: red;stroke-dasharray:10,5"
+      "id" : 1,
+      "line" : "dotted"
     },
     "3" : {
-      "name" : "Fire and forget",
-      "id" : 3,
-      "line" : "dotted",
-      "color" : "orange",
-      "lineEnding" : "both",
+      "lineEnding" : "top",
+      "name" : "Submodel",
+      "svgStyle" : "stroke: red;stroke-dasharray:10,5",
       "returnsValue" : false,
+      "color" : "black",
       "charLine" : "+",
-      "svgStyle" : "stroke: orange;stroke-dasharray:2"
+      "id" : 3,
+      "line" : "dashed"
     },
-    "4" : {
-      "name" : "Data flow",
-      "id" : 4,
-      "line" : "solid",
-      "color" : "gray",
-      "lineEnding" : "circle",
+    "0" : {
+      "lineEnding" : "bothFilled",
+      "name" : "Return value",
+      "svgStyle" : "stroke: blue;",
       "returnsValue" : false,
-      "charLine" : "?",
-      "svgStyle" : "stroke: gray;"
+      "color" : "blue",
+      "charLine" : "=",
+      "id" : 0,
+      "line" : "solid"
+    },
+    "2" : {
+      "lineEnding" : "bothFilled",
+      "name" : "Implicit",
+      "svgStyle" : "stroke: red;stroke-dasharray:10,5",
+      "returnsValue" : false,
+      "color" : "red",
+      "charLine" : "_",
+      "id" : 2,
+      "line" : "dashed"
+    }
+  },
+  "root" : {
+    "p1401973684058" : {
+      "icon" : "dashboard",
+      "defaults" : {},
+      "name" : "Resource",
+      "children" : {
+        "p1401973689425" : {
+          "icon" : "wrench",
+          "defaults" : {},
+          "name" : "Operation",
+          "children" : {},
+          "description" : "description",
+          "returnsValue" : "true",
+          "level" : 2,
+          "color" : "#872687",
+          "index" : 1,
+          "id" : "p1401973689425",
+          "canLinkTo" : [
+            "p1401973674057"
+          ]
+        }
+      },
+      "description" : "description",
+      "returnsValue" : false,
+      "level" : 1,
+      "color" : "#545454",
+      "index" : 1,
+      "id" : "p1401973684058",
+      "canLinkTo" : null
+    },
+    "p1401973674057" : {
+      "icon" : "sitemap",
+      "defaults" : {},
+      "name" : "Model",
+      "children" : {},
+      "description" : "description",
+      "returnsValue" : false,
+      "index" : 2,
+      "level" : 1,
+      "id" : "p1401973674057",
+      "canLinkTo" : null
     }
   }
 }
