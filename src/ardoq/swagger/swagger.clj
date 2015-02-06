@@ -63,7 +63,7 @@
         (api/create  client))))
 
 (defn get-resource-listing [url]
-  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers *custom-headers*})]
+  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
     (println "\nResponse from " url "\n")
     (clojure.pprint/pprint resp)
     (if (= 200 status)
