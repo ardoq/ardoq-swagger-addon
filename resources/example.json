@@ -1,0 +1,2149 @@
+{
+  "swagger": 2,
+  "info": {
+    "version": "0.2.1",
+    "title": "Serenity Challenge API",
+    "description": "API to host challenge, requirements, scorecard and results"
+  },
+  "host": "localhost",
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "x-volos-resources": {},
+  "paths": {
+    "/challenges": {
+      "get": {
+        "tags": [
+          "challenges"
+        ],
+        "x-swagger-router-controller": "challenges",
+        "description": "get all the challenges",
+        "operationId": "getAll",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "type": "string",
+            "description": "{fieldName1}={fieldValue1}&...{fieldNameN}>{fieldValueN}. String value needs to be surrounded by single quotation(‘). fieldValue can contain multiple values using in() format {fieldName}=in({fieldValue1},{fieldValue1}). Operations can be =, > or <.  < and > operations are only for number, integers and dates"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "description": "maximum number of records to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "description": "id to start return values"
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "type": "string",
+            "description": "field name to sort {asc [nulls {first | last} ] | desc  [nulls {first | last} }"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of all challenge resources",
+            "schema": {
+              "$ref": "ChallengesResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "challenges"
+        ],
+        "x-swagger-router-controller": "challenges",
+        "description": "Create a new challenge",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ChallengeResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}": {
+      "get": {
+        "tags": [
+          "challenges"
+        ],
+        "x-swagger-router-controller": "challenges",
+        "operationId": "getByChallengeId",
+        "description": "Get a challenge",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A full challenge resource",
+            "schema": {
+              "$ref": "ChallengeResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "challenges"
+        ],
+        "x-swagger-router-controller": "challenges",
+        "description": "Update a challenge",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ChallengeResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update successful",
+            "schema": {
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "description": "True or False if the request was a success"
+                },
+                "status": {
+                  "type": "integer",
+                  "description": "The HTTP status code"
+                },
+                "content": {
+                  "$ref": "ChallengeResource"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges"
+        ],
+        "x-swagger-router-controller": "challenges",
+        "description": "Delete a challenge",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge was deleted",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/files": {
+      "post": {
+        "tags": [
+          "challenges",
+          "files"
+        ],
+        "description": "Add a new file to the challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "addfile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "body of post",
+            "required": true,
+            "schema": {
+              "$ref": "FileResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "challenges",
+          "files"
+        ],
+        "description": "Get files assoicated to a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "getFiles",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to add the participant to",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "FilesResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/files/{fileId}": {
+      "get": {
+        "tags": [
+          "challenges",
+          "files"
+        ],
+        "x-swagger-routers-controller": "challenges",
+        "description": "Get the metadata information for a file",
+        "operationId": "getFile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a file resource",
+            "schema": {
+              "$ref": "FileResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "challenges",
+          "files"
+        ],
+        "x-swagger-routers-controller": "challenges",
+        "description": "Update a file",
+        "operationId": "updateFile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "FileResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "files"
+        ],
+        "x-swagger-routers-controller": "challenges",
+        "description": "Delete a file",
+        "operationId": "deleteFile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/participants": {
+      "post": {
+        "tags": [
+          "challenges",
+          "participants"
+        ],
+        "description": "Add a new participant to a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "addParticipant",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to add the participant to",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "body of post",
+            "required": true,
+            "schema": {
+              "$ref": "ParticipantResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "challenges",
+          "participants"
+        ],
+        "description": "Get all participants for a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "getAllParticipants",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to add the participant to",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "The role to filter the results by",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ChallengeParticipantsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/participants/{participantId}": {
+      "put": {
+        "tags": [
+          "challenges",
+          "participants"
+        ],
+        "description": "Update the relationship from a user to a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "updateParticipant",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ParticipantResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "participants"
+        ],
+        "description": "Remove a participant from a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "removeParticipant",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/submissions": {
+      "post": {
+        "tags": [
+          "challenges",
+          "submissions"
+        ],
+        "description": "Submit to a challenge",
+        "x-swagger-router-controller": "challenge",
+        "operationId": "submit",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to create a scorecard for",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "body of post",
+            "required": true,
+            "schema": {
+              "$ref": "SubmissionResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "challenges",
+          "submissions"
+        ],
+        "description": "Get the submissions for a challenge",
+        "x-swagger-router-controller": "challenge",
+        "operationId": "getSubmissions",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to add the participant to",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ChallengeSubmissionsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/submissions/{submissionId}": {
+      "put": {
+        "tags": [
+          "challenges",
+          "submissions"
+        ],
+        "description": "Update the submission",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "updateSubmission",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "SubmissionResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "submissions"
+        ],
+        "description": "Remove a submission from a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "removeSubmission",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/submissions/{submissionId}/files": {
+      "post": {
+        "tags": [
+          "challenges",
+          "submissions",
+          "files"
+        ],
+        "description": "Add a new file to the challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "addfile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "body of post",
+            "required": true,
+            "schema": {
+              "$ref": "FileResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "challenges",
+          "submissions",
+          "files"
+        ],
+        "description": "Get files assoicated to a challenge",
+        "x-swagger-router-controller": "challenges",
+        "operationId": "getFiles",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to add the participant to",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "FilesResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/submissions/{submissionId}/files/{fileId}": {
+      "get": {
+        "tags": [
+          "challenges",
+          "files",
+          "submissions"
+        ],
+        "x-swagger-routers-controller": "challenges",
+        "description": "Get the metadata information for a file",
+        "operationId": "getFile",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a file resource",
+            "schema": {
+              "$ref": "FileResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "challenges",
+          "submissions",
+          "files"
+        ],
+        "x-swagger-routers-controller": "files",
+        "description": "Update a file",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "FileResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "submissions",
+          "files"
+        ],
+        "x-swagger-routers-controller": "files",
+        "description": "Delete a file",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "The Challenge Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "description": "the id of the challenge",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "description": "The Id of the file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/scorecards": {
+      "post": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "Creates a new scorecard",
+        "x-swagger-router-controller": "scorecards",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "description": "the id for the challenge to create a scorecard for",
+            "type": "integer",
+            "format": "int64",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "body of post",
+            "required": true,
+            "schema": {
+              "$ref": "ScorecardResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "get all the scorecards for a particular challenge",
+        "x-swagger-router-controller": "scorecards",
+        "operationId": "getAllByChallengeId",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of scorecard resources",
+            "schema": {
+              "$ref": "ScoreCardsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/scorecards/{scorecardId}": {
+      "get": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "x-swagger-route-controller": "scorecards",
+        "description": "Get a scorecard",
+        "operationId": "getbyId",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "scorecardId",
+            "type": "integer",
+            "format": "int64",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A scorecard",
+            "schema": {
+              "$ref": "ScorecardResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "x-swagger-router-controller": "scorecards",
+        "description": "delete a scorecard",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "scorecardId",
+            "type": "integer",
+            "format": "int64",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success, Id of scorecard delete",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "update a scorecard",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "scorecardId",
+            "type": "integer",
+            "format": "int64",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ScorecardResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success, Id of scorecard updated",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/scorecards/{scorecardId}/scorecardItems": {
+      "get": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "x-swagger-router-controller": "scorecardItems",
+        "description": "Retrieve all scorecard items for a scorecard",
+        "operationId": "getScoreCardItemsByScorecard",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "scorecardId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of ScorecardItem resources",
+            "schema": {
+              "$ref": "ScorecardItemsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "generates a scorecard item for each requirement of a challenge",
+        "x-swagger-router-controller": "scorecardItems",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "scorecardId",
+            "type": "integer",
+            "format": "int64",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ScorecardItemResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ActionResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/challenges/{challengeId}/scorecards/{scorecardId}/scorecardItems/{scorecardItemId}": {
+      "get": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "gets a scorecard item",
+        "x-swagger-router-controller": "scorecardItems",
+        "operationId": "getScorecardItem",
+        "parameters": [
+          {
+            "name": "challengeId",
+            "type": "integer",
+            "format": "int64",
+            "description": "id of challenge",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "scorecardId",
+            "type": "integer",
+            "format": "int64",
+            "description": "id of scorecard",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "scorecardItemId",
+            "type": "integer",
+            "format": "int64",
+            "description": "id of scorecardItem",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "ScorecardItemResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "update a scorecard item",
+        "operationId": "updateScorecardItem",
+        "parameters": [
+          {
+            "name": "scorecardItemId",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "ScorecardItemResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success, scorecard item update id",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "challenges",
+          "scorecards"
+        ],
+        "description": "delete a scorecard item deleted",
+        "operationId": "deleteScorecardItem",
+        "parameters": [
+          {
+            "name": "scorecardItemId",
+            "type": "integer",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success, Id of scorecard item",
+            "schema": {
+              "success": {
+                "$ref": "ActionResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ChallengeResource": {
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "postgres primary key"
+        },
+        "regStartAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "the start Date of the challenge"
+        },
+        "subEndAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "last time a member can submit."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The closing date of the challenge."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the challenge.",
+          "default": "Untitled Challenge",
+          "minLength": 1
+        },
+        "overview": {
+          "type": "string",
+          "description": "140 Char overview",
+          "maxLength": 140
+        },
+        "description": {
+          "type": "string",
+          "description": "the body of the challenge"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the challenge",
+          "enum": [
+            "DRAFT",
+            "ACTIVE",
+            "REVIEW",
+            "COMPLETE"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user who created the row"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user last updated the row"
+        }
+      }
+    },
+    "ResultResource": {
+      "required": [
+        "scorecardId"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "scorecardId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "pay": {
+          "type": "boolean",
+          "description": "determines if scorecard merits awarding place and cash prize"
+        },
+        "place": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "TODO: results instead? awarded place, 1 for 1st, 2 for second ..."
+        },
+        "prize": {
+          "type": "number",
+          "format": "double",
+          "description": "cash payout"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user who created the row"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user last updated the row"
+        }
+      }
+    },
+    "ScorecardResource": {
+      "required": [
+        "reviewerId",
+        "submissionId"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "reviewerId": {
+          "type": "integer",
+          "description": "the user id of the reviewer"
+        },
+        "submissionId": {
+          "type": "integer",
+          "description": "id of the submission"
+        },
+        "scoreSum": {
+          "type": "integer",
+          "description": "This is a derived value and may only be a placeholder -TBD-. Sum of all the scorecard items scorecard"
+        },
+        "scorePercent": {
+          "type": "number",
+          "format": "float",
+          "description": "This is a derived value and may only be a placeholder -TBD-. ScoreSum / ScoreMax from scorecard items"
+        },
+        "scoreMax": {
+          "type": "number",
+          "format": "float",
+          "description": "This is a derived value and may only be a placeholder -TBD-. Sum of highest possible score from scorecard items"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "VALID",
+            "INVALID",
+            "LATE"
+          ],
+          "description": "show if this scorecard is valid ENUM:valid,invalid,late"
+        },
+        "pay": {
+          "type": "boolean",
+          "description": "determines if scorecard merits awarding place and cash prize"
+        },
+        "place": {
+          "type": "integer",
+          "description": "TODO: results instead? awarded place, 1 for 1st, 2 for second ..."
+        },
+        "prize": {
+          "type": "number",
+          "format": "float",
+          "description": "cash payout"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user"
+        }
+      }
+    },
+    "ScorecardItemResource": {
+      "required": [
+        "requirementId",
+        "scorecardId"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "postgres primary key"
+        },
+        "scorecardId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "requirementId": {
+          "type": "integer"
+        },
+        "requirementText": {
+          "type": "string",
+          "format": "int64"
+        },
+        "score": {
+          "type": "number",
+          "format": "float",
+          "description": "stores the reviewers assigned score for this req"
+        },
+        "comment": {
+          "type": "string",
+          "description": "text from reviewer to submitter"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updateAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle fo the user"
+        }
+      }
+    },
+    "FileResource": {
+      "properties": {
+        "title": {
+          "description": "The display value for the file",
+          "type": "string"
+        },
+        "filePath": {
+          "description": "Where the file is stored",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the file",
+          "type": "integer",
+          "format": "int64"
+        },
+        "fileName": {
+          "description": "The name of the file",
+          "type": "string"
+        },
+        "storageLocation": {
+          "description": "How the file is stored.  Currently allowed values are local or s3.",
+          "type": "string",
+          "enum": [
+            "local",
+            "s3"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user who created the row"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user last updated the row"
+        }
+      },
+      "required": [
+        "fileName",
+        "filePath",
+        "size",
+        "storageLocation"
+      ]
+    },
+    "ParticipantResource": {
+      "properties": {
+        "challengeId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The Challenge id for the participation"
+        },
+        "userId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The user id."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role the participant has on the challenge",
+          "enum": [
+            "owner",
+            "submitter",
+            "watcher",
+            "reviewer"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user who created the row"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user last updated the row"
+        }
+      },
+      "required": [
+        "challengeId",
+        "userId",
+        "role"
+      ]
+    },
+    "SubmissionResource": {
+      "properties": {
+        "challengeId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The Challenge id for the participation"
+        },
+        "submitterId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The user_id of the submitter"
+        },
+        "fileId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "File ID from the file Resource"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The handle of the user who created the row"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "The handle of the user last updated the row"
+        }
+      }
+    },
+    "ChallengesResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "ChallengeResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ChallengeResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "$ref": "ChallengeResource"
+        }
+      }
+    },
+    "FileResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "$ref": "FileResource"
+        }
+      }
+    },
+    "FilesResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "FileResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ChallengeParticipantsResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "ParticipantResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ChallengeSubmissionsResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "SubmissionResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ScoreCardsResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "ScorecardResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ScorecardResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "$ref": "ScorecardResource"
+        }
+      }
+    },
+    "ScorecardItemsResponse": {
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "ScorecardItemResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      },
+      "required": [
+        "success",
+        "status",
+        "content"
+      ]
+    },
+    "ScorecardItemResponse": {
+      "required": [
+        "success",
+        "status",
+        "content"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "$ref": "ScorecardItemResource"
+        }
+      }
+    },
+    "ResultsResponse": {
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Was the request a success"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The http status code"
+        },
+        "metadata": {
+          "$ref": "MetadataListResponse"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "ResultResource",
+            "minItems": 0,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "ActionResponse": {
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The ID that was created for a new object.  Otherwise the id of the affected object"
+        },
+        "result": {
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "description": "Was the request a success"
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "The http status code"
+            }
+          }
+        }
+      }
+    },
+    "MetadataListResponse": {
+      "properties": {
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "properties": {
+        "result": {
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "description": "Was the request a success.  Should be false"
+            }
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The http status code"
+          },
+          "content": {
+            "type": "string",
+            "description": "The error message"
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,11 +9,14 @@
    [clojure.string :as str]
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
+   [cheshire.core :refer [parse-string]]
    [ardoq.swagger 
     [server :as server]
     [swagger :as swagger]
     [api :as api]
-    [client :as c]]))
+    [client :as c]]
+   [ardoq.swagger.swagger-v2
+    :refer :all]))
 
 (def system
   "A Var containing an object representing the application under
@@ -44,3 +47,10 @@
   []
   (stop)
   (refresh :after 'user/go))
+
+(defn example []
+  (-> (io/resource "example.json")
+      (io/reader)
+      slurp
+      (parse-string keyword)))
+

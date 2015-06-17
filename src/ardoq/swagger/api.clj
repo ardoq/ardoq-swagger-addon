@@ -1,5 +1,6 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.swagger :as swagger]
+            [ardoq.swagger.swagger-v2 :as swaggerv2]
             [ardoq.swagger.client :as c]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
@@ -30,6 +31,8 @@
         (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token}))
+
+   ;;Do post to v2 here
    (POST "/import" {{:strs [url token org wsname headers] :as params} :form-params}
          (try
            (let [wid (swagger/import-swagger (c/client {:url (:base-url config)
