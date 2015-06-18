@@ -15,7 +15,7 @@
                        :org "ardoq"}))
 
 (defn find-or-create-model [client]
-  (if-let [model (first (filter #(= "Swagger 2.0" (:name %)) (api/find-all (api/map->Model {}) client)))]
+  (if-let [model (first (filter #(= "Swagger" (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
     (-> (api/map->Model (parse-string (slurp (io/resource "model.json")) true))
         (api/create client))))
@@ -68,14 +68,43 @@
     (.replaceAll "[ {]*:license [{](.*?)[}][,}]" (license-str info))
     ))
 
-(defn get-info [{:keys [:info]}]
+(defn create-models2 [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
+  (let [url (str base-url (:path resource))
+        api-declaration (""; get-resource-listing url
+                         )]
+    (reduce
+     (fn [acc [type schema]]
+       (assoc acc (keyword type)
+              (assoc
+               (api/->Component type "";(model-template schema)
+ (str wid) model-id (api/type-id-by-name model "Model")  nil
+                                )
+               :schema schema)))
+     {}
+     (:models api-declaration))))
+
+(defn create-models [{:keys [:paths]} resource]
+  (let [model (find-or-create-model client)
+        {:keys [_id description]} model])
+)
+
+(defn create-resource [{:keys [:paths]}]
+  (let [model (find-or-create-model client)
+        {:keys [_id description]} model]
+    ;; (first (first paths)) is a very bad hack, need to fix it
+    (-> (api/->Component (first (first paths)) description (str _id) _id (api/type-id-by-name model "Resource") nil)
+        (api/create client))))
+
+(defn get-info [spec]
   ;Converts the info from a Swagger 2 map to a string
-  (->> ""
-       (str info)
-       (json-to-markdown info)
-       (create-workspace "tester" client)
-       ;(println)
-       )
+  (let [{:keys [:info]} spec]
+    (->> ""
+         (str info)
+         (json-to-markdown info)
+         (create-workspace "tester" client)
+                                        ;(println)
+         ))
+  (create-resource spec)
   )
 
 
@@ -85,7 +114,9 @@
        (parse-info spec)
        (parse-paths spec)
 ;       (parse-definitions spec)
-       (get-info)))
+       (get-info)
+
+       ))
 
 
 
