@@ -49,7 +49,7 @@
   (refresh :after 'user/go))
 
 (defn example []
-  (-> (io/resource "example.json")
+  (-> (io/resource "infoexample.json")
       (io/reader)
       slurp
       (parse-string keyword)))
