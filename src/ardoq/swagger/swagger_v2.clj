@@ -36,7 +36,7 @@
 
 (defn contact-str [{:keys [:contact]}]
   ;;Converts the contact part of the info to a markdown table. Needs fixing
-  (let [{:keys [:name :url :email]} contact]
+  (let [{:keys [name url email] :or {name "N/A" url "N/A" email "N/A" }} contact] 
     (->> ""
          (str "| \n")
          (str (str " | " email))
@@ -48,7 +48,7 @@
 
 (defn license-str [{:keys [:license]}]
   ;;Converts the license part of the info to a markdown table. Needs fixing
-  (let [{:keys [:name :url]} license]
+  (let [{:keys [name url] :or {url "N/A"}} license]
     (->> ""
          (str "| \n")
          (str (str " | " url))
@@ -68,44 +68,45 @@
     (.replaceAll "[ {]*:license [{](.*?)[}][,}]" (license-str info))
     ))
 
-(defn create-models2 [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
-  (let [url (str base-url (:path resource))
-        api-declaration (""; get-resource-listing url
-                         )]
-    (reduce
-     (fn [acc [type schema]]
-       (assoc acc (keyword type)
-              (assoc
-               (api/->Component type "";(model-template schema)
- (str wid) model-id (api/type-id-by-name model "Model")  nil
-                                )
-               :schema schema)))
-     {}
-     (:models api-declaration))))
+(defn update-comp [component {:keys [produces consumes]}]
+  (clojure.pprint/pprint component)
+  (api/update 
+   (cond-> (api/map->Component component)
+     produces (assoc :produces produces)
+     consumes (assoc :consumes consumes)) client))
 
-(defn create-models [{:keys [:paths]} resource]
-  (let [model (find-or-create-model client)
-        {:keys [_id description]} model])
-)
+(defn create-methods [parent model description wid _id path [methods]]
+  (-> (api/->Component methods description (str wid) _id (api/type-id-by-name model "Operation") (str (:_id parent))) 
+      (api/create client))
+  )
 
-(defn create-resource [{:keys [:paths]}]
+(defn create-resource [{:keys [paths]} workspace]
+  ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [model (find-or-create-model client)
-        {:keys [_id description]} model]
-    ;; (first (first paths)) is a very bad hack, need to fix it
-    (-> (api/->Component (first (first paths)) description (str _id) _id (api/type-id-by-name model "Resource") nil)
-        (api/create client))))
+        {:keys [_id description]} model
+        wid (:_id workspace)]
+    (map 
+     (fn [[path methods]]
+       (let [parent (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                        (api/create client))]
+         ;; (map 
+         ;;  (fn [[m]]
+         ;;    (-> (api/->Component m description (str wid) _id (api/type-id-by-name model "Operation") (str (:_id parent)))
+         ;;        (api/create client))) 
+         ;;  methods)
+         (map (partial create-methods parent model description wid _id path) methods)
+         ))
+     paths)))
 
 (defn get-info [spec]
-  ;Converts the info from a Swagger 2 map to a string
-  (let [{:keys [:info]} spec]
-    (->> ""
-         (str info)
-         (json-to-markdown info)
-         (create-workspace "tester" client)
-                                        ;(println)
-         ))
-  (create-resource spec)
-  )
+  ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
+  (let [{:keys [:info]} spec
+        workspace (->> ""
+             (str info)
+             (json-to-markdown info)
+             (create-workspace "tester" client)
+             )]
+    (create-resource spec workspace)))
 
 
 (defn get-data [spec]
