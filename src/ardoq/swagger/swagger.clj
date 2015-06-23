@@ -12,6 +12,10 @@
 
 (def ^:dynamic *custom-headers* {})
 
+(def client (api/client {:url "http://127.0.0.1:8080"
+                       :token "9b2a9517e5c540a791f9db2468866a4f"
+                       :org "ardoq"}))
+
 (defn html-to-markdown [string]
   (doto string
     (.replaceAll "<h\\d>(.*?)</h\\d>" "###$1\n")
@@ -65,7 +69,6 @@
 (defn get-resource-listing [url]
   (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
     (println "\nResponse from " url "\n")
-    (clojure.pprint/pprint resp)
     (if (= 200 status)
       (parse-string body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
@@ -82,7 +85,7 @@
      (fn [acc [type schema]]
        (assoc acc (keyword type)
               (assoc
-               (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                  (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
                :schema schema)))
      {}
      (:models api-declaration))))
@@ -92,7 +95,7 @@
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
 
 (defn update-comp [client component {:keys [produces consumes]}]
-  (api/update 
+   (api/update 
    (cond-> (api/map->Component component)
      produces (assoc :produces produces)
      consumes (assoc :consumes consumes)) client))
@@ -107,6 +110,7 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
+     (clojure.pprint/pprint type)
      (-> (api/map->Component {:name (str method " " path)
                               :description (generate-operation-descripiton data models)
                               :rootWorkspace (str wid)
@@ -159,6 +163,7 @@
 (defn create-refs [client operations models]
   (concat (mapcat
            (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
+             ;(clojure.pprint/pprint return-model)
              (let [input-refs
                    (keep (fn [k]
                            (if-let [m (k models)]
