@@ -129,23 +129,24 @@
    (tpl/render-resource "operationTemplate.tpl" data)
    models))
 
+()
+
 (defn create-ops [model models wid parent _id methods]
-  
   (map
    (fn [[method {parameters :parameters response :responses :as data}]]
-     (let [k (keys response)
-           k (first k)]
-       (clojure.pprint/pprint (get-in response [k])))
-     (-> (api/map->Component {:name (name method) 
-                              :description (generate-operation-description data models) 
-                              :rootWorkspace (str wid) 
-                              :model _id 
-                              :parent (:_id parent) 
-                              :method method
-                              :typeId (api/type-id-by-name model "Operation")}) 
-         (api/create client) 
-         (assoc :return-model (keyword nil)
-                :input-models (set (map keyword (keep :type parameters))))))
+     (let [type (doall (map (fn [[_ v]]
+                              (get-in v [:schema]))
+                            response))]
+       (-> (api/map->Component {:name (name method) 
+                                :description (generate-operation-description data models) 
+                                :rootWorkspace (str wid) 
+                                :model _id 
+                                :parent (:_id parent) 
+                                :method method
+                                :typeId (api/type-id-by-name model "Operation")}) 
+           (api/create client) 
+           (assoc :return-model type
+                  :input-models parameters))))
    methods))
 
 (defn create-methods [model models wid _id path spec {:keys [component]} methods] 
@@ -191,26 +192,41 @@
 
 (defn create-refs [operations models]
   (concat (mapcat
-           (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
-             (clojure.pprint/pprint return-model)
-             (let [input-refs
-                   (keep (fn [k]
-                           (if-let [m (k models)]
-                             (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
-                                                      :source (str id)
-                                                      :target (str (:_id m))
-                                                      :type 1})
-                                 (api/create client))))
-                         input-models)]
-               (if (and return-model
-                        (return-model models))
-                 (conj input-refs
-                       (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
-                                                :source (str id)
-                                                :target (str (:_id (return-model models)))
-                                                :type 0})
-                           (api/create client)))
-                 input-refs)))
+           (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
+             (let [input-models (first input-models)
+                   return-models (first return-models)]
+               (clojure.pprint/pprint (get-in input-models [:schema :$ref]))
+               (let [input-refs 
+                     (doall (keep (fn [k]
+                                    (clojure.pprint/pprint k)
+                                    (if-let [m (k models)]
+                                      (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                                                :source (str id)
+                                                                :target (str (:_id m))
+                                                                :type 1})
+                                          (api/create client))))
+                                  (cond
+                                   (get-in input-models [:schema :$ref]) #{(keyword (get-in input-models [:schema :$ref]))})))]))
+             
+             ;; (let [input-refs
+             ;;       (keep (fn [k]
+             ;;               (if-let [m (k models)]
+             ;;                 (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
+             ;;                                          :source (str id)
+             ;;                                          :target (str (:_id m))
+             ;;                                          :type 1})
+             ;;                     (api/create client))))
+             ;;             input-models)]
+             ;;   (if (and return-model
+             ;;            (return-model models))
+             ;;     (conj input-refs
+             ;;           (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
+             ;;                                    :source (str id)
+             ;;                                    :target (str (:_id (return-model models)))
+             ;;                                    :type 0})
+             ;;               (api/create client)))
+             ;;     input-refs))
+             )
            operations)
           ;(interdependent-model-refs client models)
           ))
@@ -280,11 +296,8 @@
 
 
 ;; ISSUES
-;; Parameters to operations get created wrongly
-;; start off the ref details get wrong data as a result
-;; Description details for methods missing
-;; Question if doing methods as a sub thing of paths is the correct way.
-;; Will create a new structure thats very different from the v.1
-;; How efficent is extracting maps from maps all the time? 
-;; Create 5 different maps instead of one perhaps?
+;; Got first link in, it is hardcoded based on result from previous stuff
+;; Can ignore rest from input on this file anywawy, need to test other file
+;; Return stuff needs a bigger work around. Multiple returns so multiple calls through
+;; keep?
 

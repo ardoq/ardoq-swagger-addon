@@ -110,7 +110,7 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
-     (clojure.pprint/pprint type)
+     ;(clojure.pprint/pprint type)
      (-> (api/map->Component {:name (str method " " path)
                               :description (generate-operation-descripiton data models)
                               :rootWorkspace (str wid)
@@ -163,7 +163,7 @@
 (defn create-refs [client operations models]
   (concat (mapcat
            (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
-             ;(clojure.pprint/pprint return-model)
+             (clojure.pprint/pprint input-models)
              (let [input-refs
                    (keep (fn [k]
                            (if-let [m (k models)]
