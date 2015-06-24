@@ -10,11 +10,6 @@
    [clojure.string :as s]
    [medley.core :refer [map-vals]]))
 
-;;This is a test cleint to ease implementation. Delete upon completion
-(def client (api/client {:url "http://127.0.0.1:8080"
-                       :token "9b2a9517e5c540a791f9db2468866a4f"
-                       :org "ardoq"}))
-
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (not (empty? (filter
                 (fn [{:keys [name model]}]
@@ -115,7 +110,7 @@
       {}
        definitions))
 
-(defn update-comp [component {:keys [produces consumes]}]
+(defn update-comp [client component {:keys [produces consumes]}]
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
   (api/update 
    (cond-> (api/map->Component component)
@@ -131,7 +126,7 @@
 
 ()
 
-(defn create-ops [model models wid parent _id methods]
+(defn create-ops [client model models wid parent _id methods]
   (map
    (fn [[method {parameters :parameters response :responses :as data}]]
      (let [type (doall (map (fn [[_ v]]
@@ -149,10 +144,10 @@
                   :input-models parameters))))
    methods))
 
-(defn create-methods [model models wid _id path spec {:keys [component]} methods] 
+(defn create-methods [client model models wid _id path spec {:keys [component]} methods] 
   ;; Used to create all methods for the resources and links them with the parent
-  (update-comp component spec)
-  (create-ops model models wid component _id methods))
+  (update-comp client component spec)
+  (create-ops client model models wid component _id methods))
 
 
 (defn save-models [models client]
@@ -179,7 +174,7 @@
                rrr))))
    (vals models)))
 
-(defn create-refs [operations models]
+(defn create-refs [client operations models]
   (concat (mapcat
            (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
              (let [input-models (set input-models)
@@ -211,17 +206,16 @@
                                                            :type 0})
                                       (api/create client)))))
                             return-models))))
-           operations)
-          (interdependent-model-refs client models)))
+           operations)))
 
-(defn create-defs [{:keys [paths] :as spec} workspace]
+(defn create-defs [client {:keys [paths] :as spec} workspace]
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-models model wid _id paths spec)
         (save-models client))))
 
-(defn create-resource [{:keys [paths definitions] :as spec} defs workspace]
+(defn create-resource [client {:keys [paths definitions] :as spec} defs workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
@@ -231,21 +225,22 @@
             (let [parent (doall {:resource path
                                  :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                                 (api/create client))})
-                  operations (create-methods model defs wid _id path spec parent methods)]
-              (create-refs operations defs)))
+                  operations (create-methods client model defs wid _id path spec parent methods)]
+              (create-refs client operations defs)))
           paths))
+    (interdependent-model-refs client defs)
     (find-or-create-fields client model)
     ))
 
 
-(defn get-info [spec]
+(defn get-info [client spec]
   ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
   (let [workspace (create-workspace nil client spec)
-        defs (create-defs spec workspace)]
-    (create-resource spec defs workspace)))
+        defs (create-defs client spec workspace)]
+    (create-resource client spec defs workspace)))
 
 
-(defn get-data [spec]
+(defn get-data [client spec]
   ;;Extracts data from a given Swagger file into an emtpy object
    (->> {}
        (parse-info spec)
@@ -253,7 +248,19 @@
        (parse-definitions spec)
        (parse-produces spec)
        (parse-consumes spec)
-       (get-info)))
+       (get-info client)))
+
+(defn get-resource-listing [url headers]
+  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers headers :insecure? true})]
+    (println "\nResponse from " url "\n")
+    (if (= 200 status)
+      (parse-string body true)
+      (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
+
+(defn import-swagger2 [client base-url name headers]
+  (println "Importing swagger doc from " base-url ". Custom headers" headers)
+  (let [spec (get-resource-listing base-url headers)]
+    (get-info client spec)))
 
 
 ;; ISSUES

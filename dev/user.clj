@@ -54,3 +54,7 @@
       slurp
       (parse-string keyword)))
 
+;;This is a test cleint to ease implementation. Delete upon completion
+(def client (c/client {:url "http://127.0.0.1:8080"
+                       :token "9b2a9517e5c540a791f9db2468866a4f"
+                       :org "ardoq"}))
