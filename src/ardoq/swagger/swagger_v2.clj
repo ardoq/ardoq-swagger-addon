@@ -160,6 +160,7 @@
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
 
 (defn find-nested-model-deps [model]
+  (clojure.pprint/pprint model)
   (letfn [(keys-in [m] (if (map? m)
                          (vec
                           (mapcat (fn [[k v]]
@@ -193,42 +194,38 @@
 (defn create-refs [operations models]
   (concat (mapcat
            (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
-             (let [input-models (first input-models)
-                   return-models (first return-models)]
-               (clojure.pprint/pprint (get-in input-models [:schema :$ref]))
+             (let [input-models (set input-models)
+                   return-models (set return-models)]
+;               (clojure.pprint/pprint return-models)
                (let [input-refs 
                      (doall (keep (fn [k]
-                                    (clojure.pprint/pprint k)
-                                    (if-let [m (k models)]
-                                      (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
-                                                                :source (str id)
-                                                                :target (str (:_id m))
-                                                                :type 1})
-                                          (api/create client))))
-                                  (cond
-                                   (get-in input-models [:schema :$ref]) #{(keyword (get-in input-models [:schema :$ref]))})))]))
-             
-             ;; (let [input-refs
-             ;;       (keep (fn [k]
-             ;;               (if-let [m (k models)]
-             ;;                 (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
-             ;;                                          :source (str id)
-             ;;                                          :target (str (:_id m))
-             ;;                                          :type 1})
-             ;;                     (api/create client))))
-             ;;             input-models)]
-             ;;   (if (and return-model
-             ;;            (return-model models))
-             ;;     (conj input-refs
-             ;;           (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
-             ;;                                    :source (str id)
-             ;;                                    :target (str (:_id (return-model models)))
-             ;;                                    :type 0})
-             ;;               (api/create client)))
-             ;;     input-refs))
-             )
+                                    (let [k (cond 
+                                             (get-in k [:schema :$ref]) (get-in k [:schema :$ref])
+                                             (get-in k [:type]) (get-in k [:type])
+                                             :else "nil")
+                                          k (keyword (last (.split k "/")))]                   
+                                      (if-let [m (k models)]
+                                        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                                                  :source (str id)
+                                                                  :target (str(:_id m))
+                                                                  :type 1})
+                                            (api/create client)))))
+                                  input-models))])
+               (doall (keep (fn [k]
+                              (let [k
+                                    (cond 
+                                     (get-in k [:$ref]) (get-in k [:$ref])
+                                     :else "nil")
+                                    k (keyword (last (.split k "/")))]
+                                (if-let [m (k models)]
+                                  (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
+                                                           :source (str id)
+                                                           :target (str (:_id m))
+                                                           :type 0})
+                                      (api/create client)))))
+                            return-models))))
            operations)
-          ;(interdependent-model-refs client models)
+          (interdependent-model-refs client models)
           ))
 
 (defn create-defs [{:keys [paths] :as spec} workspace]
