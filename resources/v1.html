@@ -23,22 +23,12 @@
 
     <h2>Swagger</h2>
 
-    <p>This add-on let's you import Swagger v1.x api documentation</br>
-    (v2 support coming soon)
+    <p>This add-on let's you import Swagger v1.x and Swagger v2 api documentation</br>
   </div>
 </div>
 
 <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
-<div class="form-group" id="Selector">
-  <label for="version" class="col-sm-2 control-label">Swagger Version:</label>
-  <div class="col-sm-10">
-    <select id="version2" class="form-control">
-      <option value="Sw1">Swagger v1.x</option>
-      <option value="Sw2">Swagger v2</option>
-    </select> 
-  </div>
-</div>
 
   <div class="form-group">
     <label for="url" class="col-sm-2 control-label">URL:</label>
@@ -128,20 +118,32 @@
 
 <script>
   $(function() {
-    $("#clear-form").click(function() {
-      $("form").find("input#url, input#wsname, textarea").val("");
-      $("form").show();
-      $("#error-dialog").hide();
-      $("#progress-dialog").hide();
+    $('#SelVal').change(function () {
+      opt = $(this).val();
+      if(opt=="Sw1") {
+        $("#clear-form").click(function() {
+          $("form").find("input#url, input#wsname, textarea").val("");
+          $("form").show();
+          $('#headers').hide()
+          $("#error-dialog").hide();
+          $("#progress-dialog").hide();
+      } else if (opt=="Sw2") {
+        $("#clear-form").click(function() {
+          $("form").find("input#url, input#wsname, textarea").val("");
+          $("form").show();
+          $("#error-dialog").hide();
+          $("#progress-dialog").hide();
+        }
+      }
     });
-    $("form#swagger").on("submit", function(e) {
+  });
+  $("form#swagger").on("submit", function(e) {
       e.preventDefault();
       $("form").hide();
       $("#progress-dialog").show();
       $.ajax({
         type: "POST",
-  
-        url: "/import/v2",
+        url: "/import",
         data: $("form#swagger").serialize(), // serializes the form's elements.
         success: function(data) {
           window.top.location.href = data;

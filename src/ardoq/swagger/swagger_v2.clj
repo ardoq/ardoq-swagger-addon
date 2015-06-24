@@ -182,10 +182,11 @@
                (let [input-refs 
                      (doall (keep (fn [k]
                                     (let [k (cond 
-                                             (get-in k [:schema :$ref]) (get-in k [:schema :$ref])
-                                             (get-in k [:type]) (get-in k [:type])
+                                             ;NOTE This only accepts the first link if there are multiple in nested maps. Should rework a bit
+                                             (seq (find-nested-model-deps (:schema k))) (last (.split (first (find-nested-model-deps (:schema k))) "/"))
+                                             (get-in k [:type]) (last (.split (get-in k [:type]) "/"))
                                              :else "nil")
-                                          k (keyword (last (.split k "/")))]                   
+                                          k (keyword k)]                   
                                       (if-let [m (k models)]
                                         (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
                                                                   :source (str id)
@@ -260,7 +261,9 @@
 (defn import-swagger2 [client base-url name headers]
   (println "Importing swagger doc from " base-url ". Custom headers" headers)
   (let [spec (get-resource-listing base-url headers)]
-    (get-info client spec)))
+    (clojure.pprint/pprint spec)
+    (get-info client spec))
+  (println "Done importing swagger doc from " base-url "."))
 
 
 ;; ISSUES

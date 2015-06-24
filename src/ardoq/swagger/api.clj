@@ -31,11 +31,11 @@
         (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token}))
-
+   ;(POST "/import/v2")
    ;;Do post to v2 here
-   (POST "/import" {{:strs [url token org wsname headers] :as params} :form-params}
+   (POST "/import/v2" {{:strs [url token org wsname headers] :as params} :form-params}
          (try
-           (let [wid (swagger/import-swagger (c/client {:url (:base-url config)
+           (let [wid (swaggerv2/import-swagger2 (c/client {:url (:base-url config)
                                                         :org org
                                                         :token token})
                                              url

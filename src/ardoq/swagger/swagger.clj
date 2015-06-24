@@ -12,10 +12,6 @@
 
 (def ^:dynamic *custom-headers* {})
 
-(def client (api/client {:url "http://127.0.0.1:8080"
-                       :token "9b2a9517e5c540a791f9db2468866a4f"
-                       :org "ardoq"}))
-
 (defn html-to-markdown [string]
   (doto string
     (.replaceAll "<h\\d>(.*?)</h\\d>" "###$1\n")
@@ -110,7 +106,6 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
-     ;(clojure.pprint/pprint type)
      (-> (api/map->Component {:name (str method " " path)
                               :description (generate-operation-descripiton data models)
                               :rootWorkspace (str wid)
@@ -163,7 +158,6 @@
 (defn create-refs [client operations models]
   (concat (mapcat
            (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
-             (clojure.pprint/pprint input-models)
              (let [input-refs
                    (keep (fn [k]
                            (if-let [m (k models)]
