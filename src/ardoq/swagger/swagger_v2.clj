@@ -160,35 +160,23 @@
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
 
 (defn find-nested-model-deps [model]
-  (clojure.pprint/pprint model)
-  (letfn [(keys-in [m] (if (map? m)
-                         (vec
-                          (mapcat (fn [[k v]]
-                                    (let [sub (keys-in v)
-                                          nested (map #(into [k] %) (filter (comp not empty?) sub))]
-                                      (if (seq nested)
-                                        nested
-                                        [[k]])))
-                                  m))
-                         []))]
-    (keep #(let [r (last %)]
-             (when (= :$ref r)
-               (get-in model %)))
-          (keys-in model))))
+  (map (fn [v]
+         (last (.split v "/")))
+   (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
   (mapcat
    (fn [model]
      (let [rrr (find-nested-model-deps (:schema model))]
-       (keep
-        (fn [model-key]
-          (if-let [m ((keyword model-key) models)]
-            (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
-                                     :source (str (:_id model))
-                                     :target (str (:_id m))
-                                     :type 3})
-                (api/create client))))
-        rrr)))
+       (doall (keep
+               (fn [model-key]
+                 (if-let [m ((keyword model-key) models)]
+                   (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
+                                            :source (str (:_id model))
+                                            :target (str (:_id m))
+                                            :type 3})
+                       (api/create client))))
+               rrr))))
    (vals models)))
 
 (defn create-refs [operations models]
@@ -196,7 +184,6 @@
            (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
              (let [input-models (set input-models)
                    return-models (set return-models)]
-;               (clojure.pprint/pprint return-models)
                (let [input-refs 
                      (doall (keep (fn [k]
                                     (let [k (cond 
@@ -225,8 +212,7 @@
                                       (api/create client)))))
                             return-models))))
            operations)
-          (interdependent-model-refs client models)
-          ))
+          (interdependent-model-refs client models)))
 
 (defn create-defs [{:keys [paths] :as spec} workspace]
   (let [model (find-or-create-model client)
@@ -267,34 +253,10 @@
        (parse-definitions spec)
        (parse-produces spec)
        (parse-consumes spec)
-       (get-info))
- (println 'done))
-
-
-(comment 
-
-  (loop [parent this
-         acc {}]
-    (let [processed-node (...)
-          new-parent (...)]
-      (if ..
-        processed-node
-        (recur new-parent proccessed-node))))
-
-  (cond
-   (get-in m [:response :type]) (handle-type ...)
-   (get-in m [:response :$schema] (handle-schema ...))
-   :else (explode))
-
-
-
-)
-
+       (get-info)))
 
 
 ;; ISSUES
-;; Got first link in, it is hardcoded based on result from previous stuff
-;; Can ignore rest from input on this file anywawy, need to test other file
-;; Return stuff needs a bigger work around. Multiple returns so multiple calls through
-;; keep?
+;; Create a proper import method
+;; Check if you can have other than just #/def/whatever and whatever
 
