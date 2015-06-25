@@ -157,29 +157,27 @@
 (defn find-nested-model-deps [model]
   ;;Finds all references in a given model
   (map (fn [v]
-         (clojure.pprint/pprint v)
          (last (.split v "/")))
    (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
   ;;Creates refs between models
-  (mapcat
-   (fn [model]
-     (let [rrr (find-nested-model-deps (:schema model))]
-       (doall (keep
-               (fn [model-key]
-                 (if-let [m ((keyword model-key) models)]
-                   (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
-                                            :source (str (:_id model))
-                                            :target (str (:_id m))
-                                            :type 3})
-                       (api/create client))))
-               rrr))))
-   (vals models)))
+  (doall (mapcat
+          (fn [model]
+            (let [rrr (find-nested-model-deps model)]
+              (doall (keep
+                      (fn [model-key]
+                        (if-let [m ((keyword model-key) models)]
+                          (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
+                                                   :source (str (:_id model))
+                                                   :target (str (:_id m))
+                                                   :type 3})
+                              (api/create client))))
+                      rrr))))
+          (vals models))))
 
 (defn create-ref [client keys models comp id type]
   ;; Makes the refs given the values found by create-refs
-  (clojure.pprint/pprint keys)
   (if (seq? keys)
     (doall (map (fn [k]
                   (let [k (keyword (last (.split k "/")))]
@@ -213,7 +211,6 @@
                                     )
                                   input-models))])
                (doall (keep (fn [k]
-                              (clojure.pprint/pprint k)
                               (cond 
                                (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
                                (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
@@ -273,7 +270,7 @@
 
 (defn import-swagger2 [client base-url name headers swag]
   (println "Importing swagger doc from " base-url ". Custom headers" headers)
-  (let [spec (if (blank? swag) (get-resource-listing base-url headers) swag)]
+  (let [spec (if (s/blank? swag) (get-resource-listing base-url headers) swag)]
     (get-info client spec))
   (println "Done importing swagger doc from " base-url "."))
 
