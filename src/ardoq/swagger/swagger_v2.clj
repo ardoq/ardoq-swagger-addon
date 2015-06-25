@@ -271,9 +271,9 @@
       (parse-string body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
-(defn import-swagger2 [client base-url name headers]
+(defn import-swagger2 [client base-url name headers swag]
   (println "Importing swagger doc from " base-url ". Custom headers" headers)
-  (let [spec (get-resource-listing base-url headers)]
+  (let [spec (if (blank? swag) (get-resource-listing base-url headers) swag)]
     (get-info client spec))
   (println "Done importing swagger doc from " base-url "."))
 

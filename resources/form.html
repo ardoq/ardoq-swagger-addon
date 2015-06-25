@@ -74,7 +74,15 @@
   </div>
 
   <div id="fillerDiv">
-
+    <div class="form-group">
+      <label for="headers" class="col-sm-2 control-label">Optional
+        Swagger file</label>
+      
+      <div class="col-sm-10">
+        <textarea id="swag" class="form-control" rows="3"
+                  name="Swag" placeholder='{"Random filler text"}'></textarea>
+          </div>
+        </div>        
   </div>
   {{#org-set}}
   <input type="hidden" name="org" value="{{org}}">
@@ -135,15 +143,17 @@
   $(function() {
   var vers = "Sw1";
   var imp = "/import/v1";
+  $("#fillerDiv").hide();
   $("#selector").change(function(){
   console.log("Things got real");
   vers = $('option:selected', $(this)).val();
   console.log(vers);
   if(vers == "Sw1") {
-  $("#fillerDiv").load("/ #fillerDiv");
-  imp = "/import/v1";
+    $("#fillerDiv").hide();
+    $("#swag").val("");
+    imp = "/import/v1";
   } else {
-  $("#fillerDiv").load("/v2.html #fillerDiv");
+  $("#fillerDiv").show();
   imp = "/import/v2";
   }
   });

@@ -35,7 +35,7 @@
         (tpl/render-resource "v2.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token}))
-   ;(POST "/import/v2")
+   ;(POST "/import/v1")
    (POST "/import/v1" {{:strs [url token org wsname headers] :as params} :form-params}
          (try
            (let [wid (swagger/import-swagger (c/client {:url (:base-url config)
@@ -59,15 +59,17 @@
              {:status 500
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (str "An unexpected error occurred! ")})})))
+
    ;;Do post to v2 here
-   (POST "/import/v2" {{:strs [url token org wsname headers] :as params} :form-params}
+   (POST "/import/v2" {{:strs [url token org wsname headers swag] :as params} :form-params}
          (try
            (let [wid (swaggerv2/import-swagger2 (c/client {:url (:base-url config)
                                                         :org org
                                                         :token token})
                                              url
                                              wsname
-                                             (read-headers headers))]
+                                             (read-headers headers)
+                                             swag)]
              (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
            (catch com.fasterxml.jackson.core.JsonParseException e
              (.printStackTrace e)
