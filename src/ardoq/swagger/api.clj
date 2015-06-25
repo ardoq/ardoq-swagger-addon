@@ -31,7 +31,34 @@
         (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token}))
+   (GET "/v2.html" {{:strs [org token]} :query-params} 
+        (tpl/render-resource "v2.html" {:org-set (boolean org) :org org 
+                                          :token-set (boolean token)
+                                          :token token}))
    ;(POST "/import/v2")
+   (POST "/import/v1" {{:strs [url token org wsname headers] :as params} :form-params}
+         (try
+           (let [wid (swagger/import-swagger (c/client {:url (:base-url config)
+                                                        :org org
+                                                        :token token})
+                                             url
+                                             wsname
+                                             (read-headers headers))]
+             (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
+           (catch com.fasterxml.jackson.core.JsonParseException e
+             (.printStackTrace e)
+             {:status 406
+              :headers {"Content-Type" "application/json"}
+              :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
+           (catch IllegalArgumentException e
+             {:status 406
+              :headers {"Content-Type" "application/json"}
+              :body (json/write-str {:error (.getMessage e)})})
+           (catch Exception e
+             (.printStackTrace e)
+             {:status 500
+              :headers {"Content-Type" "application/json"}
+              :body (json/write-str {:error (str "An unexpected error occurred! ")})})))
    ;;Do post to v2 here
    (POST "/import/v2" {{:strs [url token org wsname headers] :as params} :form-params}
          (try

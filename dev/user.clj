@@ -56,6 +56,6 @@
 
 ;;This is a test cleint to ease implementation. Delete upon completion
 
-;; (def client (c/client {:url "http://127.0.0.1:8080"
-;;                        :token "2330f05eac3846f78a13b01930099b97"
-;;                        :org "ardoq"}))
+(def client (c/client {:url "http://127.0.0.1:8080"
+                       :token "2330f05eac3846f78a13b01930099b97"
+                       :org "ardoq"}))

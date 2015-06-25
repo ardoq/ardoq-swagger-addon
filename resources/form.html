@@ -23,25 +23,24 @@
 
     <h2>Swagger</h2>
 
-    <p>This add-on let's you import Swagger v1.x api documentation</br>
-    (v2 support coming soon)
+    <p>This add-on let's you import Swagger v1.x and v2.0 api documentation</br>
   </div>
 </div>
 
 <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
-<div class="form-group" id="Selector">
+<div class="form-group" id="selector">
   <label for="version" class="col-sm-2 control-label">Swagger Version:</label>
   <div class="col-sm-10">
-    <select id="version2" class="form-control">
-      <option value="Sw1">Swagger v1.x</option>
+    <select id="version-check" class="form-control">
+      <option value="Sw1" selected="selected">Swagger v1.x</option>
       <option value="Sw2">Swagger v2</option>
     </select> 
   </div>
 </div>
 
   <div class="form-group">
-    <label for="url" class="col-sm-2 control-label">URL:</label>
+    <label for="url" class="col-sm-2 control-label">URL START:</label>
 
     <div class="col-sm-10">
       <input type="url" class="form-control" id="url"
@@ -72,6 +71,10 @@
       <!--          placeholder="Petstore api documentation" -->
       <!--          name="wsname" required> -->
     </div>
+  </div>
+
+  <div id="fillerDiv">
+
   </div>
   {{#org-set}}
   <input type="hidden" name="org" value="{{org}}">
@@ -121,6 +124,8 @@
   <button id="clear-form" class="btn btn-link">Back</button>
 </div>
 
+</div>
+
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
@@ -128,6 +133,20 @@
 
 <script>
   $(function() {
+  var vers = "Sw1";
+  var imp = "/import/v1";
+  $("#selector").change(function(){
+  console.log("Things got real");
+  vers = $('option:selected', $(this)).val();
+  console.log(vers);
+  if(vers == "Sw1") {
+  $("#fillerDiv").load("/ #fillerDiv");
+  imp = "/import/v1";
+  } else {
+  $("#fillerDiv").load("/v2.html #fillerDiv");
+  imp = "/import/v2";
+  }
+  });
     $("#clear-form").click(function() {
       $("form").find("input#url, input#wsname, textarea").val("");
       $("form").show();
@@ -141,7 +160,7 @@
       $.ajax({
         type: "POST",
   
-        url: "/import/v2",
+        url: imp,
         data: $("form#swagger").serialize(), // serializes the form's elements.
         success: function(data) {
           window.top.location.href = data;

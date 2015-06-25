@@ -155,11 +155,14 @@
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
 
 (defn find-nested-model-deps [model]
+  ;;Finds all references in a given model
   (map (fn [v]
+         (clojure.pprint/pprint v)
          (last (.split v "/")))
    (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
+  ;;Creates refs between models
   (mapcat
    (fn [model]
      (let [rrr (find-nested-model-deps (:schema model))]
@@ -174,42 +177,52 @@
                rrr))))
    (vals models)))
 
+(defn create-ref [client keys models comp id type]
+  ;; Makes the refs given the values found by create-refs
+  (clojure.pprint/pprint keys)
+  (if (seq? keys)
+    (doall (map (fn [k]
+                  (let [k (keyword (last (.split k "/")))]
+                    (if-let [m (k models)]
+                      (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                                :source (str id)
+                                                :target (str(:_id m))
+                                                :type type})
+                          (api/create client)))))
+                keys))
+    (let [k (keyword (last (.split keys "/")))] 
+      (if-let [m (k models)]
+        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                  :source (str id)
+                                  :target (str(:_id m))
+                                  :type type})
+            (api/create client))))))
+
 (defn create-refs [client operations models]
+  ;;Finds all $refs in operations and sends them to create-ref
   (concat (mapcat
            (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
              (let [input-models (set input-models)
                    return-models (set return-models)]
                (let [input-refs 
                      (doall (keep (fn [k]
-                                    (let [k (cond 
-                                             ;NOTE This only accepts the first link if there are multiple in nested maps. Should rework a bit
-                                             (seq (find-nested-model-deps (:schema k))) (last (.split (first (find-nested-model-deps (:schema k))) "/"))
-                                             (get-in k [:type]) (last (.split (get-in k [:type]) "/"))
-                                             :else "nil")
-                                          k (keyword k)]                   
-                                      (if-let [m (k models)]
-                                        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
-                                                                  :source (str id)
-                                                                  :target (str(:_id m))
-                                                                  :type 1})
-                                            (api/create client)))))
+                                    (cond 
+                                     (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 1)
+                                     (get-in k [:type])  (create-ref client (get-in k [:type]) models comp id 1)
+                                     :else "nil")                  
+                                    )
                                   input-models))])
                (doall (keep (fn [k]
-                              (let [k
-                                    (cond 
-                                     (get-in k [:$ref]) (get-in k [:$ref])
-                                     :else "nil")
-                                    k (keyword (last (.split k "/")))]
-                                (if-let [m (k models)]
-                                  (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
-                                                           :source (str id)
-                                                           :target (str (:_id m))
-                                                           :type 0})
-                                      (api/create client)))))
+                              (clojure.pprint/pprint k)
+                              (cond 
+                               (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
+                               (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
+                               :else "nil"))
                             return-models))))
            operations)))
 
 (defn create-defs [client {:keys [paths] :as spec} workspace]
+  ;; Creates the models
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
@@ -261,7 +274,6 @@
 (defn import-swagger2 [client base-url name headers]
   (println "Importing swagger doc from " base-url ". Custom headers" headers)
   (let [spec (get-resource-listing base-url headers)]
-    (clojure.pprint/pprint spec)
     (get-info client spec))
   (println "Done importing swagger doc from " base-url "."))
 
