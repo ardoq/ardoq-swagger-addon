@@ -30,7 +30,7 @@
 (defn find-or-create-model [client]
   (if-let [model (first (filter #(= "Swagger" (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
-    (-> (api/map->Model (parse-string (slurp (io/resource "model.json")) true))
+    (-> (api/map->Model (parse-string (slurp (io/resource "modelv1.json")) true))
         (api/create client))))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]

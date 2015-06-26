@@ -32,7 +32,7 @@
   ;; Finds the model required for all details. If not found, creates a new one
   (if-let [model (first (filter #(= "Swagger 2.0" (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
-    (-> (api/map->Model (parse-string (slurp (io/resource "model.json")) true))
+    (-> (api/map->Model (parse-string (slurp (io/resource "modelv2.json")) true))
         (api/create client))))
   
 (defn create-workspace [title client {:keys [info] :as data}]

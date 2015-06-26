@@ -143,52 +143,50 @@
 
 <script>
   $(function() {
-  var vers = "Sw1";
-  var imp = "/import";
-  $("#fillerDiv").hide();
-  $("#selector").change(function(){
-  vers = $('option:selected', $(this)).val();
-  if(vers == "Sw1") {
-  $("#fillerDiv").hide();
-  $("#urldiv").show();
-  $("#swag").val("");
-  } else {
-  $("#fillerDiv").show();
-  $("#urldiv").hide();
-  }
+    var vers = "Sw1";
+    var imp = "/import";
+    $("#fillerDiv").hide();
+    $("#selector").change(function(){
+      vers = $('option:selected', $(this)).val();
+      if(vers == "Sw1") {
+        $("#fillerDiv").hide();
+        $("#urldiv").show();
+        $("#swag").val("");
+      } else {
+        $("#fillerDiv").show();
+        $("#urldiv").hide();
+      }
+    });
+    $("#clear-form").click(function() {
+      $("form").find("input#url, input#wsname, textarea").val("");
+      $("form").show();
+      $("#error-dialog").hide();
+      $("#progress-dialog").hide();
+    });
+    $("form#swagger").on("submit", function(e) {
+      e.preventDefault();
+      $("form").hide();
+      $("#progress-dialog").show();
+      $.ajax({
+        type: "POST",  
+        url: imp,
+        data: $("form#swagger").serialize(), // serializes the form's elements.
+        success: function(data) {
+          window.top.location.href = data;
+        },
+        error: function() {
+          $("#progress-dialog").hide();
+          $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
+        },
+        statusCode: {
+          406: function(msg) {
+            $("#progress-dialog").hide();
+            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
+          }
+        }
+      });
+    });
   });
-  $("#clear-form").click(function() {
-  $("form").find("input#url, input#wsname, textarea").val("");
-  $("form").show();
-  $("#error-dialog").hide();
-  $("#progress-dialog").hide();
-  });
-  $("form#swagger").on("submit", function(e) {
-  e.preventDefault();
-  $("form").hide();
-  $("#progress-dialog").show();
-  $.ajax({
-  type: "POST",
-  
-  url: imp,
-  data: $("form#swagger").serialize(), // serializes the form's elements.
-  success: function(data) {
-  window.top.location.href = data;
-  },
-  error: function() {
-  $("#progress-dialog").hide();
-  $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
-  },
-  statusCode: {
-  406: function(msg) {
-  $("#progress-dialog").hide();
-  $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
-  }
-  }
-  });
-
-  })
-  })
 </script>
 </body>
 </html>

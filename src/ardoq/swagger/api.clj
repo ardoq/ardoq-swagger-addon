@@ -56,15 +56,16 @@
                                           :token-set (boolean token)
                                           :token token}))
 
-   ;(POST "/import/v1")
-   (POST "/import" {{:strs [url token org wsname headers swag] :as params} :form-params}
+   ;(POST "/import")
+   (POST "/import" {{:strs [url token org wsname headers] :as params} :form-params}
          (try
            (let [wid (get-spec (c/client {:url (:base-url config)
                                                         :org org
                                                         :token token})
                                              url
                                              wsname
-                                             (read-headers headers))]
+                                             (read-headers headers)
+                                             "")]
              (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
            (catch com.fasterxml.jackson.core.JsonParseException e
              (.printStackTrace e)
