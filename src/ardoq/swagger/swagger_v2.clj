@@ -63,36 +63,17 @@
   ;;Copies the consumes data from spec into result
   (assoc result :consumes (:consumes spec)))
 
-(defn contact-str [{:keys [:contact]}]
-  ;;Converts the contact part of the info to a markdown table. Needs fixing
-  (let [{:keys [name url email] :or {name "N/A" url "N/A" email "N/A" }} contact] 
-    (->> ""
-         (str "| \n")
-         (str (str " | " email))
-         (str (str " | " url))
-         (str (str " | " name))
-         (str "| Name | Url | E-mail | \n")
-         (str "#####Contact info\n"))))
+(defn parse-parameters [spec result]
+  ;;Copies the consumes data from spec into result
+  (assoc result :parameters (:parameters spec)))
 
-(defn license-str [{:keys [:license]}]
-  ;;Converts the license part of the info to a markdown table. Needs fixing
-  (let [{:keys [name url] :or {url "N/A"}} license]
-    (->> ""
-         (str "| \n")
-         (str (str " | " url))
-         (str (str " | " name))
-         (str "| Name | Url | \n")
-         (str "#####License info\n"))))
+(defn parse-security [spec result]
+  ;;Copies the consumes data from spec into result
+  (assoc result :security (:security spec)))
 
-(defn json-to-markdown [info string]
-  ;;Converts specific parts. If the part doesn't excist the regex fails and does nothing
-  (-> string
-    (.replaceAll "[ {]*:title \\\"(.*?)\\\"[,}]" "###$1\n")
-    (.replaceAll "[ {]*:version \\\"(.*?)\\\"[,}]" "Version: $1\n\n")
-    (.replaceAll "[ {]*:description \\\"(.*?)\\\"[,}]" "$1\n\n")
-    (.replaceAll "[ {]*:termsOfService \\\"(.*?)\\\"[,}]" "$1\n\n")
-    (.replaceAll "[ {]*:contact [{](.*?)[}][,}]" (contact-str info))
-    (.replaceAll "[ {]*:license [{](.*?)[}][,}]" (license-str info))))
+(defn parse-security-defs [spec result]
+  ;;Copies the consumes data from spec into result
+  (assoc result :securityDefinitions (:securityDefinitions spec)))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -124,31 +105,31 @@
    (tpl/render-resource "operationTemplate.tpl" data)
    models))
 
-()
-
 (defn create-ops [client model models wid parent _id methods]
-  (map
-   (fn [[method {parameters :parameters response :responses :as data}]]
-     (let [type (doall (map (fn [[_ v]]
-                              (get-in v [:schema]))
-                            response))]
-       (-> (api/map->Component {:name (name method) 
-                                :description (generate-operation-description data models) 
-                                :rootWorkspace (str wid) 
-                                :model _id 
-                                :parent (:_id parent) 
-                                :method method
-                                :typeId (api/type-id-by-name model "Operation")}) 
-           (api/create client) 
-           (assoc :return-model type
-                  :input-models parameters))))
+  (keep
+   (fn [[method {parameters :parameters response :responses security :security :as data}]]
+     ;(clojure.pprint/pprint security)
+     (if (not (= method (keyword "parameters")))
+       (let [type (doall (map (fn [[_ v]]
+                                (get-in v [:schema]))
+                                     response))]
+                (-> (api/map->Component {:name (name method) 
+                                         :description (generate-operation-description data models) 
+                                         :rootWorkspace (str wid) 
+                                         :model _id 
+                                         :parent (:_id parent) 
+                                         :method method
+                                         :typeId (api/type-id-by-name model "Operation")}) 
+                    (api/create client) 
+                    (assoc :return-model type
+                           :input-models parameters
+                           :security security)))))
    methods))
 
 (defn create-methods [client model models wid _id path spec {:keys [component]} methods] 
   ;; Used to create all methods for the resources and links them with the parent
   (update-comp client component spec)
   (create-ops client model models wid component _id methods))
-
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]
@@ -179,8 +160,10 @@
 (defn create-ref [client keys models comp id type]
   ;; Makes the refs given the values found by create-refs
   (if (seq? keys)
-    (doall (map (fn [k]
-                  (let [k (keyword (last (.split k "/")))]
+    (doall (map (fn [ref]
+                  (let [ref (.split ref "/")
+                        t (second ref)
+                        k (keyword (last ref))]
                     (if-let [m (k models)]
                       (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
                                                 :source (str id)
@@ -188,7 +171,9 @@
                                                 :type type})
                           (api/create client)))))
                 keys))
-    (let [k (keyword (last (.split keys "/")))] 
+    (let [ref (.split keys "/")
+          t (second ref)
+          k (keyword (last ref))]
       (if-let [m (k models)]
         (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
                                   :source (str id)
@@ -196,12 +181,27 @@
                                   :type type})
             (api/create client))))))
 
-(defn create-refs [client operations models]
+(defn create-resource-refs [client {:keys [parameters] :as resource} params]
+  (let [wid (get-in resource [:component :rootWorkspace])
+        _id (get-in resource [:component :_id])]
+    (doall (map
+            (fn [{:keys [$ref]}]
+              (let [k (keyword (last (.split $ref "/")))]
+                (if-let [m (k params)]
+                  (-> (api/map->Reference {:rootWorkspace wid
+                                            :source (str _id)
+                                            :target (str(:_id m))
+                                            :type 1})
+                      (api/create client)))))
+            parameters))))
+;558d32d744aec659875c3b31
+(defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
   (concat (mapcat
-           (fn [{input-models :input-models return-models :return-model id :_id :as comp}]
+           (fn [{input-models :input-models return-models :return-model secur :security id :_id :as comp}]
              (let [input-models (set input-models)
-                   return-models (set return-models)]
+                   return-models (set return-models)
+                   secur (set secur)]
                (let [input-refs 
                      (doall (keep (fn [k]
                                     (cond 
@@ -215,10 +215,19 @@
                                (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
                                (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
                                :else "nil"))
-                            return-models))))
+                            return-models))
+               (doall (keep (fn [k]        
+                              (clojure.pprint/pprint (first (first k)))
+                              (if-let [m ((first (first k)) security)]
+                                (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                                          :source (str id)
+                                                          :target (str(:_id m))
+                                                          :type 1})
+                                    (api/create client))))
+                            secur))))
            operations)))
 
-(defn create-defs [client {:keys [paths] :as spec} workspace]
+(defn create-defs [client {:keys [paths] :as spec}  workspace]
   ;; Creates the models
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
@@ -226,40 +235,82 @@
     (-> (create-models model wid _id paths spec)
         (save-models client))))
 
-(defn create-resource [client {:keys [paths definitions] :as spec} defs workspace]
+(defn create-param-model [wid _id parameters description model]
+  (reduce
+   (fn [acc [param schema]]
+     (assoc acc (keyword param)
+            (assoc
+                (api/->Component param (model-template schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+              :schema schema)))
+   {}
+   parameters))
+
+(defn create-secur [model wid _id sec-defs description]
+  (reduce
+   (fn [acc [sec schema]]
+     (assoc acc (keyword sec)
+            (assoc
+                (api/->Component sec (model-template schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+              :schema schema)))
+   {}
+   sec-defs))
+
+
+(defn create-security-defs [client {:keys [securityDefinitions] :as spec} workspace]
+    (let [model (find-or-create-model client)
+        {:keys [_id description]} model
+        wid (:_id workspace)]
+      (-> (create-secur model wid _id securityDefinitions description)
+          (save-models client))))
+
+
+
+(defn create-params [client {:keys [parameters] :as spec} workspace]
+  (let [model (find-or-create-model client)
+        {:keys [_id description]} model
+        wid (:_id workspace)]
+    (-> (create-param-model wid _id parameters description model)
+        (save-models client))))
+
+(defn create-resource [client {:keys [paths definitions] :as spec} defs params secur workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
     (doall
-     (map (fn [[path methods]]
+     (map (fn [[path {:keys [parameters] :as methods}]]
             (let [parent (doall {:resource path
+                                 :parameters parameters
                                  :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                                 (api/create client))})
                   operations (create-methods client model defs wid _id path spec parent methods)]
-              (create-refs client operations defs)))
+              (create-resource-refs client parent params)
+              (create-refs client operations defs secur)))
           paths))
     (interdependent-model-refs client defs)
-    (find-or-create-fields client model)
-    ))
+    (find-or-create-fields client model)))
 
-
-(defn get-info [client spec]
+(defn get-info [client name spec]
   ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
-  (let [workspace (create-workspace nil client spec)
-        defs (create-defs client spec workspace)]
-    (create-resource client spec defs workspace)))
+  (let [workspace (create-workspace name client spec)
+        defs (create-defs client spec workspace)
+        params (create-params client spec workspace)
+        secur (create-security-defs client spec workspace)] 
+    (create-resource client spec defs params secur workspace)))
 
 
-(defn get-data [client spec]
+(defn get-data [client spec name]
   ;;Extracts data from a given Swagger file into an emtpy object
    (->> {}
-       (parse-info spec)
-       (parse-paths spec)
-       (parse-definitions spec)
-       (parse-produces spec)
-       (parse-consumes spec)
-       (get-info client)))
+        (parse-info spec)
+        (parse-paths spec)
+        (parse-definitions spec)
+        (parse-produces spec)
+        (parse-consumes spec)
+        (parse-parameters spec)
+        (parse-security spec)
+        (parse-security-defs spec)
+        (get-info client name)))
 
 (defn get-resource-listing [url headers]
   (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers headers :insecure? true})]
@@ -271,11 +322,13 @@
 (defn import-swagger2 [client base-url name headers swag]
   (println "Importing swagger doc from " base-url ". Custom headers" headers)
   (let [spec (if (s/blank? swag) (get-resource-listing base-url headers) swag)]
-    (get-info client spec))
+    (get-data client spec name))
   (println "Done importing swagger doc from " base-url "."))
 
 
 ;; ISSUES
-;; Create a proper import method
-;; Check if you can have other than just #/def/whatever and whatever
-
+;; Fix the description for params
+;; Handle arrays
+;; Do security properly, including how we handle them further in than root
+;; Support ref in operation
+;; Import tags
