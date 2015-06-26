@@ -1,136 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ardoq Swagger Add-on</title>
-  <link href="public/css/bootstrap.min.css" rel="stylesheet">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ardoq Swagger Add-on</title>
+    <link href="public/css/bootstrap.min.css" rel="stylesheet">
 
-  <!--[if lt IE 9]>
-  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-  <![endif]-->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
 
-</head>
+  </head>
 
-<body style="width:90%; padding:20px;">
+  <body style="width:90%; padding:20px;">
 
-<div class="jumbotron">
-  <div class="container">
-    <img src="/public/img/swaggerLogo360.png"
-         style="width:100px; float:right;"></img>
+    <div class="jumbotron">
+      <div class="container">
+        <img src="/public/img/swaggerLogo360.png"
+             style="width:100px; float:right;"></img>
 
-    <h2>Swagger</h2>
+        <h2>Swagger</h2>
 
-    <p>This add-on let's you import Swagger v1.x and v2.0 api documentation</br>
-  </div>
-</div>
-
-<form action="/import" method="POST" class="form-horizontal" id="swagger">
-
-<div class="form-group" id="selector">
-  <label for="version" class="col-sm-2 control-label">Swagger Version:</label>
-  <div class="col-sm-10">
-    <select id="version-check" class="form-control">
-      <option value="Sw1" selected="selected">Swagger v1.x</option>
-      <option value="Sw2">Swagger v2</option>
-    </select> 
-  </div>
-</div>
-
-  <div class="form-group">
-    <label for="url" class="col-sm-2 control-label">URL START:</label>
-
-    <div class="col-sm-10">
-      <input type="url" class="form-control" id="url"
-             name="url"
-             placeholder="http://petstore.swagger.wordnik.com/api/api-docs"
-             required>
+        <p>This add-on let's you import Swagger v1.x and v2.0 api documentation</br>
+      </div>
     </div>
-  </div>
-  <div class="form-group">
-    <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
 
-    <div class="col-sm-10">
-      <input type="text" class="form-control" id="wsname"
-             placeholder="Petstore api documentation"
-             name="wsname" required>
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="headers" class="col-sm-2 control-label">Optional
-      headers (json)</label>
+    <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
-    <div class="col-sm-10">
-      <textarea id="headers" class="form-control" rows="3"
-                name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
- "x-custom-header": "Swagger-addon"}'></textarea>
-
-      <!--   <input type="text" class="form-control"  -->
-      <!--          placeholder="Petstore api documentation" -->
-      <!--          name="wsname" required> -->
-    </div>
-  </div>
-
-  <div id="fillerDiv">
-    <div class="form-group">
-      <label for="headers" class="col-sm-2 control-label">Optional
-        Swagger file</label>
-      
-      <div class="col-sm-10">
-        <textarea id="swag" class="form-control" rows="3"
-                  name="Swag" placeholder='{"Random filler text"}'></textarea>
+      <div class="form-group" id="selector">
+        <label for="version" class="col-sm-2 control-label">Swagger Version:</label>
+        <div class="col-sm-10">
+          <select id="version-check" class="form-control">
+            <option value="Sw1" selected="selected">Use url</option>
+            <option value="Sw2">Paste text -- (Not supported with Swagger v1.x)--</option>
+          </select> 
+        </div>
+      </div>
+      <div id="fillerDiv">
+        <div class="form-group">
+          <label for="headers" class="col-sm-2 control-label">Swagger text</label>
+          
+          <div class="col-sm-10">
+            <textarea id="swag" class="form-control" rows="3"
+                      name="Swag" placeholder='{ 
+  "swagger": "2.0",
+  ...}'></textarea>
           </div>
         </div>        
-  </div>
-  {{#org-set}}
-  <input type="hidden" name="org" value="{{org}}">
-  {{/org-set}}
+      </div>
+      <div id="urldiv">
+        <div class="form-group">
+          <label for="url" class="col-sm-2 control-label">URL:</label>
 
-  {{^org-set}}
-  <div class="form-group">
-    <label for="org" class="col-sm-2 control-label">Organization label:</label>
+          <div class="col-sm-10">
+            <input type="url" class="form-control" id="url"
+                   name="url"
+                   placeholder="http://petstore.swagger.wordnik.com/api/api-docs"
+                   required>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
 
-    <div class="col-sm-10">
-      <input type="text" class="form-control" id="org"
-             placeholder="Workspace name" name="org">
+        <div class="col-sm-10">
+          <input type="text" class="form-control" id="wsname"
+                 placeholder="Petstore api documentation"
+                 name="wsname" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="headers" class="col-sm-2 control-label">Optional
+          headers (json)</label>
+
+        <div class="col-sm-10">
+          <textarea id="headers" class="form-control" rows="3"
+                    name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
+                    "x-custom-header": "Swagger-addon"}'></textarea>
+
+          <!--   <input type="text" class="form-control"  -->
+          <!--          placeholder="Petstore api documentation" -->
+          <!--          name="wsname" required> -->
+        </div>
+      </div>
+
+      {{#org-set}}
+      <input type="hidden" name="org" value="{{org}}">
+      {{/org-set}}
+
+      {{^org-set}}
+      <div class="form-group">
+        <label for="org" class="col-sm-2 control-label">Organization label:</label>
+
+        <div class="col-sm-10">
+          <input type="text" class="form-control" id="org"
+                 placeholder="Workspace name" name="org">
+        </div>
+      </div>
+      {{/org-set}}
+      {{#token-set}}
+      <input type="hidden" name="token" value="{{token}}">
+      {{/token-set}}
+      {{^token-set}}
+      <div class="form-group">
+        <label for="token" class="col-sm-2 control-label">Api token:</label>
+
+        <div class="col-sm-10">
+          <input type="password" class="form-control" id="token"
+                 placeholder="Workspace name" name="token">
+        </div>
+      </div>
+      {{/token-set}}
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-primary">Import</button>
+        </div>
+      </div>
+    </form>
+    <div id="progress-dialog" style="display: none;">
+      <h4>Importing...</h4>
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-striped active"
+             role="progressbar" aria-valuenow="45" aria-valuemin="0"
+             aria-valuemax="100" style="width: 45%"><span class="sr-only">45%
+            Complete</span></div>
+      </div>
     </div>
-  </div>
-  {{/org-set}}
-  {{#token-set}}
-  <input type="hidden" name="token" value="{{token}}">
-  {{/token-set}}
-  {{^token-set}}
-  <div class="form-group">
-    <label for="token" class="col-sm-2 control-label">Api token:</label>
-
-    <div class="col-sm-10">
-      <input type="password" class="form-control" id="token"
-             placeholder="Workspace name" name="token">
+    <div id="error-dialog" class="alert alert-danger" role="alert" style="display: none;">
+      <p></p>
+      <button id="clear-form" class="btn btn-link">Back</button>
     </div>
-  </div>
-  {{/token-set}}
-  <div class="form-group">
-    <div class="col-sm-offset-2 col-sm-10">
-      <button type="submit" class="btn btn-primary">Import</button>
-    </div>
-  </div>
-</form>
-<div id="progress-dialog" style="display: none;">
-  <h4>Importing...</h4>
-
-  <div class="progress">
-    <div class="progress-bar progress-bar-striped active"
-         role="progressbar" aria-valuenow="45" aria-valuemin="0"
-         aria-valuemax="100" style="width: 45%"><span class="sr-only">45%
-        Complete</span></div>
-  </div>
-</div>
-<div id="error-dialog" class="alert alert-danger" role="alert" style="display: none;">
-  <p></p>
-  <button id="clear-form" class="btn btn-link">Back</button>
-</div>
 
 </div>
 
@@ -142,52 +144,50 @@
 <script>
   $(function() {
   var vers = "Sw1";
-  var imp = "/import/v1";
+  var imp = "/import";
   $("#fillerDiv").hide();
   $("#selector").change(function(){
-  console.log("Things got real");
   vers = $('option:selected', $(this)).val();
-  console.log(vers);
   if(vers == "Sw1") {
-    $("#fillerDiv").hide();
-    $("#swag").val("");
-    imp = "/import/v1";
+  $("#fillerDiv").hide();
+  $("#urldiv").show();
+  $("#swag").val("");
   } else {
   $("#fillerDiv").show();
-  imp = "/import/v2";
+  $("#urldiv").hide();
   }
   });
-    $("#clear-form").click(function() {
-      $("form").find("input#url, input#wsname, textarea").val("");
-      $("form").show();
-      $("#error-dialog").hide();
-      $("#progress-dialog").hide();
-    });
-    $("form#swagger").on("submit", function(e) {
-      e.preventDefault();
-      $("form").hide();
-      $("#progress-dialog").show();
-      $.ajax({
-        type: "POST",
+  $("#clear-form").click(function() {
+  $("form").find("input#url, input#wsname, textarea").val("");
+  $("form").show();
+  $("#error-dialog").hide();
+  $("#progress-dialog").hide();
+  });
+  $("form#swagger").on("submit", function(e) {
+  e.preventDefault();
+  $("form").hide();
+  $("#progress-dialog").show();
+  $.ajax({
+  type: "POST",
   
-        url: imp,
-        data: $("form#swagger").serialize(), // serializes the form's elements.
-        success: function(data) {
-          window.top.location.href = data;
-        },
-        error: function() {
-          $("#progress-dialog").hide();
-          $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
-        },
-        statusCode: {
-          406: function(msg) {
-            $("#progress-dialog").hide();
-            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
-          }
-        }
-      });
+  url: imp,
+  data: $("form#swagger").serialize(), // serializes the form's elements.
+  success: function(data) {
+  window.top.location.href = data;
+  },
+  error: function() {
+  $("#progress-dialog").hide();
+  $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
+  },
+  statusCode: {
+  406: function(msg) {
+  $("#progress-dialog").hide();
+  $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
+  }
+  }
+  });
 
-    })
+  })
   })
 </script>
 </body>

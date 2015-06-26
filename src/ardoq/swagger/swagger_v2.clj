@@ -64,16 +64,20 @@
   (assoc result :consumes (:consumes spec)))
 
 (defn parse-parameters [spec result]
-  ;;Copies the consumes data from spec into result
+  ;;Copies the parameters data from spec into result
   (assoc result :parameters (:parameters spec)))
 
 (defn parse-security [spec result]
-  ;;Copies the consumes data from spec into result
+  ;;Copies the security data from spec into result
   (assoc result :security (:security spec)))
 
 (defn parse-security-defs [spec result]
-  ;;Copies the consumes data from spec into result
-  (assoc result :securityDefinitions (:securityDefinitions spec)))
+  ;;Copies the security definitions data from spec into result
+  (assoc result :securityDefinitions (:securityDefinitions spec))
+
+(defn parse-tags [spec result]
+  ;;Copies the tags data from spec into result
+  (assoc result :tags (:tags spec))))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -217,7 +221,6 @@
                                :else "nil"))
                             return-models))
                (doall (keep (fn [k]        
-                              (clojure.pprint/pprint (first (first k)))
                               (if-let [m ((first (first k)) security)]
                                 (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
                                                           :source (str id)
@@ -310,25 +313,18 @@
         (parse-parameters spec)
         (parse-security spec)
         (parse-security-defs spec)
+        (parse-tags spec)
         (get-info client name)))
 
-(defn get-resource-listing [url headers]
-  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers headers :insecure? true})]
-    (println "\nResponse from " url "\n")
-    (if (= 200 status)
-      (parse-string body true)
-      (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
-
-(defn import-swagger2 [client base-url name headers swag]
-  (println "Importing swagger doc from " base-url ". Custom headers" headers)
-  (let [spec (if (s/blank? swag) (get-resource-listing base-url headers) swag)]
-    (get-data client spec name))
-  (println "Done importing swagger doc from " base-url "."))
+(defn import-swagger2 [client spec name]
+  (println "Doing swagger 2")
+  (get-data client spec name))
 
 
 ;; ISSUES
-;; Fix the description for params
+;; Fix the description for params and security-definitions
 ;; Handle arrays
 ;; Do security properly, including how we handle them further in than root
 ;; Support ref in operation
 ;; Import tags
+;; first first in create refs

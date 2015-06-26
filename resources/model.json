@@ -1,0 +1,131 @@
+{
+  "name": "Swagger 2.0",
+  "description": "",
+  "referenceTypes": {
+    "0": {
+      "lineEnding": "bothFilled",
+      "name": "Return value",
+      "svgStyle": "stroke: blue;",
+      "returnsValue": false,
+      "color": "blue",
+      "charLine": "=",
+      "id": 0,
+      "line": "solid"
+    },
+    "1": {
+      "lineEnding": "both",
+      "name": "Input parameter",
+      "svgStyle": "stroke: orange;stroke-dasharray:2",
+      "returnsValue": true,
+      "color": "orange",
+      "charLine": "-",
+      "id": 1,
+      "line": "dotted"
+    },
+    "2": {
+      "name": "Implicit",
+      "id": 2,
+      "line": "dashed",
+      "color": "red",
+      "lineEnding": "bothFilled",
+      "returnsValue": false,
+      "charLine": "_",
+      "svgStyle": "stroke: red;stroke-dasharray:10,5"
+    },
+    "3": {
+      "lineEnding": "top",
+      "name": "Submodel",
+      "svgStyle": "stroke: black;stroke-dasharray:10,5",
+      "returnsValue": false,
+      "color": "black",
+      "charLine": "+",
+      "id": 3,
+      "line": "dashed"
+    },
+    "4": {
+      "lineEnding": "top",
+      "name": "N/A",
+      "svgStyle": "stroke: gray;stroke-dasharray:10,5",
+      "returnsValue": false,
+      "color": "gray",
+      "charLine": "?",
+      "id": 4,
+      "line": "dashed"
+    }
+  },
+  "root": {
+    "p1401973684058": {
+      "name": "Resource",
+      "icon": "dashboard",
+      "defaults": {},
+      "children": {
+        "p1401973689425": {
+          "description": "description",
+          "children": {},
+          "color": "#872687",
+          "index": 1,
+          "canLinkTo": [
+            "p1401973674057",
+            "p1435242945287"
+          ],
+          "name": "Operation",
+          "icon": "wrench",
+          "defaults": {},
+          "level": 2,
+          "returnsValue": "true",
+          "id": "p1401973689425"
+        }
+      },
+      "color": "#545454",
+      "index": 1,
+      "description": "description",
+      "level": 1,
+      "returnsValue": false,
+      "id": "p1401973684058",
+      "canLinkTo": [
+        "p1435242653499"
+      ]
+    },
+    "p1401973674057": {
+      "description": "description",
+      "children": {},
+      "index": 2,
+      "canLinkTo": null,
+      "name": "Model",
+      "icon": "sitemap",
+      "defaults": {},
+      "level": 1,
+      "returnsValue": false,
+      "id": "p1401973674057"
+    },
+    "p1435242653499": {
+      "description": "",
+      "children": {},
+      "index": 3,
+      "canLinkTo": null,
+      "name": "Parameters",
+      "icon": "archive",
+      "defaults": {
+        "description": ""
+      },
+      "level": 1,
+      "returnsValue": false,
+      "id": "p1435242653499"
+    },
+    "p1435242945287": {
+      "description": "",
+      "children": {},
+      "index": 4,
+      "canLinkTo": null,
+      "name": "securityDefinitions",
+      "icon": "bell-alt",
+      "defaults": {
+        "description": ""
+      },
+      "level": 1,
+      "returnsValue": false,
+      "id": "p1435242945287"
+    }
+  }
+}
+

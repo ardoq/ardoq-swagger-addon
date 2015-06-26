@@ -187,11 +187,10 @@
         (urly/relative? u) (str (.mutatePath (urly/url-like url) (urly/path-of u)))))
     url))
 
-(defn import-swagger [client base-url name headers]
+(defn import-swagger [client resource-listing base-url name headers]
+  (println "Doing swagger 1")
   (binding [*custom-headers* headers]
-    (println "Importing swagger doc from " base-url ". Custom headers" *custom-headers*)
-    (let [resource-listing (get-resource-listing base-url)
-          url (resolve-url resource-listing base-url)
+    (let [url (resolve-url resource-listing base-url)
           model (find-or-create-model client)
           workspace (create-workspace client url base-url name model resource-listing)
           resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
@@ -205,6 +204,5 @@
                :operations operations
                :refs refs}]
       (find-or-create-fields client model)
-      (println "Done importing swagger doc from " base-url ".")
       (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
       (str (:_id workspace)))))
