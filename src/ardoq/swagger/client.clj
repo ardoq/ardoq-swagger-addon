@@ -26,7 +26,7 @@
   ArdoqResource
   (resource-path [_] "field"))
 
-(defrecord Tag [name description rootWorkspace component references]
+(defrecord Tag [name description rootWorkspace components references]
   ArdoqResource
   (resource-path [_] "tag"))
 
@@ -71,39 +71,39 @@
    "create"
    (into-array Object args)))
 
-(defn- coerce-response [resouce data]
-  (new-by-name (.getName (class resouce)) data))
+(defn- coerce-response [resource data]
+  (new-by-name (.getName (class resource)) data))
 
-(defn find-by-id [resouce client]
-  (let [url (str (:url client) "/api/" (resource-path resouce) "/" (:_id resouce))
+(defn find-by-id [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
         {:keys [status body]} @(http/get url (:options client))]
     (cond
-      (ok? status) (coerce-response resouce (json/read-json body true))
+      (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
-(defn find-all [resouce client]
-  (let [url (str (:url client) "/api/" (resource-path resouce))
+(defn find-all [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource))
         {:keys [status body]} @(http/get url (:options client))]
     (cond
-      (ok? status) (map (partial coerce-response resouce) (json/read-json body true))
+      (ok? status) (map (partial coerce-response resource) (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
-(defn create [resouce client]
-  (let [url (str (:url client) "/api/" (resource-path resouce))
-        {:keys [status body]} @(http/post url (assoc (:options client) :body (json/write-str resouce)))]
+(defn create [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource))
+        {:keys [status body]} @(http/post url (assoc (:options client) :body (json/write-str resource)))]
     (cond
-      (ok? status) (coerce-response resouce (json/read-json body true))
+      (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
-(defn update [resouce client]
-  (let [url (str (:url client) "/api/" (resource-path resouce) "/" (:_id resouce))
-        {:keys [status body]} @(http/put url (assoc (:options client) :body (json/write-str resouce)))]
+(defn update [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
+        {:keys [status body]} @(http/put url (assoc (:options client) :body (json/write-str resource)))]
     (cond
-      (ok? status) (coerce-response resouce (json/read-json body true))
+      (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
-(defn delete [resouce client]
-  (let [url (str (:url client) "/api/" (resource-path resouce) "/" (:_id resouce))
+(defn delete [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
         {:keys [status body]} @(http/delete url (:options client))]
     (if-not (ok? status)
       (throw (ex-info "client-exception" {:status status :body body})))))

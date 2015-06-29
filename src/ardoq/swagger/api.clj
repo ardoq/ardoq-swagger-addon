@@ -40,10 +40,13 @@
       true
       false))
 
+(def client (c/client {:url "http://127.0.0.1:8080"
+                       :token "2330f05eac3846f78a13b01930099b97"
+                       :org "ardoq"}))
+
 (defn get-spec [client url name headers swag]
   ;if swag is not null then use that as spec
   (let [spec (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
-    (clojure.pprint/pprint spec)
     (if (version2? spec)
       (swaggerv2/import-swagger2 client spec name)
       (swagger/import-swagger client spec url name headers)))

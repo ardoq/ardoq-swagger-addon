@@ -45,42 +45,34 @@
 
 (defn parse-info [spec result]
   ;;Copies the info data from spec into result
-  (assoc result :info (:info spec)))
+  (assoc result 
+    :info (:info spec)
+    :paths (:paths spec)
+    :definitions (:definitions spec)
+    :produces (:produces spec)
+    :consumes (:consumes spec)
+    :parameters (:parameters spec)
+    :security (:security spec)
+    :securityDefinitions (:securityDefinitions spec)
+    :tags (:tags spec)))
 
-(defn parse-paths [spec result]
-  ;;Copies the paths data from spec into result
-  (assoc result :paths (:paths spec)))
+(defn create-tags [client {:keys [tags]} wid]
+  (doall (reduce
+          (fn [acc {:keys [name description]}]
+            (assoc acc 
+              (api/->Tag name description wid [] [])))
+          {}
+          tags)))
 
-(defn parse-definitions [spec result]
-  ;;Copies the defenition data from spec into result
-  (assoc result :definitions (:definitions spec)))
-
-(defn parse-produces [spec result]
-  ;;Copies the produces data from spec into result
-  (assoc result :produces (:produces spec)))
-
-(defn parse-consumes [spec result]
-  ;;Copies the consumes data from spec into result
-  (assoc result :consumes (:consumes spec)))
-
-(defn parse-parameters [spec result]
-  ;;Copies the parameters data from spec into result
-  (assoc result :parameters (:parameters spec)))
-
-(defn parse-security [spec result]
-  ;;Copies the security data from spec into result
-  (assoc result :security (:security spec)))
-
-(defn parse-security-defs [spec result]
-  ;;Copies the security definitions data from spec into result
-  (assoc result :securityDefinitions (:securityDefinitions spec)))
-
-(defn parse-tags [spec result]
-  ;;Copies the tags data from spec into result
-  (assoc result :tags (:tags spec)))
-
-
-(defn create-tags [spec])
+(defn find-or-create-tag [client tag wid op tags]
+  (doall (map (fn [name]
+                ;;Check if the tag excists, otherwise we create it
+                (if (get (deref tags) name)
+                  (swap! tags (fn [old]
+                                (update-in old [name :components] conj (get-in op [:_id]))))
+                  (swap! tags (fn [old]
+                                (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] []))))))
+              tag)))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -112,15 +104,14 @@
    (tpl/render-resource "operationTemplate.tpl" data)
    models))
 
-(defn create-ops [client model models wid parent _id methods]
+(defn create-ops [client model models wid parent _id methods tags]
   (keep
-   (fn [[method {parameters :parameters response :responses security :security :as data}]]
-;     (clojure.pprint/pprint security)
+   (fn [[method {parameters :parameters response :responses security :security tag :tags :as data}]]
      (if (not (= method (keyword "parameters")))
        (let [type (doall (map (fn [[_ v]]
                                 (get-in v [:schema]))
-                                     response))]
-                (-> (api/map->Component {:name (name method) 
+                              response))
+             op (-> (api/map->Component {:name (name method) 
                                          :description (generate-operation-description data models) 
                                          :rootWorkspace (str wid) 
                                          :model _id 
@@ -130,13 +121,15 @@
                     (api/create client) 
                     (assoc :return-model type
                            :input-models parameters
-                           :security security)))))
+                           :security security))]
+         (find-or-create-tag client tag wid op tags)
+         op)))
    methods))
 
-(defn create-methods [client model models wid _id path spec {:keys [component]} methods] 
+(defn create-methods [client model models wid _id path spec {:keys [component]} methods tags] 
   ;; Used to create all methods for the resources and links them with the parent
   (update-comp client component spec)
-  (create-ops client model models wid component _id methods))
+  (create-ops client model models wid component _id methods tags))
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]
@@ -279,7 +272,7 @@
     (-> (create-param-model wid _id parameters description model)
         (save-models client))))
 
-(defn create-resource [client {:keys [paths definitions] :as spec} defs params secur workspace]
+(defn create-resource [client {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
@@ -290,34 +283,35 @@
                                  :parameters parameters
                                  :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                                 (api/create client))})
-                  operations (create-methods client model defs wid _id path spec parent methods)]
+                  operations (create-methods client model defs wid _id path spec parent methods tags)]
               (create-resource-refs client parent params)
               (create-refs client operations defs secur)))
           paths))
     (interdependent-model-refs client defs)
     (find-or-create-fields client model)))
 
+(defn update-tags [client tags]
+  (clojure.pprint/pprint tags)
+  (doall (map 
+          (fn [[_ tag]]
+            (api/create tag client))
+          tags)))
+
 (defn get-info [client name spec]
   ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
   (let [workspace (create-workspace name client spec)
         defs (create-defs client spec workspace)
         params (create-params client spec workspace)
-        secur (create-security-defs client spec workspace)] 
-    (create-resource client spec defs params secur workspace)))
+        secur (create-security-defs client spec workspace)
+        tags-cache (atom (create-tags client spec (:_id workspace)))] 
+    (create-resource client spec defs params secur tags-cache workspace)
+    (update-tags client @tags-cache)))
 
 
 (defn get-data [client spec name]
   ;;Extracts data from a given Swagger file into an emtpy object
    (->> {}
         (parse-info spec)
-        (parse-paths spec)
-        (parse-definitions spec)
-        (parse-produces spec)
-        (parse-consumes spec)
-        (parse-parameters spec)
-        (parse-security spec)
-        (parse-security-defs spec)
-        (parse-tags spec)
         (get-info client name)))
 
 (defn import-swagger2 [client spec name]
@@ -327,7 +321,4 @@
 
 ;; ISSUES
 ;; Fix the description for params and security-definitions
-;; Do security properly, including how we handle them further in than root
-;; Support ref in operation
-;; Import tags
 ;; first first in create refs
