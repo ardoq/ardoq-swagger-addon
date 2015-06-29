@@ -73,11 +73,14 @@
 
 (defn parse-security-defs [spec result]
   ;;Copies the security definitions data from spec into result
-  (assoc result :securityDefinitions (:securityDefinitions spec))
+  (assoc result :securityDefinitions (:securityDefinitions spec)))
 
 (defn parse-tags [spec result]
   ;;Copies the tags data from spec into result
-  (assoc result :tags (:tags spec))))
+  (assoc result :tags (:tags spec)))
+
+
+(defn create-tags [spec])
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -112,7 +115,7 @@
 (defn create-ops [client model models wid parent _id methods]
   (keep
    (fn [[method {parameters :parameters response :responses security :security :as data}]]
-     ;(clojure.pprint/pprint security)
+;     (clojure.pprint/pprint security)
      (if (not (= method (keyword "parameters")))
        (let [type (doall (map (fn [[_ v]]
                                 (get-in v [:schema]))
@@ -166,7 +169,6 @@
   (if (seq? keys)
     (doall (map (fn [ref]
                   (let [ref (.split ref "/")
-                        t (second ref)
                         k (keyword (last ref))]
                     (if-let [m (k models)]
                       (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
@@ -176,7 +178,6 @@
                           (api/create client)))))
                 keys))
     (let [ref (.split keys "/")
-          t (second ref)
           k (keyword (last ref))]
       (if-let [m (k models)]
         (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
@@ -198,7 +199,8 @@
                                             :type 1})
                       (api/create client)))))
             parameters))))
-;558d32d744aec659875c3b31
+
+
 (defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
   (concat (mapcat
@@ -208,11 +210,13 @@
                    secur (set secur)]
                (let [input-refs 
                      (doall (keep (fn [k]
-                                    (cond 
-                                     (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 1)
-                                     (get-in k [:type])  (create-ref client (get-in k [:type]) models comp id 1)
-                                     :else "nil")                  
-                                    )
+                                    (let [nest-key (find-nested-model-deps k)]
+                                      (cond                                        
+                                       (seq nest-key)
+                                       (create-ref client nest-key models comp id 1)
+                                       (get-in k [:type])
+                                       (create-ref client (get-in k [:type]) models comp id 1)
+                                       :else "nil")))
                                   input-models))])
                (doall (keep (fn [k]
                               (cond 
@@ -317,13 +321,12 @@
         (get-info client name)))
 
 (defn import-swagger2 [client spec name]
-  (println "Doing swagger 2")
   (get-data client spec name))
+
 
 
 ;; ISSUES
 ;; Fix the description for params and security-definitions
-;; Handle arrays
 ;; Do security properly, including how we handle them further in than root
 ;; Support ref in operation
 ;; Import tags

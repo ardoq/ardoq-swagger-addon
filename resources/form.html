@@ -30,25 +30,16 @@
     <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
       <div class="form-group" id="selector">
-        <label for="version" class="col-sm-2 control-label">Swagger Version:</label>
-        <div class="col-sm-10">
-          <select id="version-check" class="form-control">
+        <div class="col-sm-4 checkbox">
+          <label for="version" class="col-sm-10 control-label"> 
+            <input type="checkbox" id="Boxer"> 
+            Paste source code?
+          </label>
+        <!--  <select id="version-check" class="form-control">
             <option value="Sw1" selected="selected">Use url</option>
             <option value="Sw2">Paste text -- (Not supported with Swagger v1.x)--</option>
-          </select> 
+          </select> -->
         </div>
-      </div>
-      <div id="fillerDiv">
-        <div class="form-group">
-          <label for="headers" class="col-sm-2 control-label">Swagger text</label>
-          
-          <div class="col-sm-10">
-            <textarea id="swag" class="form-control" rows="3"
-                      name="Swag" placeholder='{ 
-  "swagger": "2.0",
-  ...}'></textarea>
-          </div>
-        </div>        
       </div>
       <div id="urldiv">
         <div class="form-group">
@@ -84,6 +75,18 @@
           <!--          placeholder="Petstore api documentation" -->
           <!--          name="wsname" required> -->
         </div>
+      </div>
+      <div id="fillerDiv">
+        <div class="form-group">
+          <label for="headers" class="col-sm-2 control-label">Swagger text</label>
+          
+          <div class="col-sm-10">
+            <textarea id="swag" class="form-control" rows="3"
+                      name="swag" placeholder='{ 
+  "swagger": "2.0",
+  ...}'></textarea>
+          </div>
+        </div>        
       </div>
 
       {{#org-set}}
@@ -143,18 +146,22 @@
 
 <script>
   $(function() {
-    var vers = "Sw1";
+    var vers = true;
     var imp = "/import";
     $("#fillerDiv").hide();
     $("#selector").change(function(){
-      vers = $('option:selected', $(this)).val();
-      if(vers == "Sw1") {
+      vers = $("#Boxer").is(':checked');
+      if(!vers) {
         $("#fillerDiv").hide();
         $("#urldiv").show();
+        $("#url").prop('required', true);
+        $("#swag").prop('required', false);
         $("#swag").val("");
       } else {
         $("#fillerDiv").show();
         $("#urldiv").hide();
+        $("#url").prop('required', false);
+        $("#swag").prop('required', true);
       }
     });
     $("#clear-form").click(function() {

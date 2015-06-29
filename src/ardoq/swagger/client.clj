@@ -26,6 +26,10 @@
   ArdoqResource
   (resource-path [_] "field"))
 
+(defrecord Tag [name description rootWorkspace component references]
+  ArdoqResource
+  (resource-path [_] "tag"))
+
 (defn- to-component-type-map
   "Takes the root of a model and flattens it returning a typeId->type-map map"
   [model]

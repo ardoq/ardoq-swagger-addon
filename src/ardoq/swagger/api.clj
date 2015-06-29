@@ -42,7 +42,8 @@
 
 (defn get-spec [client url name headers swag]
   ;if swag is not null then use that as spec
-  (let [spec( if false swag (get-resource-listing url headers))]
+  (let [spec (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
+    (clojure.pprint/pprint spec)
     (if (version2? spec)
       (swaggerv2/import-swagger2 client spec name)
       (swagger/import-swagger client spec url name headers)))
@@ -57,7 +58,7 @@
                                           :token token}))
 
    ;(POST "/import")
-   (POST "/import" {{:strs [url token org wsname headers] :as params} :form-params}
+   (POST "/import" {{:strs [url token org wsname headers swag] :as params} :form-params}
          (try
            (let [wid (get-spec (c/client {:url (:base-url config)
                                                         :org org
@@ -65,7 +66,7 @@
                                              url
                                              wsname
                                              (read-headers headers)
-                                             "")]
+                                             swag)]
              (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
            (catch com.fasterxml.jackson.core.JsonParseException e
              (.printStackTrace e)
