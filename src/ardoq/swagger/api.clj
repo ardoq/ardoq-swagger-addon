@@ -10,7 +10,7 @@
             [cheshire.core :refer [generate-string parse-string]]
             [clostache.parser :as tpl]
             [hiccup.core :refer [html]]
-            [org.httpkit.client :as http]
+            [clj-http.client :as http]
             [hiccup.form :refer [form-to submit-button text-field label hidden-field]]
             [compojure.route :as route]))
 
@@ -29,7 +29,7 @@
 
 (defn get-resource-listing [url headers]
   (println "Importing swagger doc from " url ". Custom headers" headers)
-  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers headers :insecure? true})]
+  (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers headers :insecure? true})]
     (println "\nResponse from " url "\n")
     (if (= 200 status)
       (parse-string body true)
@@ -40,6 +40,8 @@
       true
       false))
 
+
+;;TODO Remove upon launch
 (def client (c/client {:url "http://127.0.0.1:8080"
                        :token "2330f05eac3846f78a13b01930099b97"
                        :org "ardoq"}))

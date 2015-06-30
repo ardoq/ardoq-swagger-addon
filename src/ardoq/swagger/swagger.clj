@@ -6,7 +6,7 @@
             [clojurewerkz.urly.core :as urly]
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]
-            [org.httpkit.client :as http]))
+            [clj-http.client :as http]))
 
 (def ^:dynamic *custom-headers* {})
 
@@ -61,7 +61,7 @@
         (api/create  client))))
 
 (defn get-resource-listing [url]
-  (let [{:keys [status body] :as resp} @(http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
+  (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
     (println "\nResponse from " url "\n")
     (if (= 200 status)
       (parse-string body true)

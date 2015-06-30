@@ -1,5 +1,5 @@
 (ns ardoq.swagger.client
-  (:require [org.httpkit.client :as http]
+  (:require [clj-http.client :as http]
             [clojure.data.json :as json]))
 
 
@@ -76,34 +76,34 @@
 
 (defn find-by-id [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
-        {:keys [status body]} @(http/get url (:options client))]
+        {:keys [status body]} (http/get url (:options client))]
     (cond
       (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn find-all [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource))
-        {:keys [status body]} @(http/get url (:options client))]
+        {:keys [status body]} (http/get url (:options client))]
     (cond
       (ok? status) (map (partial coerce-response resource) (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn create [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource))
-        {:keys [status body]} @(http/post url (assoc (:options client) :body (json/write-str resource)))]
+        {:keys [status body]} (http/post url (assoc (:options client) :body (json/write-str resource)))]
     (cond
       (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn update [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
-        {:keys [status body]} @(http/put url (assoc (:options client) :body (json/write-str resource)))]
+        {:keys [status body]} (http/put url (assoc (:options client) :body (json/write-str resource)))]
     (cond
       (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn delete [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
-        {:keys [status body]} @(http/delete url (:options client))]
+        {:keys [status body]} (http/delete url (:options client))]
     (if-not (ok? status)
       (throw (ex-info "client-exception" {:status status :body body})))))
