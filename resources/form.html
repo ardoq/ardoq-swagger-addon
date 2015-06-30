@@ -31,17 +31,10 @@
 
       <div class="form-group" id="selector">
         <div class="col-sm-offset-2 col-sm-10">
-          <button class="btn btn-danger" id="Boxer">
+          <button class="btn btn-primary disabled" id="Boxer">
             Paste spec
             </button>
-</div>
-
-        <!--<div class="col-sm-4 checkbox">
-          <label for="version" class="col-sm-10 control-label"> 
-            <input type="checkbox" id="Boxer"> 
-            Paste source code?
-          </label>
-        </div>-->
+        </div>
       </div>
       <div id="urldiv">
         <div class="form-group">
@@ -162,7 +155,7 @@
         $("#url").prop('required', true);
         $("#swag").prop('required', false);
         $("#swag").val("");
-        $("#Boxer").removeClass("btn-success").addClass("btn-danger");
+        $("#Boxer").addClass("disabled")
         vers = true;
       } else {
         $("#fillerDiv").show();
@@ -172,7 +165,7 @@
         $("#swag").prop('required', true);
         $("#url").val("");
         $("#headers").val("");
-        $("#Boxer").removeClass("btn-danger").addClass("btn-success");
+        $("#Boxer").removeClass("disabled");
         vers = false;
       }
     });
