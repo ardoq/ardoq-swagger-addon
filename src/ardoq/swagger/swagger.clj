@@ -1,5 +1,6 @@
 (ns ardoq.swagger.swagger
   (:require [ardoq.swagger.client :as api]
+            [ardoq.swagger.common :as common]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -25,29 +26,6 @@
     (.replaceAll "[<\u003c]" "&lt;")
     (.replaceAll "[>\u003e]" "&gt;")))
 
-(defn find-or-create-model [client]
-  (if-let [model (first (filter #(= "Swagger" (:name %)) (api/find-all (api/map->Model {}) client)))]
-    model
-    (-> (api/map->Model (parse-string (slurp (io/resource "modelv1.json")) true))
-        (api/create client))))
-
-(defn- field-exists? [client field-name {:keys [_id] :as model}]
-  (not (empty? (filter
-                (fn [{:keys [name model]}]
-                  (and (= name field-name)
-                       (= model (str _id))))
-                (api/find-all (api/map->Field {}) client)))))
-
-(defn find-or-create-fields [client {model-id :_id :as model}]
-  (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(api/type-id-by-name model "Operation")])
-        (api/create client)))
-  (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
-        (api/create client)))
-  (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
-        (api/create client))))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -84,28 +62,11 @@
      {}
      (:models api-declaration))))
 
-(defn save-models [models client]
-  (map-vals #(let [schema (:schema %)]
-               (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
-
-(defn update-comp [client component {:keys [produces consumes]}]
-   (api/update 
-   (cond-> (api/map->Component component)
-     produces (assoc :produces produces)
-     consumes (assoc :consumes consumes)) client))
-
-(defn generate-operation-descripiton [data models]
-  (reduce
-   (fn [description [model-id {:keys [_id] :as model}]]
-     (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
-   (tpl/render-resource "operationTemplate.tpl" data)
-   models))
-
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
      (-> (api/map->Component {:name (str method " " path)
-                              :description (generate-operation-descripiton data models)
+                              :description (common/generate-operation-description data models)
                               :rootWorkspace (str wid)
                               :model model-id
                               :parent (str (:_id parent))
@@ -119,7 +80,7 @@
 (defn create-api [client base-url workspace model models {:keys [resource component]}]
   (let [url (str base-url (:path resource))
         api-declaration (get-resource-listing url)]
-    (update-comp client component api-declaration)
+    (common/update-comp client component api-declaration)
     (mapcat (partial create-operations client workspace component model models) (:apis api-declaration))))
 
 (defn find-nested-model-deps [model]
@@ -139,19 +100,20 @@
           (keys-in model))))
 
 (defn interdependent-model-refs [client models]
-  (mapcat
-   (fn [model]
-     (let [rrr (find-nested-model-deps (:schema model))]
-       (keep
-        (fn [model-key]
-          (if-let [m ((keyword model-key) models)]
-            (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
-                                     :source (str (:_id model))
-                                     :target (str (:_id m))
-                                     :type 3})
-                (api/create client))))
-        rrr)))
-   (vals models)))
+  ;;Creates refs between models
+  (doall (mapcat
+          (fn [model]
+            (let [rrr (find-nested-model-deps model)]
+              (doall (keep
+                      (fn [model-key]
+                        (if-let [m ((keyword model-key) models)]
+                          (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
+                                                   :source (str (:_id model))
+                                                   :target (str (:_id m))
+                                                   :type 3})
+                              (api/create client))))
+                      rrr))))
+          (vals models))))
 
 (defn create-refs [client operations models]
   (concat (mapcat
@@ -189,11 +151,11 @@
   (println "Doing swagger 1")
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
-          model (find-or-create-model client)
+          model (common/find-or-create-model client "Swagger")
           workspace (create-workspace client url base-url name model resource-listing)
           resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
           models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
-                            (save-models client)))
+                            (common/save-models client)))
           operations (doall (mapcat (partial create-api client url workspace model models) resources))
           refs (doall (create-refs client operations models))
           all {:workspace workspace
@@ -201,6 +163,6 @@
                :models models
                :operations operations
                :refs refs}]
-      (find-or-create-fields client model)
+      (common/find-or-create-fields client model)
       (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
       (str (:_id workspace)))))

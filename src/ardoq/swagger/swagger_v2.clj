@@ -1,39 +1,15 @@
 (ns ardoq.swagger.swagger-v2
   (:require [ardoq.swagger.client :as api]
+            [ardoq.swagger.common :as common]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]))
 
-(defn- field-exists? [client field-name {:keys [_id] :as model}]
-  (not (empty? (filter
-                (fn [{:keys [name model]}]
-                  (and (= name field-name)
-                       (= model (str _id))))
-                (api/find-all (api/map->Field {}) client)))))
-
-(defn find-or-create-fields [client {model-id :_id :as model}]
-  (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(api/type-id-by-name model "Operation")])
-        (api/create client)))
-  (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
-        (api/create client)))
-  (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
-        (api/create client))))
-
-(defn find-or-create-model [client]
-  ;; Finds the model required for all details. If not found, creates a new one
-  (if-let [model (first (filter #(= "Swagger 2.0" (:name %)) (api/find-all (api/map->Model {}) client)))]
-    model
-    (-> (api/map->Model (parse-string (slurp (io/resource "modelv2.json")) true))
-        (api/create client))))
-
 (defn create-workspace [title client {:keys [info] :as data}]
   ;; Creates a new workspace in the client. 
-  (let [{:keys [_id]} (find-or-create-model client)
+  (let [{:keys [_id]} (common/find-or-create-model client "Swagger 2.0")
         name (or title (:title info))] 
     (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name)) _id)
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
@@ -85,21 +61,6 @@
    {}
    definitions))
 
-(defn update-comp [client component {:keys [produces consumes]}]
-  ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
-  (api/update 
-   (cond-> (api/map->Component component)
-     produces (assoc :produces produces)
-     consumes (assoc :consumes consumes)) client))
-
-(defn generate-operation-description [data models]
-
-  (reduce
-   (fn [description [model-id {:keys [_id] :as model}]]
-     (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
-   (tpl/render-resource "operationTemplate.tpl" data)
-   models))
-
 (defn create-ops [client model models wid parent _id methods tags]
   (keep
    (fn [[method {parameters :parameters response :responses security :security tag :tags :as data}]]
@@ -108,7 +69,7 @@
                                 (get-in v [:schema]))
                               response))
              op (-> (api/map->Component {:name (name method) 
-                                         :description (generate-operation-description data models) 
+                                         :description (common/generate-operation-description data models) 
                                          :rootWorkspace (str wid) 
                                          :model _id 
                                          :parent (:_id parent) 
@@ -124,12 +85,8 @@
 
 (defn create-methods [client model models wid _id path spec {:keys [component]} methods tags] 
   ;; Used to create all methods for the resources and links them with the parent
-  (update-comp client component spec)
+  (common/update-comp client component spec)
   (create-ops client model models wid component _id methods tags))
-
-(defn save-models [models client]
-  (map-vals #(let [schema (:schema %)]
-               (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
 
 (defn find-nested-model-deps [model]
   ;;Finds all references in a given model
@@ -187,45 +144,54 @@
                                    :type 1})
               (api/create client)))))))
 
+(defn create-input-refs [client input-models models comp id]
+  (doall (keep (fn [k]
+                 (let [nest-key (find-nested-model-deps k)]
+                   (cond
+                    (seq nest-key)
+                    (create-ref client nest-key models comp id 1)
+                    (get-in k [:type])
+                    (create-ref client (get-in k [:type]) models comp id 1)
+                    :else "nil")))
+               input-models)))
+
+(defn create-return-refs [client return-models models comp id]
+  (doall (keep (fn [k]
+                 (cond 
+                  (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
+                  (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
+                  :else "nil"))
+               return-models)))
+
+(defn create-security-refs [client securities security models comp id]
+  (doall (keep (fn [k]        
+                 (if-let [m ((first (first k)) security)]
+                   (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                             :source (str id)
+                                             :target (str(:_id m))
+                                             :type 1})
+                       (api/create client))))
+               securities)))
+
 (defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
   (mapcat
-   (fn [{input-models :input-models return-models :return-model secur :security id :_id :as comp}]
+   (fn [{input-models :input-models return-models :return-model securities :security id :_id :as comp}]
      (let [input-models (set input-models)
            return-models (set return-models)
-           secur (set secur)]
-       (doall (keep (fn [k]
-                      (let [nest-key (find-nested-model-deps k)]
-                        (cond
-                         (seq nest-key)
-                         (create-ref client nest-key models comp id 1)
-                         (get-in k [:type])
-                         (create-ref client (get-in k [:type]) models comp id 1)
-                         :else "nil")))
-                    input-models))
-       (doall (keep (fn [k]
-                      (cond 
-                       (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
-                       (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
-                       :else "nil"))
-                    return-models))
-       (doall (keep (fn [k]        
-                      (if-let [m ((first (first k)) security)]
-                        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
-                                                  :source (str id)
-                                                  :target (str(:_id m))
-                                                  :type 1})
-                            (api/create client))))
-                    secur))))
+           securities (set securities)]
+       (create-input-refs client input-models models comp id)
+       (create-return-refs client return-models models comp id)
+       (create-security-refs client securities security models comp id)))
    operations))
 
 (defn create-defs [client {:keys [paths] :as spec}  workspace]
   ;; Creates the models
-  (let [model (find-or-create-model client)
+  (let [model (common/find-or-create-model client "Swagger 2.0")
         {:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-models model wid _id paths spec)
-        (save-models client))))
+        (common/save-models client))))
 
 (defn generate-param-description[data]
   (tpl/render-resource "globalTemplate.tpl" data))
@@ -254,22 +220,22 @@
    sec-defs))
 
 (defn create-security-defs [client {:keys [securityDefinitions] :as spec} workspace]
-  (let [model (find-or-create-model client)
+  (let [model (common/find-or-create-model client "Swagger 2.0")
         {:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-security model wid _id securityDefinitions description)
-        (save-models client))))
+        (common/save-models client))))
 
 (defn create-params [client {:keys [parameters] :as spec} workspace]
-  (let [model (find-or-create-model client)
+  (let [model (common/find-or-create-model client "Swagger 2.0")
         {:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-param-model wid _id parameters description model)
-        (save-models client))))
+        (common/save-models client))))
 
 (defn create-resource [client {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
-  (let [model (find-or-create-model client)
+  (let [model (common/find-or-create-model client "Swagger 2.0")
         {:keys [_id description]} model
         wid (:_id workspace)]
     (doseq [[path {:keys [parameters] :as methods}] paths]
@@ -281,7 +247,7 @@
         (create-resource-refs client parent params)
         (create-refs client operations defs secur)))
     (interdependent-model-refs client defs)
-    (find-or-create-fields client model)))
+    (common/find-or-create-fields client model)))
 
 (defn update-tags [client tags]
   (doseq
@@ -307,7 +273,3 @@
 
 (defn import-swagger2 [client spec name]
   (get-data client spec name))
-
-;; ISSUES
-;; first first in create refs
-;; Cleanup
