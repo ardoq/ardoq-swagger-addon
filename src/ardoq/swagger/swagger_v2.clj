@@ -1,14 +1,10 @@
 (ns ardoq.swagger.swagger-v2
-  (:import [java.net URI URL])
-  (:require
-   [ardoq.swagger.client :as api]
-   [clojurewerkz.urly.core :as urly]
-   [org.httpkit.client :as http]
-   [clostache.parser :as tpl]
-   [clojure.java.io :as io]
-   [cheshire.core :refer [generate-string parse-string]]
-   [clojure.string :as s]
-   [medley.core :refer [map-vals]]))
+  (:require [ardoq.swagger.client :as api]
+            [cheshire.core :refer [generate-string parse-string]]
+            [clojure.java.io :as io]
+            [clojure.string :as s]
+            [clostache.parser :as tpl]
+            [medley.core :refer [map-vals]]))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (not (empty? (filter
@@ -34,7 +30,7 @@
     model
     (-> (api/map->Model (parse-string (slurp (io/resource "modelv2.json")) true))
         (api/create client))))
-  
+
 (defn create-workspace [title client {:keys [info] :as data}]
   ;; Creates a new workspace in the client. 
   (let [{:keys [_id]} (find-or-create-model client)
@@ -46,21 +42,20 @@
 (defn parse-info [spec result]
   ;;Copies the info data from spec into result
   (assoc result 
-    :info (:info spec)
-    :paths (:paths spec)
-    :definitions (:definitions spec)
-    :produces (:produces spec)
-    :consumes (:consumes spec)
-    :parameters (:parameters spec)
-    :security (:security spec)
-    :securityDefinitions (:securityDefinitions spec)
-    :tags (:tags spec)))
+         :info (:info spec)
+         :paths (:paths spec)
+         :definitions (:definitions spec)
+         :produces (:produces spec)
+         :consumes (:consumes spec)
+         :parameters (:parameters spec)
+         :security (:security spec)
+         :securityDefinitions (:securityDefinitions spec)
+         :tags (:tags spec)))
 
 (defn create-tags [client {:keys [tags]} wid]
   (doall (reduce
           (fn [acc {:keys [name description]}]
-            (assoc acc 
-              (api/->Tag name description wid [] [])))
+            (assoc acc name (api/->Tag name description wid [] [])))
           {}
           tags)))
 
@@ -82,20 +77,20 @@
 (defn create-models [model wid _id path {:keys [definitions]}]
   ;;Creates links between components
   (reduce
-      (fn [acc [type schema]]
-        (assoc acc (keyword type)
-               (assoc
-                   (api/->Component type (model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
-                 :schema schema)))
-      {}
-       definitions))
+   (fn [acc [type schema]]
+     (assoc acc (keyword type)
+            (assoc
+             (api/->Component type (model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
+             :schema schema)))
+   {}
+   definitions))
 
 (defn update-comp [client component {:keys [produces consumes]}]
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
   (api/update 
    (cond-> (api/map->Component component)
-           produces (assoc :produces produces)
-           consumes (assoc :consumes consumes)) client))
+     produces (assoc :produces produces)
+     consumes (assoc :consumes consumes)) client))
 
 (defn generate-operation-description [data models]
 
@@ -140,7 +135,7 @@
   ;;Finds all references in a given model
   (map (fn [v]
          (last (.split v "/")))
-   (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
+       (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
   ;;Creates refs between models
@@ -183,39 +178,40 @@
 (defn create-resource-refs [client {:keys [parameters] :as resource} params]
   (let [wid (get-in resource [:component :rootWorkspace])
         _id (get-in resource [:component :_id])]
+    ;; TODO: doseq?
     (doall (map
             (fn [{:keys [$ref]}]
               (let [k (keyword (last (.split $ref "/")))]
                 (if-let [m (k params)]
                   (-> (api/map->Reference {:rootWorkspace wid
-                                            :source (str _id)
-                                            :target (str(:_id m))
-                                            :type 1})
+                                           :source (str _id)
+                                           :target (str(:_id m))
+                                           :type 1})
                       (api/create client)))))
             parameters))))
 
 (defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
+  ;; TODO: Can we remove concat? 
   (concat (mapcat
            (fn [{input-models :input-models return-models :return-model secur :security id :_id :as comp}]
              (let [input-models (set input-models)
                    return-models (set return-models)
                    secur (set secur)]
-               (let [input-refs 
-                     (doall (keep (fn [k]
-                                    (let [nest-key (find-nested-model-deps k)]
-                                      (cond                                        
-                                       (seq nest-key)
-                                       (create-ref client nest-key models comp id 1)
-                                       (get-in k [:type])
-                                       (create-ref client (get-in k [:type]) models comp id 1)
-                                       :else "nil")))
-                                  input-models))])
+               (doall (keep (fn [k]
+                              (let [nest-key (find-nested-model-deps k)]
+                                (cond
+                                  (seq nest-key)
+                                  (create-ref client nest-key models comp id 1)
+                                  (get-in k [:type])
+                                  (create-ref client (get-in k [:type]) models comp id 1)
+                                  :else "nil")))
+                            input-models))
                (doall (keep (fn [k]
                               (cond 
-                               (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
-                               (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
-                               :else "nil"))
+                                (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
+                                (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
+                                :else "nil"))
                             return-models))
                (doall (keep (fn [k]        
                               (if-let [m ((first (first k)) security)]
@@ -236,11 +232,13 @@
         (save-models client))))
 
 (defn generate-param-description[data]
+  ;;TODO: fix
   (clojure.pprint/pprint "NEW PRINT")
   (clojure.pprint/pprint data)
   (tpl/render-resource "globalTemplate.tpl" data))
 
 (defn generate-security-description[data]
+  ;;TODO: fix
   (clojure.pprint/pprint "NEW PRINT")
   (clojure.pprint/pprint data)
   (tpl/render-resource "securityTemplate.tpl" data))
@@ -250,27 +248,27 @@
    (fn [acc [param schema]]
      (assoc acc (keyword param)
             (assoc
-                (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
-              :schema schema)))
+             (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+             :schema schema)))
    {}
    parameters))
 
-(defn create-secur [model wid _id sec-defs description]
+(defn create-security [model wid _id sec-defs description]
   (reduce
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-                (api/->Component sec (generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
-              :schema schema)))
+             (api/->Component sec (generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+             :schema schema)))
    {}
    sec-defs))
 
 (defn create-security-defs [client {:keys [securityDefinitions] :as spec} workspace]
-    (let [model (find-or-create-model client)
+  (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
-      (-> (create-secur model wid _id securityDefinitions description)
-          (save-models client))))
+    (-> (create-security model wid _id securityDefinitions description)
+        (save-models client))))
 
 (defn create-params [client {:keys [parameters] :as spec} workspace]
   (let [model (find-or-create-model client)
@@ -284,6 +282,7 @@
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
+    ;;TODO: use doseq instaed - don't really care about the result, only for side-effect
     (doall
      (map (fn [[path {:keys [parameters] :as methods}]]
             (let [parent (doall {:resource path
@@ -298,13 +297,15 @@
     (find-or-create-fields client model)))
 
 (defn update-tags [client tags]
-  (doall (map 
-          (fn [[_ tag]]
-            (api/create tag client))
-          tags)))
+  ;;TODO: doseq?
+  (doall
+   (map 
+    (fn [[_ tag]]
+      (api/create tag client))
+    tags)))
 
 (defn get-info [client name spec]
-  ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
+                                        ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
   (let [workspace (create-workspace name client spec)
         defs (create-defs client spec workspace)
         params (create-params client spec workspace)
@@ -316,9 +317,9 @@
 
 (defn get-data [client spec name]
   ;;Extracts data from a given Swagger file into an emtpy object
-   (->> {}
-        (parse-info spec)
-        (get-info client name)))
+  (->> {}
+       (parse-info spec)
+       (get-info client name)))
 
 (defn import-swagger2 [client spec name]
   (get-data client spec name))

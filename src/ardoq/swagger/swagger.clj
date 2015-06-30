@@ -1,14 +1,12 @@
 (ns ardoq.swagger.swagger
-  (:import [java.net URI URL])
-  (:require
-   [ardoq.swagger.client :as api]
-   [clojurewerkz.urly.core :as urly]
-   [org.httpkit.client :as http]
-   [clostache.parser :as tpl]
-   [clojure.java.io :as io]
-   [cheshire.core :refer [generate-string parse-string]]
-   [clojure.string :as s]
-   [medley.core :refer [map-vals]]))
+  (:require [ardoq.swagger.client :as api]
+            [cheshire.core :refer [generate-string parse-string]]
+            [clojure.java.io :as io]
+            [clojure.string :as s]
+            [clojurewerkz.urly.core :as urly]
+            [clostache.parser :as tpl]
+            [medley.core :refer [map-vals]]
+            [org.httpkit.client :as http]))
 
 (def ^:dynamic *custom-headers* {})
 

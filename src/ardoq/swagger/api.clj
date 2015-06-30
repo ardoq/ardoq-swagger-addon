@@ -59,17 +59,12 @@
         (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token}))
-
-   ;(POST "/import")
    (POST "/import" {{:strs [url token org wsname headers swag] :as params} :form-params}
          (try
-           (let [wid (get-spec (c/client {:url (:base-url config)
-                                                        :org org
-                                                        :token token})
-                                             url
-                                             wsname
-                                             (read-headers headers)
-                                             swag)]
+           (let [client (c/client {:url (:base-url config)
+                                   :org org
+                                   :token token})
+                 wid (get-spec client url wsname (read-headers headers) swag)]
              (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
            (catch com.fasterxml.jackson.core.JsonParseException e
              (.printStackTrace e)
