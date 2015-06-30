@@ -55,7 +55,7 @@
        "\n```"))
 
 (defn create-workspace [client url base-url title model {:keys [info] :as data}]
-  (let [name (or title (:title info))]
+  (let [name (or title (or (:title info) base-url))]
     (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create  client))))
