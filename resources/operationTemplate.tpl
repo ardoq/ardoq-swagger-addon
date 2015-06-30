@@ -3,7 +3,6 @@
 {{notes}}
 
 ####Parameters
-
 |Name|Description|Required|Type|Parameter Type|Enum|Consumes|
 {{#parameters}}
 |{{name}}|{{description}}|{{required}}|{{type}}|{{paramType}}|{{enum}}|{{consumes}}|

@@ -98,6 +98,7 @@
            consumes (assoc :consumes consumes)) client))
 
 (defn generate-operation-description [data models]
+
   (reduce
    (fn [description [model-id {:keys [_id] :as model}]]
      (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
@@ -193,7 +194,6 @@
                       (api/create client)))))
             parameters))))
 
-
 (defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
   (concat (mapcat
@@ -235,12 +235,22 @@
     (-> (create-models model wid _id paths spec)
         (save-models client))))
 
+(defn generate-param-description[data]
+  (clojure.pprint/pprint "NEW PRINT")
+  (clojure.pprint/pprint data)
+  (tpl/render-resource "globalTemplate.tpl" data))
+
+(defn generate-security-description[data]
+  (clojure.pprint/pprint "NEW PRINT")
+  (clojure.pprint/pprint data)
+  (tpl/render-resource "securityTemplate.tpl" data))
+
 (defn create-param-model [wid _id parameters description model]
   (reduce
    (fn [acc [param schema]]
      (assoc acc (keyword param)
             (assoc
-                (api/->Component param (model-template schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+                (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
               :schema schema)))
    {}
    parameters))
@@ -250,11 +260,10 @@
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-                (api/->Component sec (model-template schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+                (api/->Component sec (generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
               :schema schema)))
    {}
    sec-defs))
-
 
 (defn create-security-defs [client {:keys [securityDefinitions] :as spec} workspace]
     (let [model (find-or-create-model client)
@@ -262,8 +271,6 @@
         wid (:_id workspace)]
       (-> (create-secur model wid _id securityDefinitions description)
           (save-models client))))
-
-
 
 (defn create-params [client {:keys [parameters] :as spec} workspace]
   (let [model (find-or-create-model client)
@@ -291,7 +298,6 @@
     (find-or-create-fields client model)))
 
 (defn update-tags [client tags]
-  (clojure.pprint/pprint tags)
   (doall (map 
           (fn [[_ tag]]
             (api/create tag client))
@@ -317,8 +323,6 @@
 (defn import-swagger2 [client spec name]
   (get-data client spec name))
 
-
-
 ;; ISSUES
-;; Fix the description for params and security-definitions
 ;; first first in create refs
+;; Cleanup
