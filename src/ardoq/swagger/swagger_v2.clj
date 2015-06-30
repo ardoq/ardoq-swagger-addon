@@ -178,50 +178,46 @@
 (defn create-resource-refs [client {:keys [parameters] :as resource} params]
   (let [wid (get-in resource [:component :rootWorkspace])
         _id (get-in resource [:component :_id])]
-    ;; TODO: doseq?
-    (doall (map
-            (fn [{:keys [$ref]}]
-              (let [k (keyword (last (.split $ref "/")))]
-                (if-let [m (k params)]
-                  (-> (api/map->Reference {:rootWorkspace wid
-                                           :source (str _id)
-                                           :target (str(:_id m))
-                                           :type 1})
-                      (api/create client)))))
-            parameters))))
+    (doseq [{:keys [$ref]} parameters]
+      (let [k (keyword (last (.split $ref "/")))]
+        (if-let [m (k params)]
+          (-> (api/map->Reference {:rootWorkspace wid
+                                   :source (str _id)
+                                   :target (str(:_id m))
+                                   :type 1})
+              (api/create client)))))))
 
 (defn create-refs [client operations models security]
   ;;Finds all $refs in operations and sends them to create-ref
-  ;; TODO: Can we remove concat? 
-  (concat (mapcat
-           (fn [{input-models :input-models return-models :return-model secur :security id :_id :as comp}]
-             (let [input-models (set input-models)
-                   return-models (set return-models)
-                   secur (set secur)]
-               (doall (keep (fn [k]
-                              (let [nest-key (find-nested-model-deps k)]
-                                (cond
-                                  (seq nest-key)
-                                  (create-ref client nest-key models comp id 1)
-                                  (get-in k [:type])
-                                  (create-ref client (get-in k [:type]) models comp id 1)
-                                  :else "nil")))
-                            input-models))
-               (doall (keep (fn [k]
-                              (cond 
-                                (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
-                                (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
-                                :else "nil"))
-                            return-models))
-               (doall (keep (fn [k]        
-                              (if-let [m ((first (first k)) security)]
-                                (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
-                                                          :source (str id)
-                                                          :target (str(:_id m))
-                                                          :type 1})
-                                    (api/create client))))
-                            secur))))
-           operations)))
+  (mapcat
+   (fn [{input-models :input-models return-models :return-model secur :security id :_id :as comp}]
+     (let [input-models (set input-models)
+           return-models (set return-models)
+           secur (set secur)]
+       (doall (keep (fn [k]
+                      (let [nest-key (find-nested-model-deps k)]
+                        (cond
+                         (seq nest-key)
+                         (create-ref client nest-key models comp id 1)
+                         (get-in k [:type])
+                         (create-ref client (get-in k [:type]) models comp id 1)
+                         :else "nil")))
+                    input-models))
+       (doall (keep (fn [k]
+                      (cond 
+                       (seq (find-nested-model-deps k)) (create-ref client (find-nested-model-deps k) models comp id 0)
+                       (get-in k [:$ref]) (create-ref client (get-in k [:$ref]) models comp id 0)
+                       :else "nil"))
+                    return-models))
+       (doall (keep (fn [k]        
+                      (if-let [m ((first (first k)) security)]
+                        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                                                  :source (str id)
+                                                  :target (str(:_id m))
+                                                  :type 1})
+                            (api/create client))))
+                    secur))))
+   operations))
 
 (defn create-defs [client {:keys [paths] :as spec}  workspace]
   ;; Creates the models
@@ -232,15 +228,9 @@
         (save-models client))))
 
 (defn generate-param-description[data]
-  ;;TODO: fix
-  (clojure.pprint/pprint "NEW PRINT")
-  (clojure.pprint/pprint data)
   (tpl/render-resource "globalTemplate.tpl" data))
 
 (defn generate-security-description[data]
-  ;;TODO: fix
-  (clojure.pprint/pprint "NEW PRINT")
-  (clojure.pprint/pprint data)
   (tpl/render-resource "securityTemplate.tpl" data))
 
 (defn create-param-model [wid _id parameters description model]
@@ -282,30 +272,24 @@
   (let [model (find-or-create-model client)
         {:keys [_id description]} model
         wid (:_id workspace)]
-    ;;TODO: use doseq instaed - don't really care about the result, only for side-effect
-    (doall
-     (map (fn [[path {:keys [parameters] :as methods}]]
-            (let [parent (doall {:resource path
-                                 :parameters parameters
-                                 :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
-                                                (api/create client))})
-                  operations (create-methods client model defs wid _id path spec parent methods tags)]
-              (create-resource-refs client parent params)
-              (create-refs client operations defs secur)))
-          paths))
+    (doseq [[path {:keys [parameters] :as methods}] paths]
+      (let [parent (doall {:resource path
+                           :parameters parameters
+                           :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                                          (api/create client))})
+            operations (create-methods client model defs wid _id path spec parent methods tags)]
+        (create-resource-refs client parent params)
+        (create-refs client operations defs secur)))
     (interdependent-model-refs client defs)
     (find-or-create-fields client model)))
 
 (defn update-tags [client tags]
-  ;;TODO: doseq?
-  (doall
-   (map 
-    (fn [[_ tag]]
-      (api/create tag client))
-    tags)))
+  (doseq
+      [[_ tag] tags]
+    (api/create tag client)))
 
 (defn get-info [client name spec]
-                                        ;Converts the info from a Swagger 2 map to a string - This method needs to be redone
+  ;;Converts the info from a Swagger 2 map to a string - This method needs to be redone
   (let [workspace (create-workspace name client spec)
         defs (create-defs client spec workspace)
         params (create-params client spec workspace)

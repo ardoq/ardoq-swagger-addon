@@ -23,19 +23,25 @@
 
         <h2>Swagger</h2>
 
-        <p>This add-on let's you import Swagger v1.x and v2.0 api documentation</br>
+        <p>This add-on let's you import Swagger api documentation</br>
       </div>
     </div>
 
     <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
       <div class="form-group" id="selector">
-        <div class="col-sm-4 checkbox">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button class="btn btn-danger" id="Boxer">
+            Paste spec
+            </button>
+</div>
+
+        <!--<div class="col-sm-4 checkbox">
           <label for="version" class="col-sm-10 control-label"> 
             <input type="checkbox" id="Boxer"> 
             Paste source code?
           </label>
-        </div>
+        </div>-->
       </div>
       <div id="urldiv">
         <div class="form-group">
@@ -52,7 +58,7 @@
 
       <div id="fillerDiv">
         <div class="form-group">
-          <label for="headers" class="col-sm-2 control-label">Swagger text</label>
+          <label for="headers" class="col-sm-2 control-label">Swagger spec</label>
           
           <div class="col-sm-10">
             <textarea id="swag" class="form-control" rows="3"
@@ -72,21 +78,22 @@
                  name="wsname">
         </div>
       </div>
-      <div class="form-group">
-        <label for="headers" class="col-sm-2 control-label">Optional
-          headers (json)</label>
-
-        <div class="col-sm-10">
-          <textarea id="headers" class="form-control" rows="3"
-                    name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
-                    "x-custom-header": "Swagger-addon"}'></textarea>
-
-          <!--   <input type="text" class="form-control"  -->
-          <!--          placeholder="Petstore api documentation" -->
-          <!--          name="wsname" required> -->
+      <div id="Head">
+        <div class="form-group">
+          <label for="headers" class="col-sm-2 control-label">Optional
+            headers (json)</label>
+          
+          <div class="col-sm-10">
+            <textarea id="headers" class="form-control" rows="3"
+                      name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
+                      "x-custom-header": "Swagger-addon"}'></textarea>
+            
+            <!--   <input type="text" class="form-control"  -->
+            <!--          placeholder="Petstore api documentation" -->
+            <!--          name="wsname" required> -->
+          </div>
         </div>
       </div>
-
       {{#org-set}}
       <input type="hidden" name="org" value="{{org}}">
       {{/org-set}}
@@ -147,20 +154,26 @@
     var vers = true;
     var imp = "/import";
     $("#fillerDiv").hide();
-    $("#selector").change(function(){
-      vers = $("#Boxer").is(':checked');
+    $("#selector").click(function(){
       if(!vers) {
         $("#fillerDiv").hide();
         $("#urldiv").show();
+        $("#Head").show();
         $("#url").prop('required', true);
         $("#swag").prop('required', false);
         $("#swag").val("");
+        $("#Boxer").removeClass("btn-success").addClass("btn-danger");
+        vers = true;
       } else {
         $("#fillerDiv").show();
         $("#urldiv").hide();
+        $("#Head").hide();
         $("#url").prop('required', false);
         $("#swag").prop('required', true);
         $("#url").val("");
+        $("#headers").val("");
+        $("#Boxer").removeClass("btn-danger").addClass("btn-success");
+        vers = false;
       }
     });
     $("#clear-form").click(function() {
