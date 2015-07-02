@@ -58,7 +58,7 @@
         parsed-data (parse-to-node data)
         report (.validate schema parsed-data)]
     {:success (.isSuccess report)
-     :message (str report)}))
+     :message  report}))
 
 (defn validate-swagger [schema body]
   (validate schema body))

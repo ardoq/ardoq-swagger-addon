@@ -15,6 +15,13 @@
                        :token "2330f05eac3846f78a13b01930099b97"
                        :org "ardoq"}))
 
+(defn google-urls []
+  (let [{:keys [apis]} (api/get-resource-listing "http://theapistack.com/data/google/apis.json" nil)]
+    (doseq [k apis]
+      (doseq [prop (get-in k [:properties])]
+        (if (= (get-in prop [:type]) "Swagger")
+          (api/get-spec client (get-in prop [:url]) nil nil nil))))))
+
 (defn scrape-swaggers []
   (let [listing (into [] (api/get-resource-listing "http://stack.apievangelist.com/data/companies.json" nil))
         urls (find-keys listing (keyword "swagger-url"))]
@@ -22,7 +29,8 @@
       (if (not (clojure.string/blank? url))
         (try
           (api/get-spec client url nil nil nil)
-          (catch Exception e (println (str "Failed retrieving " url "Exception: " (.getMessage e)))))))))
+          (catch Exception e (println (str "Failed retrieving " url "Exception: " (.getMessage e))))))))
+  (google-urls))
 
 (defn get-selected [selected]
   (api/get-spec client selected nil nil nil))

@@ -37,7 +37,7 @@
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
 (defn version1 [client spec url name headers]
-  (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
+  (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
     (if (= success true)
       (do (println "Valid Swagger1")
           (swagger/import-swagger client spec url name headers)

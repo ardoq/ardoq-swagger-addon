@@ -92,7 +92,9 @@
 (defn find-nested-model-deps [model]
   ;;Finds all references in a given model
   (map (fn [v]
-         (last (.split v "/")))
+         (if (instance? String v)
+           (last (.split v "/"))
+           ""))
        (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
