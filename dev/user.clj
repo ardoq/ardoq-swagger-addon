@@ -14,11 +14,13 @@
     [server :as server]
     [swagger :as swagger]
     [api :as api]
-    [client :as c]]
+    [client :as c]
+    [scrape :as scrape]]
    [ardoq.swagger.swagger-v2
     :refer :all]
    [ardoq.swagger.api
-    :refer :all]))
+    :refer :all]
+   [ardoq.swagger.scrape :refer :all]))
 
 (def system
   "A Var containing an object representing the application under

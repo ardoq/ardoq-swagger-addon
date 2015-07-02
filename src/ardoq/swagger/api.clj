@@ -2,6 +2,7 @@
   (:require [ardoq.swagger.swagger :as swagger]
             [ardoq.swagger.swagger-v2 :as swaggerv2]
             [ardoq.swagger.client :as c]
+            [ardoq.swagger.validate :as validate]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
@@ -35,18 +36,29 @@
       (parse-string body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
-(defn version2? [{:keys [swagger]}]
-  (if (and swagger (= swagger "2.0")) 
-      true
-      false))
+(defn version1 [client spec url name headers]
+  (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
+    (if (= success true)
+      (do (println "Valid Swagger1")
+          (swagger/import-swagger client spec url name headers)
+          (println "Done importing swagger doc from " url "."))
+      (do (println "Not a valid Swagger file\nError: ") 
+          (clojure.pprint/pprint message)))))
+
+(defn version2 [client spec name]
+  (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
+    (if (= success true) 
+      (do (swaggerv2/import-swagger2 client spec name)
+          (println "Done importing swagger doc."))
+      (do (println "Not a valid Swagger file\nError: ") 
+          (clojure.pprint/pprint message)))))
 
 (defn get-spec [client url name headers swag]
   ;if swag is not null then use that as spec
-  (let [spec (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
-    (if (version2? spec)
-      (swaggerv2/import-swagger2 client spec name)
-      (swagger/import-swagger client spec url name headers)))
-  (println "Done importing swagger doc from " url "."))
+  (let [{:keys [swagger] :as spec} (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
+    (if (= swagger "2.0")
+      (version2 client spec name)
+      (version1 client spec url name headers))))
 
 (defn swagger-api [{:keys [config]}]
   (routes
