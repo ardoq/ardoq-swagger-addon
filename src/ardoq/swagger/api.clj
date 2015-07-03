@@ -43,7 +43,6 @@
           (swagger/import-swagger client spec url name headers)
           (println "Done importing swagger doc from " url "."))
       (do (println "Not a valid Swagger file\nError: ") 
-          ;(clojure.pprint/pprint message)
           (throw (ex-info  "InvalidSwagger" {:causes message}))))))
 
 (defn version2 [client spec name]
@@ -52,7 +51,6 @@
       (do (swaggerv2/import-swagger2 client spec name)
           (println "Done importing swagger doc."))
       (do (println "Not a valid Swagger file\nError: ") 
-          ;(clojure.pprint/pprint message)
           (throw (ex-info "InvalidSwagger" {:causes message}))))))
 
 (defn get-spec [client url name headers swag]
@@ -88,7 +86,7 @@
            (catch clojure.lang.ExceptionInfo e
              {:status 406
               :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (str (-> e ex-data :causes))})})
+              :body (json/write-str {:error (-> e ex-data :causes)})})
            (catch Exception e
              (.printStackTrace e)
              {:status 500

@@ -1,19 +1,40 @@
+;;;;Based on https://github.com/bripkens/json-schema-validation-example but modified to newer version.
+
+;;The MIT License
+;; Copyright (c) 2013 Ben Ripkens http://bripkens.de
+
+;; Permission is hereby granted, free of charge, to any person obtaining a copy
+;; of this software and associated documentation files (the "Software"), to deal
+;; in the Software without restriction, including without limitation the rights
+;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+;; copies of the Software, and to permit persons to whom the Software is
+;; furnished to do so, subject to the following conditions:
+
+;; The above copyright notice and this permission notice shall be included in
+;; all copies or substantial portions of the Software.
+
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+;; THE SOFTWARE.
+
+
 (ns ardoq.swagger.validate
   (:require 
    [clojure.java.io :as io]
    [cheshire.core :refer [generate-string parse-string]])
   (:import 
    [com.fasterxml.jackson.databind ObjectMapper]
+   [com.github.fge.jsonschema.core.report ProcessingMessage]
+   [com.github.fge.jackson JacksonUtils]
    [com.github.fge.jsonschema.main JsonSchemaFactory]
    [com.github.fge.jsonschema.core.load.configuration LoadingConfiguration]
    [com.github.fge.jsonschema.core.load.uri URITranslatorConfiguration]))
 
-(def
-  ^{:private true
-    :doc "An immutable and therefore thread-safe JSON schema factory.
-         You can call (.getJsonSchema json-schema-factory <json-schema-node>)
-         to retrieve a JsonSchema instance which can validate JSON."}
-  json-schema-factory
+(def json-schema-factory
   (let [transformer (-> (URITranslatorConfiguration/newBuilder)
                         (.setNamespace "resource:/schema/")
                         .freeze)
@@ -25,12 +46,7 @@
                     .freeze)]
     factory))
 
-(def
-  ^{:private true
-    :doc "Initialize the object mapper first and keep it private as not all
-         of its methods are thread-safe. Optionally configure it here.
-         Reader instances are cheap to create."}
-  object-reader
+(def object-reader
   (let [object-mapper (ObjectMapper.)]
     (fn [] (.reader object-mapper))))
 
@@ -58,7 +74,7 @@
         parsed-data (parse-to-node data)
         report (.validate schema parsed-data)]
     {:success (.isSuccess report)
-     :message report}))
+     :message (JacksonUtils/prettyPrint (.asJson report))}))
 
 (defn validate-swagger [schema body]
   (validate schema body))
