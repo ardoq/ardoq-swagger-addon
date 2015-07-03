@@ -22,7 +22,7 @@
       (if (= (get-in prop [:type]) "Swagger")
         (try
           (api/get-spec client (get-in prop [:url]) nil nil nil)
-          (catch Exception e (println (.getMessage e))))))))
+          (catch Exception e (ex-data e)))))))
 
 (def url-list ["3scale" "alchemyapi" "altos-data-geeks" "angellist" "bistri" "crowdin" "digitalgov-search" "dossia-" "dwolla" "easycron" "eventbrite" "expedia" "fueleconomygov" "gis-cloud" "google" "help-scout" "information-sharing-environment" "linkedin" "meetup-api" "nounproject-dev-team" "opencorporates" "paypal" "pinboard" "reddit" "runscope" "slack-api" "soundcloud-api" "stack-exchange" "twitter"])
 
