@@ -15,12 +15,11 @@
     [swagger :as swagger]
     [api :as api]
     [client :as c]
-    [scrape :as scrape]]
+    [validate :as validate]]
    [ardoq.swagger.swagger-v2
     :refer :all]
    [ardoq.swagger.api
-    :refer :all]
-   [ardoq.swagger.scrape :refer :all]))
+    :refer :all]))
 
 (def system
   "A Var containing an object representing the application under
@@ -52,11 +51,11 @@
   (stop)
   (refresh :after 'user/go))
 
-(defn example []
-  (-> (io/resource "example.json")
-      (io/reader)
-      slurp
-      (parse-string keyword)))
-
-;;This is a test cleint to ease implementation. Delete upon completion
-
+(defn validate-all []
+  (let [files (drop 1 (file-seq (io/file "")))]
+    (doseq [f files]
+      (doall
+       (import-swagger2 (c/client {:url "http://dockerhost"
+                                   :org "demo"
+                                   :token ""})
+                        (parse-string (slurp f) true) (.getName f))))))

@@ -38,27 +38,32 @@
 
 (defn version1 [client spec url name headers]
   (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
-    (if (= success true)
+    (if success
       (do (println "Valid Swagger1")
           (swagger/import-swagger client spec url name headers)
           (println "Done importing swagger doc from " url "."))
       (do (println "Not a valid Swagger file\nError: ") 
           (throw (ex-info  "InvalidSwagger" {:causes message}))))))
 
-(defn version2 [client spec name]
+(defn version2 [client spec wsname]
   (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
-    (if (= success true) 
-      (do (swaggerv2/import-swagger2 client spec name)
+    (if success 
+      (do (swaggerv2/import-swagger2 client spec wsname)
           (println "Done importing swagger doc."))
       (do (println "Not a valid Swagger file\nError: ") 
           (throw (ex-info "InvalidSwagger" {:causes message}))))))
 
-(defn get-spec [client url name headers swag]
-  ;if swag is not null then use that as spec
-  (let [{:keys [swagger] :as spec} (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
+(defn- resolve-spec [spec url headers]
+  (if (not (blank? spec))
+    (parse-string spec true)
+    (get-resource-listing url headers)))
+
+(defn get-spec [client url wsname headers spec]
+                                        ;if swag is not null then use that as spec
+  (let [{:keys [swagger] :as spec} (resolve-spec spec url headers)]
     (if (= swagger "2.0")
-      (version2 client spec name)
-      (version1 client spec url name headers))))
+      (version2 client spec wsname)
+      (version1 client spec url wsname headers))))
 
 (defn swagger-api [{:keys [config]}]
   (routes
@@ -80,10 +85,12 @@
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
            (catch IllegalArgumentException e
+             (.printStackTrace e)
              {:status 406
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (.getMessage e)})})
            (catch clojure.lang.ExceptionInfo e
+             (.printStackTrace e)
              {:status 406
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (-> e ex-data :causes)})})
