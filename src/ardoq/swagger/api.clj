@@ -48,8 +48,7 @@
 (defn version2 [client spec wsname]
   (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
     (if success 
-      (do (swaggerv2/import-swagger2 client spec wsname)
-          (println "Done importing swagger doc."))
+      (swaggerv2/import-swagger2 client spec wsname)
       (do (println "Not a valid Swagger file\nError: ") 
           (throw (ex-info "InvalidSwagger" {:causes message}))))))
 

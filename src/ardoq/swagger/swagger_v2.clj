@@ -262,9 +262,11 @@
         defs (create-defs client model spec workspace)
         params (create-params client model spec workspace)
         secur (create-security-defs client model spec workspace)
-        tags-cache (atom (create-tags client spec (:_id workspace)))] 
+        tags-cache (atom (create-tags client spec (:_id workspace)))]
     (create-resource client model spec defs params secur tags-cache workspace)
-    (update-tags client @tags-cache)))
+    (update-tags client @tags-cache)
+    (println "Done importing swagger doc.")
+    (str (:_id workspace))))
 
 
 (defn get-data [client spec wsname]
