@@ -31,9 +31,9 @@
 
       <div class="form-group" id="selector">
         <div class="col-sm-offset-2 col-sm-10">
-          <button class="btn btn-primary disabled" id="Boxer">
+          <a class="btn btn-primary disabled" id="Boxer">
             Paste spec
-            </button>
+            </a>
         </div>
       </div>
       <div id="urldiv">
@@ -193,8 +193,15 @@
         statusCode: {
           406: function(msg) {
             $("#progress-dialog").hide();
-            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
-          }
+            msg = JSON.parse(msg.responseJSON.error);
+            var result = "<p> ERROR: Input file does not conform to Swagger specifications</p>";
+            for (var i = 0; i < msg.length; i++) {
+              result += "<p>";
+              result += msg[i].message;
+              result += "</p>";
+            }
+            $("#error-dialog p").empty().html(result).parent().show();
+         }
         }
       });
     });

@@ -7,13 +7,13 @@
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]))
 
-(defn create-workspace [title client {:keys [info] :as data}]
-  ;; Creates a new workspace in the client.
-  (let [{:keys [_id]} (common/find-or-create-model client "Swagger 2.0")
-        name (if (clojure.string/blank? title) 
-               (:title info) 
-               title)] 
-    (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name)) _id)
+(defn create-workspace [client model wsname {:keys [info] :as data}]
+  ;; Creates a new workspace in the client. 
+  (let [{:keys [_id]} model
+        wsname (if (s/blank? wsname)
+                 (:title info)
+                 wsname)]
+    (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create client))))
 
@@ -40,11 +40,12 @@
 (defn find-or-create-tag [client tag wid op tags]
   (doall (map (fn [name]
                 ;;Check if the tag excists, otherwise we create it
-                (if (get (deref tags) name)
-                  (swap! tags (fn [old]
-                                (update-in old [name :components] conj (get-in op [:_id]))))
-                  (swap! tags (fn [old]
-                                (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] []))))))
+                (if (not (clojure.string/blank? name))
+                  (if (get (deref tags) name)
+                    (swap! tags (fn [old]
+                                  (update-in old [name :components] conj (get-in op [:_id]))))
+                    (swap! tags (fn [old]
+                                  (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] [])))))))
               tag)))
 
 (defn model-template [m]
@@ -93,7 +94,9 @@
 (defn find-nested-model-deps [model]
   ;;Finds all references in a given model
   (map (fn [v]
-         (last (.split v "/")))
+         (if (instance? String v)
+           (last (.split v "/"))
+           ""))
        (keep :$ref (tree-seq #(or (map? %) (vector? %)) identity model))))
 
 (defn interdependent-model-refs [client models]
@@ -187,10 +190,9 @@
        (create-security-refs client securities security models comp id)))
    operations))
 
-(defn create-defs [client {:keys [paths] :as spec}  workspace]
+(defn create-defs [client model {:keys [paths] :as spec}  workspace]
   ;; Creates the models
-  (let [model (common/find-or-create-model client "Swagger 2.0")
-        {:keys [_id description]} model
+  (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-models model wid _id paths spec)
         (common/save-models client))))
@@ -225,24 +227,21 @@
    {}
    sec-defs))
 
-(defn create-security-defs [client {:keys [securityDefinitions] :as spec} workspace]
-  (let [model (common/find-or-create-model client "Swagger 2.0")
-        {:keys [_id description]} model
+(defn create-security-defs [client model {:keys [securityDefinitions] :as spec} workspace]
+  (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-security model wid _id securityDefinitions description)
         (common/save-models client))))
 
-(defn create-params [client {:keys [parameters] :as spec} workspace]
-  (let [model (common/find-or-create-model client "Swagger 2.0")
-        {:keys [_id description]} model
+(defn create-params [client model {:keys [parameters] :as spec} workspace]
+  (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-param-model wid _id parameters description model)
         (common/save-models client))))
 
-(defn create-resource [client {:keys [paths definitions] :as spec} defs params secur tags workspace]
+(defn create-resource [client model {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
-  (let [model (common/find-or-create-model client "Swagger 2.0")
-        {:keys [_id description]} model
+  (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
@@ -260,22 +259,25 @@
       [[_ tag] tags]
     (api/create tag client)))
 
-(defn get-info [client name spec]
+(defn get-info [client wsname spec]
   ;;Converts the info from a Swagger 2 map to a string - This method needs to be redone
-  (let [workspace (create-workspace name client spec)
-        defs (create-defs client spec workspace)
-        params (create-params client spec workspace)
-        secur (create-security-defs client spec workspace)
-        tags-cache (atom (create-tags client spec (:_id workspace)))] 
-    (create-resource client spec defs params secur tags-cache workspace)
-    (update-tags client @tags-cache)))
+  (let [model (common/find-or-create-model client "Swagger 2.0")
+        workspace (create-workspace client model wsname spec)
+        defs (create-defs client model spec workspace)
+        params (create-params client model spec workspace)
+        secur (create-security-defs client model spec workspace)
+        tags-cache (atom (create-tags client spec (:_id workspace)))]
+    (create-resource client model spec defs params secur tags-cache workspace)
+    (update-tags client @tags-cache)
+    (println "Done importing swagger doc.")
+    (str (:_id workspace))))
 
 
-(defn get-data [client spec name]
+(defn get-data [client spec wsname]
   ;;Extracts data from a given Swagger file into an emtpy object
   (->> {}
        (parse-info spec)
-       (get-info client name)))
+       (get-info client wsname)))
 
-(defn import-swagger2 [client spec name]
-  (get-data client spec name))
+(defn import-swagger2 [client spec wsname]
+  (get-data client spec wsname))

@@ -14,7 +14,8 @@
     [server :as server]
     [swagger :as swagger]
     [api :as api]
-    [client :as c]]
+    [client :as c]
+    [validate :as validate]]
    [ardoq.swagger.swagger-v2
     :refer :all]
    [ardoq.swagger.api
@@ -50,11 +51,11 @@
   (stop)
   (refresh :after 'user/go))
 
-(defn example []
-  (-> (io/resource "example.json")
-      (io/reader)
-      slurp
-      (parse-string keyword)))
-
-;;This is a test cleint to ease implementation. Delete upon completion
-
+(defn validate-all []
+  (let [files (drop 1 (file-seq (io/file "")))]
+    (doseq [f files]
+      (doall
+       (import-swagger2 (c/client {:url "http://dockerhost"
+                                   :org "demo"
+                                   :token ""})
+                        (parse-string (slurp f) true) (.getName f))))))

@@ -2,6 +2,7 @@
   (:require [ardoq.swagger.swagger :as swagger]
             [ardoq.swagger.swagger-v2 :as swaggerv2]
             [ardoq.swagger.client :as c]
+            [ardoq.swagger.validate :as validate]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
@@ -35,18 +36,35 @@
       (parse-string body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
-(defn version2? [{:keys [swagger]}]
-  (if (and swagger (= swagger "2.0")) 
-      true
-      false))
+(defn version1 [client spec url name headers]
+  (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
+    (if success
+      (do (println "Valid Swagger1")
+          (swagger/import-swagger client spec url name headers)
+          (println "Done importing swagger doc from " url "."))
+      (do (println "Not a valid Swagger file\nError: ") 
+          (throw (ex-info  "InvalidSwagger" {:causes message}))))))
 
-(defn get-spec [client url name headers swag]
-  ;if swag is not null then use that as spec
-  (let [spec (if (not (blank? swag)) (parse-string swag true) (get-resource-listing url headers))]
-    (if (version2? spec)
-      (swaggerv2/import-swagger2 client spec name)
-      (swagger/import-swagger client spec url name headers)))
-  (println "Done importing swagger doc from " url "."))
+(defn version2 [client spec wsname]
+  (swaggerv2/import-swagger2 client spec wsname)
+  ;; (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
+  ;;     (if success 
+  ;;       (swaggerv2/import-swagger2 client spec wsname)
+  ;;       (do (println "Not a valid Swagger file\nError: ") 
+  ;;           (throw (ex-info "InvalidSwagger" {:causes message})))))
+  )
+
+(defn- resolve-spec [spec url headers]
+  (if (not (blank? spec))
+    (parse-string spec true)
+    (get-resource-listing url headers)))
+
+(defn get-spec [client url wsname headers spec]
+                                        ;if swag is not null then use that as spec
+  (let [{:keys [swagger] :as spec} (resolve-spec spec url headers)]
+    (if (= swagger "2.0")
+      (version2 client spec wsname)
+      (version1 client spec url wsname headers))))
 
 (defn swagger-api [{:keys [config]}]
   (routes
@@ -68,9 +86,15 @@
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
            (catch IllegalArgumentException e
+             (.printStackTrace e)
              {:status 406
               :headers {"Content-Type" "application/json"}
               :body (json/write-str {:error (.getMessage e)})})
+           (catch clojure.lang.ExceptionInfo e
+             (.printStackTrace e)
+             {:status 406
+              :headers {"Content-Type" "application/json"}
+              :body (json/write-str {:error (-> e ex-data :causes)})})
            (catch Exception e
              (.printStackTrace e)
              {:status 500
