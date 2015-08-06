@@ -36,11 +36,7 @@
         (api/create client))))
 
 (defn generate-operation-description [data models]
-  (println "BEFORE")
-  (clojure.pprint/pprint data)
   (let [data (read-string (replace-newlines data))]
-    (println "AFTER")
-    (clojure.pprint/pprint data)
     (reduce
      (fn [description [model-id {:keys [_id] :as model}]]
        (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
