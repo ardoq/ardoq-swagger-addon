@@ -46,11 +46,13 @@
           (throw (ex-info  "InvalidSwagger" {:causes message}))))))
 
 (defn version2 [client spec wsname]
-  (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
-    (if success 
-      (swaggerv2/import-swagger2 client spec wsname)
-      (do (println "Not a valid Swagger file\nError: ") 
-          (throw (ex-info "InvalidSwagger" {:causes message}))))))
+  (swaggerv2/import-swagger2 client spec wsname)
+  ;; (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
+  ;;     (if success 
+  ;;       (swaggerv2/import-swagger2 client spec wsname)
+  ;;       (do (println "Not a valid Swagger file\nError: ") 
+  ;;           (throw (ex-info "InvalidSwagger" {:causes message})))))
+  )
 
 (defn- resolve-spec [spec url headers]
   (if (not (blank? spec))
