@@ -199,9 +199,13 @@
 (defn generate-security-description[data]
   (tpl/render-resource "securityTemplate.tpl" data))
 
+(defn replace-newlines [schema]
+  (replace schema #"\n" "<br>"))
+
 (defn create-param-model [wid _id parameters description model]
   (reduce
    (fn [acc [param schema]]
+     (replace-newlines schema)
      (assoc acc (keyword param)
             (assoc
              (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
