@@ -8,6 +8,9 @@
             [medley.core :refer [map-vals]]
             [clj-http.client :as http]))
 
+(defn replace-newlines [schema]
+  (clojure.string/replace schema #"\\n" ""))
+
 (defn find-or-create-model [client type]
   (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
@@ -33,11 +36,16 @@
         (api/create client))))
 
 (defn generate-operation-description [data models]
-  (reduce
-   (fn [description [model-id {:keys [_id] :as model}]]
-     (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
-   (tpl/render-resource "operationTemplate.tpl" data)
-   models))
+  (println "BEFORE")
+  (clojure.pprint/pprint data)
+  (let [data (read-string (replace-newlines data))]
+    (println "AFTER")
+    (clojure.pprint/pprint data)
+    (reduce
+     (fn [description [model-id {:keys [_id] :as model}]]
+       (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
+     (tpl/render-resource "operationTemplate.tpl" data)
+     models)))
 
 (defn update-comp [client component {:keys [produces consumes]}]
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 

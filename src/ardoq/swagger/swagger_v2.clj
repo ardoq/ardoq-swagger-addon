@@ -8,9 +8,11 @@
             [medley.core :refer [map-vals]]))
 
 (defn create-workspace [title client {:keys [info] :as data}]
-  ;; Creates a new workspace in the client. 
+  ;; Creates a new workspace in the client.
   (let [{:keys [_id]} (common/find-or-create-model client "Swagger 2.0")
-        name (or title (:title info))] 
+        name (if (clojure.string/blank? title) 
+               (:title info) 
+               title)] 
     (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name)) _id)
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create client))))
@@ -200,16 +202,16 @@
   (tpl/render-resource "securityTemplate.tpl" data))
 
 (defn replace-newlines [schema]
-  (replace schema #"\n" "<br>"))
+  (clojure.string/replace schema #"\n" "<br>"))
 
 (defn create-param-model [wid _id parameters description model]
   (reduce
    (fn [acc [param schema]]
-     (replace-newlines schema)
-     (assoc acc (keyword param)
-            (assoc
-             (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
-             :schema schema)))
+     (let [schema (replace-newlines schema)]
+       (assoc acc (keyword param)
+              (assoc
+                  (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+                :schema schema))))
    {}
    parameters))
 
