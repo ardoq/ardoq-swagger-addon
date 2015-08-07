@@ -87,6 +87,15 @@
           </div>
         </div>
       </div>
+
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10 checkbox" id="Ignore">
+          <label>
+            <input name="ignorer" type="checkbox"> Ignore validation? (Not recommended!)
+            </label>
+        </div>
+      </div>
+
       {{#org-set}}
       <input type="hidden" name="org" value="{{org}}">
       {{/org-set}}
@@ -113,6 +122,7 @@
                  placeholder="Workspace name" name="token">
         </div>
       </div>
+
       {{/token-set}}
       <div class="form-group">
         <div class="col-sm-offset-2 col-sm-10">
@@ -182,7 +192,7 @@
       $.ajax({
         type: "POST",  
         url: imp,
-        data: $("form#swagger").serialize(), // serializes the form's elements.
+        data: $("form#swagger").serialize(),
         success: function(data) {
           window.top.location.href = data;
         },
