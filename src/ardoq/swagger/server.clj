@@ -7,7 +7,7 @@
 
 (defn app [system]
   (-> (swagger-api system)
-      wrap-session
+      (wrap-session {:cookie-name "reffie"})
       wrap-params))
 
 (defn start-server [system]
