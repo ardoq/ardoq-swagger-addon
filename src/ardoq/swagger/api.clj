@@ -7,8 +7,8 @@
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
             [clojure.java.io :as io]
-            [ring.util.response :refer [redirect-after-post]]
             [cheshire.core :refer [generate-string parse-string]]
+            [ring.util.response :refer [redirect-after-post response]]
             [clostache.parser :as tpl]
             [hiccup.core :refer [html]]
             [clj-http.client :as http]
@@ -71,17 +71,23 @@
 (defn swagger-api [{:keys [config]}]
   (routes
    (route/resources "/public")
-   (GET "/" {{:strs [org token]} :query-params} 
-        (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
+   (GET "/" {session :session
+             headers :headers
+             {:strs [org token]} :query-params} 
+        {:status 200
+         :body (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
-                                          :token token}))
-   (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params}
+                                          :token token})
+         :headers {"Content-Type" "text/html"}
+         :session (assoc session :referer (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))))})
+   (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
+         (println session)
          (try
            (let [client (c/client {:url (:base-url config)
                                    :org org
                                    :token token})
                  wid (get-spec client url wsname (read-headers headers) swag ignorer)]
-             (str (:base-url config) "/app/view/workspace/" wid "?org=" org))
+             (str (:referer session) "/app/view/workspace/" wid "?org=" org))
            (catch com.fasterxml.jackson.core.JsonParseException e
              (.printStackTrace e)
              {:status 406
