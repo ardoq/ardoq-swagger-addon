@@ -29,10 +29,10 @@
     (-> (api/->Field "method" "method" "Text" (str model-id) [(api/type-id-by-name model "Operation")])
         (api/create client)))
   (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
         (api/create client)))
   (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "List" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
         (api/create client))))
 
 (defn generate-operation-description [data models]
