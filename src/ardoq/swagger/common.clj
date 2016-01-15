@@ -17,6 +17,9 @@
     (-> (api/map->Model (parse-string (slurp (io/resource (if (= type = "Swagger") "modelv1.json" "modelv2.json"))) true))
         (api/create client))))
 
+(defn find-existing-workspace [client name]
+  (first (filter #(= name (:name %)) (api/find-all (api/map->Workspace {}) client))))
+
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (not (empty? (filter
                 (fn [{:keys [name model]}]

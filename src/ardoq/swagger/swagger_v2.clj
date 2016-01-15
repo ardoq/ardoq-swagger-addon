@@ -13,9 +13,11 @@
         wsname (if (s/blank? wsname)
                  (:title info)
                  wsname)]
-    (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
-        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-        (api/create client))))
+    (if-let [workspace (common/find-existing-workspace client wsname)]
+      workspace
+      (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
+          (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
+          (api/create client)))))
 
 (defn parse-info [spec result]
   ;;Copies the info data from spec into result
