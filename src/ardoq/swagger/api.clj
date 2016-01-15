@@ -79,7 +79,8 @@
                                           :token-set (boolean token)
                                           :token token})
          :headers {"Content-Type" "text/html"}
-         :session (assoc session :referer (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))))})
+         :session (assoc session :referer "";(str "http://" (first (rest (rest (.split (get headers "referer") "/")))))
+                         )})
    (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
          (println session)
          (try

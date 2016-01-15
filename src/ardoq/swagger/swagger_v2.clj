@@ -73,7 +73,7 @@
        (let [type (doall (map (fn [[_ v]]
                                 (get-in v [:schema]))
                               response))
-             op (-> (api/map->Component {:name (name method) 
+             op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
                                          :description (common/generate-operation-description data models) 
                                          :rootWorkspace (str wid) 
                                          :model _id 

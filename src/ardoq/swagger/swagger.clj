@@ -36,9 +36,11 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
-        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-        (api/create  client))))
+    (if-let [workspace (common/find-existing-workspace client title)]
+      workspace
+      (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
+          (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
+          (api/create  client)))))
 
 (defn get-resource-listing [url]
   (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
