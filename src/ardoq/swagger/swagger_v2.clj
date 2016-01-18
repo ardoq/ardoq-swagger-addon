@@ -241,6 +241,9 @@
     (-> (create-param-model wid _id parameters description model)
         (common/save-models client))))
 
+(defn set-id-and-version [{id :_id version :_version} resource]
+  (assoc resource :_id id :_version version))
+
 (defn create-resource [client model {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [{:keys [_id description]} model
@@ -248,7 +251,9 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (or (common/find-existing-resource client (name path) #(api/map->Component {}) (:_id workspace)) 
+                           :component (or (some-> (common/find-existing-resource client (name path) #(api/map->Component {}) (:_id workspace))
+                                                  (set-id-and-version (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil))
+                                                  (api/update client)) 
                                        (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                               (api/create client)))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
