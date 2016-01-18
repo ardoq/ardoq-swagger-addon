@@ -23,6 +23,9 @@
   ([client name type root-id]
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
+(defn set-id-and-version [{id :_id version :_version} resource]
+  (assoc resource :_id id :_version version))
+
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter
         (fn [{:keys [name model]}]
@@ -58,4 +61,10 @@
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]
+               (or (some-> 
+                    (find-existing-resource client (name (:name %)) (partial api/map->Component {}) (:rootWorkspace %))
+                    (set-id-and-version %)
+                    (dissoc :schema)
+                    (api/update client)
+                    (assoc :schema schema)))
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))

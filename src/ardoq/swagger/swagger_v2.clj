@@ -7,9 +7,6 @@
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]))
 
-(defn set-id-and-version [{id :_id version :_version} resource]
-  (assoc resource :_id id :_version version))
-
 (defn create-workspace [client model wsname {:keys [info] :as data}]
   ;; Creates a new workspace in the client. 
   (let [{:keys [_id]} model
@@ -77,7 +74,7 @@
                                 (get-in v [:schema]))
                               response))
              op (or (some-> (common/find-existing-resource client (str (:name parent) "/" (name method)) #(api/map->Component {}) wid)
-                            (set-id-and-version (api/map->Component 
+                            (common/set-id-and-version (api/map->Component 
                                                  {:name (str (:name parent) "/" (name method)) 
                                                   :description (common/generate-operation-description data models) 
                                                   :rootWorkspace (str wid) 
@@ -262,7 +259,7 @@
       (let [parent (doall {:resource path
                            :parameters parameters
                            :component (or (some-> (common/find-existing-resource client (name path) #(api/map->Component {}) wid)
-                                                  (set-id-and-version (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil))
+                                                  (common/set-id-and-version (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil))
                                                   (api/update client)) 
                                        (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                               (api/create client)))})
@@ -281,11 +278,10 @@
   (let [model (common/find-or-create-model client "Swagger 2.0")
         workspace (create-workspace client model wsname spec)
         defs (create-defs client model spec workspace)
-        ;;To here
         params (create-params client model spec workspace)
         secur (create-security-defs client model spec workspace)
+        ;;To here
         tags-cache (atom (create-tags client spec (:_id workspace)))]
-    ;;Empty to here
     (create-resource client model spec defs params secur tags-cache workspace)
     (update-tags client @tags-cache)
     (println "Done importing swagger doc.")
