@@ -13,7 +13,7 @@
         wsname (if (s/blank? wsname)
                  (:title info)
                  wsname)]
-    (if-let [workspace (common/find-existing-workspace client wsname)]
+    (if-let [workspace (common/find-existing-resource client wsname #(api/map->Workspace {}))]
       workspace
       (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
           (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
@@ -192,7 +192,7 @@
        (create-security-refs client securities security models comp id)))
    operations))
 
-(defn create-defs [client model {:keys [paths] :as spec}  workspace]
+(defn create-defs [client model {:keys [paths] :as spec} workspace]
   ;; Creates the models
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
@@ -248,8 +248,9 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
-                                          (api/create client))})
+                           :component (or (common/find-existing-resource client (name path) #(api/map->Component {}) (:_id workspace)) 
+                                       (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                                              (api/create client)))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (create-resource-refs client parent params)
         (create-refs client operations defs secur)))
@@ -262,13 +263,14 @@
     (api/create tag client)))
 
 (defn get-info [client wsname spec]
-  ;;Converts the info from a Swagger 2 map to a string - This method needs to be redone
   (let [model (common/find-or-create-model client "Swagger 2.0")
         workspace (create-workspace client model wsname spec)
         defs (create-defs client model spec workspace)
+        ;;To here
         params (create-params client model spec workspace)
         secur (create-security-defs client model spec workspace)
         tags-cache (atom (create-tags client spec (:_id workspace)))]
+    ;;Empty to here
     (create-resource client model spec defs params secur tags-cache workspace)
     (update-tags client @tags-cache)
     (println "Done importing swagger doc.")

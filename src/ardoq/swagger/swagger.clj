@@ -36,7 +36,7 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (if-let [workspace (common/find-existing-workspace client title)]
+    (if-let [workspace (common/find-existing-resource client title #(api/map->Workspace))]
       workspace
       (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
           (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
@@ -152,7 +152,6 @@
     url))
 
 (defn import-swagger [client resource-listing base-url name headers]
-  (println "Doing swagger 1")
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
           model (common/find-or-create-model client "Swagger")

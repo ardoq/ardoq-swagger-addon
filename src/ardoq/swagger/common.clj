@@ -17,15 +17,18 @@
     (-> (api/map->Model (parse-string (slurp (io/resource (if (= type = "Swagger") "modelv1.json" "modelv2.json"))) true))
         (api/create client))))
 
-(defn find-existing-workspace [client name]
-  (first (filter #(= name (:name %)) (api/find-all (api/map->Workspace {}) client))))
+(defn find-existing-resource 
+  ([client name type]
+   (first (filter #(= name (:name %)) (api/find-all (type) client))))
+  ([client name type root-id]
+   (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
-  (not (empty? (filter
-                (fn [{:keys [name model]}]
-                  (and (= name field-name)
-                       (= model (str _id))))
-                (api/find-all (api/map->Field {}) client)))))
+  (seq (filter
+        (fn [{:keys [name model]}]
+          (and (= name field-name)
+               (= model (str _id))))
+        (api/find-all (api/map->Field {}) client))))
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
