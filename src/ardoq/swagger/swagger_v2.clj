@@ -7,6 +7,9 @@
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]))
 
+(defn set-id-and-version [{id :_id version :_version} resource]
+  (assoc resource :_id id :_version version))
+
 (defn create-workspace [client model wsname {:keys [info] :as data}]
   ;; Creates a new workspace in the client. 
   (let [{:keys [_id]} model
@@ -73,17 +76,27 @@
        (let [type (doall (map (fn [[_ v]]
                                 (get-in v [:schema]))
                               response))
-             op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
-                                         :description (common/generate-operation-description data models) 
-                                         :rootWorkspace (str wid) 
-                                         :model _id 
-                                         :parent (:_id parent) 
-                                         :method method
-                                         :typeId (api/type-id-by-name model "Operation")}) 
-                    (api/create client) 
-                    (assoc :return-model type
-                           :input-models parameters
-                           :security security))]
+             op (or (some-> (common/find-existing-resource client (str (:name parent) "/" (name method)) #(api/map->Component {}) wid)
+                            (set-id-and-version (api/map->Component 
+                                                 {:name (str (:name parent) "/" (name method)) 
+                                                  :description (common/generate-operation-description data models) 
+                                                  :rootWorkspace (str wid) 
+                                                  :model _id 
+                                                  :parent (:_id parent) 
+                                                  :method method
+                                                  :typeId (api/type-id-by-name model "Operation")}))
+                            (api/update client)) 
+                 (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
+                                          :description (common/generate-operation-description data models) 
+                                          :rootWorkspace (str wid) 
+                                          :model _id 
+                                          :parent (:_id parent) 
+                                          :method method
+                                          :typeId (api/type-id-by-name model "Operation")}) 
+                     (api/create client) 
+                     (assoc :return-model type
+                            :input-models parameters
+                            :security security)))]
          (find-or-create-tag client tag wid op tags)
          op)))
    methods))
@@ -241,9 +254,6 @@
     (-> (create-param-model wid _id parameters description model)
         (common/save-models client))))
 
-(defn set-id-and-version [{id :_id version :_version} resource]
-  (assoc resource :_id id :_version version))
-
 (defn create-resource [client model {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [{:keys [_id description]} model
@@ -251,7 +261,7 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (or (some-> (common/find-existing-resource client (name path) #(api/map->Component {}) (:_id workspace))
+                           :component (or (some-> (common/find-existing-resource client (name path) #(api/map->Component {}) wid)
                                                   (set-id-and-version (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil))
                                                   (api/update client)) 
                                        (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
