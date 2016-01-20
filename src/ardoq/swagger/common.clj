@@ -24,6 +24,9 @@
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
 (defn set-id-and-version [{id :_id version :_version} resource]
+  (println id)
+  (println version)
+  (println resource)
   (assoc resource :_id id :_version version))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]

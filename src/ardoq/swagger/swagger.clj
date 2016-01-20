@@ -36,7 +36,7 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (if-let [workspace (common/find-existing-resource client title #(api/map->Workspace))]
+    (if-let [workspace (common/find-existing-resource client name #(api/map->Workspace {}))]
       workspace
       (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
           (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
@@ -51,8 +51,11 @@
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
-   :component (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
-                  (api/create client))})
+   :component (or (some-> (common/find-existing-resource client path #(api/map->Component {}) wid)
+                          (common/set-id-and-version (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil))
+                          (api/update client)) 
+                  (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
+                      (api/create client)))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -69,16 +72,25 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
-     (-> (api/map->Component {:name (str method " " path)
-                              :description (common/generate-operation-description data models)
-                              :rootWorkspace (str wid)
-                              :model model-id
-                              :parent (str (:_id parent))
-                              :method method
-                              :typeId (api/type-id-by-name model "Operation")})
-         (api/create client)
-         (assoc :return-model (keyword type)
-                :input-models (set (map keyword (keep :type parameters))))))
+     (or (some-> (common/find-existing-resource client path #(api/map->Component {}) wid)
+                 (common/set-id-and-version (api/map->Component {:name (str method " " path)
+                                                                 :description (common/generate-operation-description data models)
+                                                                 :rootWorkspace (str wid)
+                                                                 :model model-id
+                                                                 :parent (str (:_id parent))
+                                                                 :method method
+                                                                 :typeId (api/type-id-by-name model "Operation")}))
+                 (api/update client))
+         (-> (api/map->Component {:name (str method " " path)
+                                  :description (common/generate-operation-description data models)
+                                  :rootWorkspace (str wid)
+                                  :model model-id
+                                  :parent (str (:_id parent))
+                                  :method method
+                                  :typeId (api/type-id-by-name model "Operation")})
+             (api/create client)
+             (assoc :return-model (keyword type)
+                    :input-models (set (map keyword (keep :type parameters)))))))
    operations))
 
 (defn create-api [client base-url workspace model models {:keys [resource component]}]
@@ -124,7 +136,7 @@
            (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
              (let [input-refs
                    (keep (fn [k]
-                           (if-let [m (k models)]
+                           (if-let [m (k models)]                            
                              (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
                                                       :source (str id)
                                                       :target (str (:_id m))
