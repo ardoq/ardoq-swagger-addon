@@ -249,7 +249,6 @@
                            :parameters parameters
                            :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                (api/create client))})
-            stuff (clojure.pprint/pprint parent)
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (create-resource-refs client parent params)
         (create-refs client operations defs secur)))
