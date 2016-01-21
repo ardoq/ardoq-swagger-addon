@@ -1,6 +1,7 @@
 (ns ardoq.swagger.swagger-v2
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
+            [ardoq.swagger.update-swagger2 :as update]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -13,11 +14,9 @@
         wsname (if (s/blank? wsname)
                  (:title info)
                  wsname)]
-    (if-let [workspace (common/find-existing-resource client wsname #(api/map->Workspace {}))]
-      workspace
-      (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
-          (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-          (api/create client)))))
+    (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
+        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
+        (api/create client))))
 
 (defn parse-info [spec result]
   ;;Copies the info data from spec into result
@@ -73,27 +72,17 @@
        (let [type (doall (map (fn [[_ v]]
                                 (get-in v [:schema]))
                               response))
-             op (or (some-> (common/find-existing-resource client (str (:name parent) "/" (name method)) #(api/map->Component {}) wid)
-                            (common/set-id-and-version (api/map->Component 
-                                                 {:name (str (:name parent) "/" (name method)) 
-                                                  :description (common/generate-operation-description data models) 
-                                                  :rootWorkspace (str wid) 
-                                                  :model _id 
-                                                  :parent (:_id parent) 
-                                                  :method method
-                                                  :typeId (api/type-id-by-name model "Operation")}))
-                            (api/update client)) 
-                 (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
-                                          :description (common/generate-operation-description data models) 
-                                          :rootWorkspace (str wid) 
-                                          :model _id 
-                                          :parent (:_id parent) 
-                                          :method method
-                                          :typeId (api/type-id-by-name model "Operation")}) 
-                     (api/create client) 
-                     (assoc :return-model type
-                            :input-models parameters
-                            :security security)))]
+             op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
+                                      :description (common/generate-operation-description data models) 
+                                      :rootWorkspace (str wid) 
+                                      :model _id 
+                                      :parent (:_id parent) 
+                                      :method method
+                                      :typeId (api/type-id-by-name model "Operation")}) 
+                 (api/create client) 
+                 (assoc :return-model type
+                        :input-models parameters
+                        :security security))]
          (find-or-create-tag client tag wid op tags)
          op)))
    methods))
@@ -258,11 +247,9 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (or (some-> (common/find-existing-resource client (name path) #(api/map->Component {}) wid)
-                                                  (common/set-id-and-version (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil))
-                                                  (api/update client)) 
-                                       (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
-                                              (api/create client)))})
+                           :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                               (api/create client))})
+            stuff (clojure.pprint/pprint parent)
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (create-resource-refs client parent params)
         (create-refs client operations defs secur)))
@@ -275,24 +262,24 @@
     (api/create tag client)))
 
 (defn get-info [client wsname spec]
-  (let [model (common/find-or-create-model client "Swagger 2.0")
-        workspace (create-workspace client model wsname spec)
-        defs (create-defs client model spec workspace)
-        params (create-params client model spec workspace)
-        secur (create-security-defs client model spec workspace)
-        ;;To here
-        tags-cache (atom (create-tags client spec (:_id workspace)))]
-    (create-resource client model spec defs params secur tags-cache workspace)
-    (update-tags client @tags-cache)
-    (println "Done importing swagger doc.")
-    (str (:_id workspace))))
+  (when-not (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
+                  (api/find-aggregated client)
+                  (update/update-workspace client spec))
+    (let [model (common/find-or-create-model client "Swagger 2.0")
+          workspace (create-workspace client model wsname spec)
+          defs (create-defs client model spec workspace)
+          params (create-params client model spec workspace)
+          secur (create-security-defs client model spec workspace)
+          ;;To here
+          tags-cache (atom (create-tags client spec (:_id workspace)))]
+      (create-resource client model spec defs params secur tags-cache workspace)
+      (update-tags client @tags-cache)
+      (println "Done importing swagger doc.")
+      (str (:_id workspace)))))
 
 
-(defn get-data [client spec wsname]
+(defn import-swagger2 [client spec wsname]
   ;;Extracts data from a given Swagger file into an emtpy object
   (->> {}
        (parse-info spec)
        (get-info client wsname)))
-
-(defn import-swagger2 [client spec wsname]
-  (get-data client spec wsname))

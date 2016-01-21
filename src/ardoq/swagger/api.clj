@@ -82,7 +82,6 @@
          :session (assoc session :referer "";(str "http://" (first (rest (rest (.split (get headers "referer") "/")))))
                          )})
    (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
-         (println session)
          (try
            (let [client (c/client {:url (:base-url config)
                                    :org org

@@ -81,6 +81,13 @@
       (ok? status) (coerce-response resource (json/read-json body true))
       :else (throw (ex-info "client-exception" {:status status :body body})))))
 
+(defn find-aggregated [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource) "/aggregated")
+        {:keys [status body]} (http/get url (:options client))]
+    (cond
+      (ok? status) (coerce-response resource (json/read-json body true))
+      :else (throw (ex-info "client-exception" {:status status :body body})))))
+
 (defn find-in-workspace [resource client root-id]
   (let [url (str (:url client) "/api/" (resource-path resource) "/")
         {:keys [status body]} (http/get url (:options client))]

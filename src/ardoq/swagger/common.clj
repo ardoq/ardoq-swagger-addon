@@ -64,10 +64,4 @@
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]
-               (or (some-> 
-                    (find-existing-resource client (name (:name %)) (partial api/map->Component {}) (:rootWorkspace %))
-                    (set-id-and-version %)
-                    (dissoc :schema)
-                    (api/update client)
-                    (assoc :schema schema)))
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))

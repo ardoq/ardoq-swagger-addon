@@ -51,11 +51,8 @@
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
-   :component (or (some-> (common/find-existing-resource client path #(api/map->Component {}) wid)
-                          (common/set-id-and-version (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil))
-                          (api/update client)) 
-                  (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
-                      (api/create client)))})
+   :component (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
+       (api/create client))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -72,25 +69,16 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
-     (or (some-> (common/find-existing-resource client path #(api/map->Component {}) wid)
-                 (common/set-id-and-version (api/map->Component {:name (str method " " path)
-                                                                 :description (common/generate-operation-description data models)
-                                                                 :rootWorkspace (str wid)
-                                                                 :model model-id
-                                                                 :parent (str (:_id parent))
-                                                                 :method method
-                                                                 :typeId (api/type-id-by-name model "Operation")}))
-                 (api/update client))
-         (-> (api/map->Component {:name (str method " " path)
-                                  :description (common/generate-operation-description data models)
-                                  :rootWorkspace (str wid)
-                                  :model model-id
-                                  :parent (str (:_id parent))
-                                  :method method
-                                  :typeId (api/type-id-by-name model "Operation")})
-             (api/create client)
-             (assoc :return-model (keyword type)
-                    :input-models (set (map keyword (keep :type parameters)))))))
+     (-> (api/map->Component {:name (str method " " path)
+                              :description (common/generate-operation-description data models)
+                              :rootWorkspace (str wid)
+                              :model model-id
+                              :parent (str (:_id parent))
+                              :method method
+                              :typeId (api/type-id-by-name model "Operation")})
+         (api/create client)
+         (assoc :return-model (keyword type)
+                :input-models (set (map keyword (keep :type parameters))))))
    operations))
 
 (defn create-api [client base-url workspace model models {:keys [resource component]}]
