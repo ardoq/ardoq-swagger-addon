@@ -262,9 +262,8 @@
     (let [model (common/find-or-create-model client "Swagger 2.0")
           workspace (create-workspace client model wsname spec)
           defs (create-defs client model spec workspace)
-          stuff (clojure.pprint/pprint defs)
           params (create-params client model spec workspace)
-          secur (create-security-defs client model spec workspace)
+          secur (create-security-defs client model spec workspace)         
           ;;To here
           tags-cache (atom (create-tags client spec (:_id workspace)))]
       (create-resource client model spec defs params secur tags-cache workspace)

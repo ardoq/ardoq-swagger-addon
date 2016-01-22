@@ -2,7 +2,7 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]))
 
-(defn create-def [client type schema {wid :_id} {_id :_id :as model}]
+(defn create-component [client type schema {wid :_id} {_id :_id :as model}]
   (-> (assoc nil (keyword type)
              (assoc
                  (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
@@ -10,7 +10,7 @@
       (common/save-models client)))
 
 
-(defn update-defs [client models {definitions :definitions :as spec} workspace model]
+(defn update-defs [client models {definitions :definitions} workspace model]
   (doseq [{def-name :name :as model} models]
     (when-not (first (filter #(= (name %) def-name) (keys definitions)))
       (api/delete (api/map->Component model) client)))
@@ -18,9 +18,22 @@
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) models))
                                 (str "TO BE UPDATED: "))
-                       (first (vals (create-def client def-name data workspace model))))))
+                       (first (vals (create-component client def-name data workspace model))))))
           {}
           definitions))
+
+(defn update-securities [client securities {securitydefs :securityDefinitions} workspace {_id :_id :as model}]
+  (doseq [{secur-name :name :as security} securities]
+    (when-not (first (filter #(= (name %) secur-name) (keys securitydefs)))
+      (api/delete (api/map->Component model) client)))
+  (reduce (fn [acc [def-name data]]
+            (assoc acc (keyword def-name) 
+                   (or (some->> (first (filter #(= (name def-name) (:name %)) securities))
+                                (str "TO BE UPDATED: "))
+                       (first (vals (create-component client def-name data workspace model))))))
+          {}
+          securitydefs)
+  "random return")
 
 (defn update-methods [client]
   "random return"
@@ -52,10 +65,11 @@
   ;;Workspace exists, we will just update values in it.
   ;;might need to update through the infoTemplate (see swagger-v2 line 17
   ;(clojure.pprint/pprint (:components workspace))
-  (let [model (common/find-or-create-model client "Swagger 2.0")]
-    (clojure.pprint/pprint (update-defs client (doall (filter #(= "Model" (:type %)) (:components workspace))) spec workspace model)))
-  ;;check params
-  ;;check securs
+  (let [model (common/find-or-create-model client "Swagger 2.0")
+        defs (update-defs client (doall (filter #(= "Model" (:type %)) (:components workspace))) spec workspace model)
+        params {} ;TODO Been unable to find swagger with params to test
+        securs (update-securities client (doall (filter #(= "securityDefinitions" (:type %)) (:components workspace))) spec workspace model)] 
+    )
   ;;check tags
   (update-operations client (doall (filter #(= "Resource" (:type %)) (:components workspace))) spec workspace)
   "Random return thats not nil")
