@@ -2,10 +2,10 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]))
 
-(defn create-component [client type schema {wid :_id} {_id :_id :as model}]
+(defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name]
   (-> (assoc nil (keyword type)
              (assoc
-                 (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
+                 (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model type-name)  nil)
                :schema schema))
       (common/save-models client)))
 
@@ -18,9 +18,21 @@
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) models))
                                 (str "TO BE UPDATED: "))
-                       (first (vals (create-component client def-name data workspace model))))))
+                       (first (vals (create-component client def-name data workspace model "Model"))))))
           {}
           definitions))
+
+(defn update-parameters [client parameters {paramdefs :parameters} workspace {_id :_id :as model}]
+  (doseq [{param-name :name :as security} parameters]
+    (when-not (first (filter #(= (name %) param-name) (keys paramdefs)))
+      (api/delete (api/map->Component model) client)))
+  (reduce (fn [acc [def-name data]]
+            (assoc acc (keyword def-name) 
+                   (or (some->> (first (filter #(= (name def-name) (:name %)) parameters))
+                                (str "TO BE UPDATED: "))
+                       (first (vals (create-component client def-name data workspace model "parameters"))))))
+          {}
+          paramdefs))
 
 (defn update-securities [client securities {securitydefs :securityDefinitions} workspace {_id :_id :as model}]
   (doseq [{secur-name :name :as security} securities]
@@ -30,10 +42,9 @@
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) securities))
                                 (str "TO BE UPDATED: "))
-                       (first (vals (create-component client def-name data workspace model))))))
+                       (first (vals (create-component client def-name data workspace model "securityDefinitions"))))))
           {}
-          securitydefs)
-  "random return")
+          securitydefs))
 
 (defn update-methods [client]
   "random return"
@@ -53,13 +64,13 @@
 
 (defn update-operations [client resources {paths :paths :as spec} workspace]
   ;;This runs two times doseq filter. 
+  (doseq [{path :name :as resource} resources]
+    (when-not (first (filter #(= (name %) path) (keys paths)))
+      (api/delete (api/map->Component resource) client)))
   (doseq [[path :as method] paths]
     (or (some->> (first (filter #(= (name path) (:name %)) resources))
                 (update-operation client method))
-        (add-new-operation client method workspace)))
-  (doseq [{path :name :as resource} resources]
-    (when-not (first (filter #(= (name %) path) (keys paths)))
-      (api/delete (api/map->Component resource) client))))
+        (add-new-operation client method workspace))))
 
 (defn update-workspace [workspace client spec]
   ;;Workspace exists, we will just update values in it.
@@ -67,7 +78,7 @@
   ;(clojure.pprint/pprint (:components workspace))
   (let [model (common/find-or-create-model client "Swagger 2.0")
         defs (update-defs client (doall (filter #(= "Model" (:type %)) (:components workspace))) spec workspace model)
-        params {} ;TODO Been unable to find swagger with params to test
+        params (update-parameters client (doall (filter #(= "Parameters" (:type %)) (:components workspace)))) ;TODO Been unable to find swagger with params to test
         securs (update-securities client (doall (filter #(= "securityDefinitions" (:type %)) (:components workspace))) spec workspace model)] 
     )
   ;;check tags
