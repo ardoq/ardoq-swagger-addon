@@ -5,7 +5,7 @@
 (defn get-component-by-type [workspace type]
   (doall (filter #(= type (:type %)) (:components workspace))))
 
-(defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name]
+(defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name] ;;Create component probably needs to switch out common/model template for a function call as not all components use model-template
   (-> (assoc nil (keyword type)
              (assoc
                  (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model type-name)  nil)
@@ -13,17 +13,21 @@
       (common/save-models client)))
 
 ;;This function might not be possible as a single function. If so split into many and use partial
-(defn update-component [client workspace component]
+(defn update-component [client data component]
+  ;; (-> (assoc component :description (tpl/render-resource "template" data))
+  ;;     (api/map->Component)
+  ;;     (api/update client))
+  ;;Need to set the resource we wanna render from above.
   "random return")
 
 (defn update-components [client components definitions workspace {_id :_id :as model} model-type]
   (doseq [{def-name :name :as component} components]
     (when-not (first (filter #(= (name %) def-name) (keys definitions)))
       (api/delete (api/map->Component component) client)))
-  (reduce (fn [acc [def-name data]]
+  (reduce (fn [acc [def-name data :as component]]
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) components))
-                                (update-component client workspace))
+                                (update-component client component))
                        (first (vals (create-component client def-name data workspace model model-type))))))
           {}
           definitions))
