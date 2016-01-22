@@ -2,9 +2,25 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]))
 
-(defn update-defs [client {definitions :definitions :as workspace}]
-  "random return"
-  )
+(defn create-def [client type schema {wid :_id} {_id :_id :as model}]
+  (-> (assoc nil (keyword type)
+             (assoc
+                 (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
+               :schema schema))
+      (common/save-models client)))
+
+
+(defn update-defs [client models {definitions :definitions :as spec} workspace model]
+  (doseq [{def-name :name :as model} models]
+    (when-not (first (filter #(= (name %) def-name) (keys definitions)))
+      (api/delete (api/map->Component model) client)))
+  (reduce (fn [acc [def-name data]]
+            (assoc acc (keyword def-name) 
+                   (or (some->> (first (filter #(= (name def-name) (:name %)) models))
+                                (str "TO BE UPDATED: "))
+                       (first (vals (create-def client def-name data workspace model))))))
+          {}
+          definitions))
 
 (defn update-methods [client]
   "random return"
@@ -35,8 +51,9 @@
 (defn update-workspace [workspace client spec]
   ;;Workspace exists, we will just update values in it.
   ;;might need to update through the infoTemplate (see swagger-v2 line 17
-  (clojure.pprint/pprint (:components workspace))
-  (update-defs client workspace)
+  ;(clojure.pprint/pprint (:components workspace))
+  (let [model (common/find-or-create-model client "Swagger 2.0")]
+    (clojure.pprint/pprint (update-defs client (doall (filter #(= "Model" (:type %)) (:components workspace))) spec workspace model)))
   ;;check params
   ;;check securs
   ;;check tags

@@ -49,18 +49,13 @@
                                   (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] [])))))))
               tag)))
 
-(defn model-template [m]
-  (str "###JSON Schema\n```\n"
-       (generate-string m {:pretty true})
-       "\n```"))
-
 (defn create-models [model wid _id path {:keys [definitions]}]
   ;;Creates links between components
   (reduce
    (fn [acc [type schema]]
      (assoc acc (keyword type)
             (assoc
-             (api/->Component type (model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
+             (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
              :schema schema)))
    {}
    definitions))
@@ -267,6 +262,7 @@
     (let [model (common/find-or-create-model client "Swagger 2.0")
           workspace (create-workspace client model wsname spec)
           defs (create-defs client model spec workspace)
+          stuff (clojure.pprint/pprint defs)
           params (create-params client model spec workspace)
           secur (create-security-defs client model spec workspace)
           ;;To here

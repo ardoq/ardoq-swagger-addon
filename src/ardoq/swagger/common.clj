@@ -11,6 +11,11 @@
 (defn replace-newlines [schema]
   (clojure.string/replace schema #"\\n" ""))
 
+(defn model-template [m]
+  (str "###JSON Schema\n```\n"
+       (generate-string m {:pretty true})
+       "\n```"))
+
 (defn find-or-create-model [client type]
   (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
