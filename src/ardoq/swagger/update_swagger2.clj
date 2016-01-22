@@ -2,6 +2,9 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]))
 
+(defn get-component-by-type [workspace type]
+  (doall (filter #(= type (:type %)) (:components workspace))))
+
 (defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name]
   (-> (assoc nil (keyword type)
              (assoc
@@ -9,42 +12,21 @@
                :schema schema))
       (common/save-models client)))
 
+;;This function might not be possible as a single function. If so split into many and use partial
+(defn update-component [client workspace component]
+  "random return")
 
-(defn update-defs [client models {definitions :definitions} workspace model]
-  (doseq [{def-name :name :as model} models]
+(defn update-components [client components definitions workspace {_id :_id :as model} model-type]
+  (doseq [{def-name :name :as component} components]
     (when-not (first (filter #(= (name %) def-name) (keys definitions)))
-      (api/delete (api/map->Component model) client)))
+      (api/delete (api/map->Component component) client)))
   (reduce (fn [acc [def-name data]]
             (assoc acc (keyword def-name) 
-                   (or (some->> (first (filter #(= (name def-name) (:name %)) models))
-                                (str "TO BE UPDATED: "))
-                       (first (vals (create-component client def-name data workspace model "Model"))))))
+                   (or (some->> (first (filter #(= (name def-name) (:name %)) components))
+                                (update-component client workspace))
+                       (first (vals (create-component client def-name data workspace model model-type))))))
           {}
           definitions))
-
-(defn update-parameters [client parameters {paramdefs :parameters} workspace {_id :_id :as model}]
-  (doseq [{param-name :name :as security} parameters]
-    (when-not (first (filter #(= (name %) param-name) (keys paramdefs)))
-      (api/delete (api/map->Component model) client)))
-  (reduce (fn [acc [def-name data]]
-            (assoc acc (keyword def-name) 
-                   (or (some->> (first (filter #(= (name def-name) (:name %)) parameters))
-                                (str "TO BE UPDATED: "))
-                       (first (vals (create-component client def-name data workspace model "parameters"))))))
-          {}
-          paramdefs))
-
-(defn update-securities [client securities {securitydefs :securityDefinitions} workspace {_id :_id :as model}]
-  (doseq [{secur-name :name :as security} securities]
-    (when-not (first (filter #(= (name %) secur-name) (keys securitydefs)))
-      (api/delete (api/map->Component model) client)))
-  (reduce (fn [acc [def-name data]]
-            (assoc acc (keyword def-name) 
-                   (or (some->> (first (filter #(= (name def-name) (:name %)) securities))
-                                (str "TO BE UPDATED: "))
-                       (first (vals (create-component client def-name data workspace model "securityDefinitions"))))))
-          {}
-          securitydefs))
 
 (defn update-methods [client]
   "random return"
@@ -77,10 +59,11 @@
   ;;might need to update through the infoTemplate (see swagger-v2 line 17
   ;(clojure.pprint/pprint (:components workspace))
   (let [model (common/find-or-create-model client "Swagger 2.0")
-        defs (update-defs client (doall (filter #(= "Model" (:type %)) (:components workspace))) spec workspace model)
-        params (update-parameters client (doall (filter #(= "Parameters" (:type %)) (:components workspace)))) ;TODO Been unable to find swagger with params to test
-        securs (update-securities client (doall (filter #(= "securityDefinitions" (:type %)) (:components workspace))) spec workspace model)] 
+        defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model")
+        params (update-components client (get-component-by-type workspace "Parameters")  (:Parameters spec) workspace model "Parameters") ;TODO Been unable to find swagger with params to test
+        securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions")
+        tags {}] 
     )
-  ;;check tags
-  (update-operations client (doall (filter #(= "Resource" (:type %)) (:components workspace))) spec workspace)
+  (update-operations client (get-component-by-type workspace "Resource") spec workspace)
+  ;;update tags
   "Random return thats not nil")
