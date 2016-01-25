@@ -12,12 +12,10 @@
                :schema schema))
       (common/save-models client)))
 
-;;This function might not be possible as a single function. If so split into many and use partial
 (defn update-component [client component template data]
   (-> (assoc data :description (template component))
       (api/map->Component)
-      (api/update client))
-  "random return")
+      (api/update client)))
 
 (defn update-components [client components definitions workspace {_id :_id :as model} model-type template]
   (doseq [{def-name :name :as component} components]
@@ -31,21 +29,41 @@
           {}
           definitions))
 
-(defn update-methods [client]
-  "random return"
-  )
 
-(defn add-new-operation [client method workspace]
-  (println (str "adding " method))
-  "random return"
-  )
+(defn update-references [client operations]
+  "random return")
+
+(defn create-operation [client parent {_id :_id :as model} wid path methods tags]
+  (map (fn [method] 
+         (-> (api/map->Component {:name (str path "/" (:name method))
+                                  :description (:description method)
+                                  :model _id
+                                  :parent parent
+                                  :method method
+                                  :typeId (api/type-id-by-name model "Operation")})
+             (api/create client))
+         methods)))
+
+(defn create-method [client [path {description :description :as methods}] {wid :_id :as workspace} params {_id :_id :as model} tags]
+  (let [parent (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                   (api/create client))]
+    (create-operation client parent model wid path methods tags)
+    ;;Should create the sub operations straight away. We know they don't exist anyway
+    ;;And all references we need seeing how they all come from within or parameters
+    ;;Those that don't get created seperately
+    parent))
 
 (defn update-operation [client method resource]
-  (clojure.pprint/pprint method)
   ;;The path/resource operation itself has no true values, we just keep it as is
   ;;But the internal are different in regards to methods it has. 
   ;;However these are connected by parent in the resource
   ;;Only question remaining is if the consume or produces need changing
+  
+  ;;Things that might change - responses, parameters, produces, tags, references
+
+
+  ;(common/update-comp client resource spec)
+  
   "Random return")
 
 (defn update-operations [client resources {paths :paths :as spec} workspace model defs params securs tags]
@@ -53,10 +71,14 @@
   (doseq [{path :name :as resource} resources]
     (when-not (first (filter #(= (name %) path) (keys paths)))
       (api/delete (api/map->Component resource) client)))
-  (doseq [[path :as method] paths]
-    (or (some->> (first (filter #(= (name path) (:name %)) resources))
-                 (update-operation client (first (rest method))))
-        (add-new-operation client method workspace))))
+  (-> (reduce (fn [acc [def-name data :as component]]        
+                (assoc acc (keyword def-name) 
+                       (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
+                                    (update-operation client (first (rest component))))
+                           (first (vals (create-method client component workspace params model tags))))))
+              {}
+              paths)
+      (update-references client)))
 
 (defn update-workspace [workspace client spec]
   ;;Workspace exists, we will just update values in it.
