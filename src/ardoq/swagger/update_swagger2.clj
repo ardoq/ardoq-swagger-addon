@@ -29,25 +29,43 @@
           {}
           definitions))
 
+(defn create-ref [client {parameters :parameters :as resource} params]
+  (println resource)
+  ;; (let [wid (get-in resource [:component :rootWorkspace])
+  ;;       _id (get-in resource [:component :_id])]
+  ;;   (doseq [{:keys [$ref]} parameters]
+  ;;     (let [k (keyword (last (.split $ref "/")))]
+  ;;       (if-let [m (k params)]
+  ;;         (-> (api/map->Reference {:rootWorkspace wid
+  ;;                                  :source (str _id)
+  ;;                                  :target (str(:_id m))
+  ;;                                  :type 1})
+  ;;             (api/create client))))))
+  "random return"
+  )
 
 (defn update-references [client operations]
   "random return")
 
-(defn create-operation [client parent {_id :_id :as model} wid path methods tags]
-  (map (fn [method] 
-         (-> (api/map->Component {:name (str path "/" (:name method))
-                                  :description (:description method)
+(defn create-operation [client parent {_id :_id :as model} wid path methods tags defs]
+  (map (fn [[method-name method]] 
+         (println defs)
+         (-> (api/map->Component {:name (str (name path) "/" (name method-name))
+                                  :description "";(common/generate-operation-description method)
+                                  :rootWorkspace (str wid)
                                   :model _id
-                                  :parent parent
-                                  :method method
+                                  :parent (:_id parent)
+                                  :method (name method-name)
                                   :typeId (api/type-id-by-name model "Operation")})
-             (api/create client))
-         methods)))
+             (api/create client)))
+       methods))
 
-(defn create-method [client [path {description :description :as methods}] {wid :_id :as workspace} params {_id :_id :as model} tags]
+(defn create-method [client [path {description :description :as methods}] {wid :_id :as workspace} params {_id :_id :as model} tags params defs]
+  (println wid)
   (let [parent (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
-                   (api/create client))]
-    (create-operation client parent model wid path methods tags)
+                   (api/create client))
+        parent (assoc parent :operations (create-operation client parent model wid path methods tags defs))]
+    (create-ref client parent params)
     ;;Should create the sub operations straight away. We know they don't exist anyway
     ;;And all references we need seeing how they all come from within or parameters
     ;;Those that don't get created seperately
@@ -75,7 +93,7 @@
                 (assoc acc (keyword def-name) 
                        (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
                                     (update-operation client (first (rest component))))
-                           (first (vals (create-method client component workspace params model tags))))))
+                           (first (vals (create-method client component workspace params model tags params defs))))))
               {}
               paths)
       (update-references client)))
