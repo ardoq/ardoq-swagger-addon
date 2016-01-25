@@ -16,6 +16,13 @@
        (generate-string m {:pretty true})
        "\n```"))
 
+(defn generate-param-description [data]
+  (-> (replace-newlines data)
+      (tpl/render-resource "globalTemplate.tpl" data)))
+
+(defn generate-security-description[data]
+  (tpl/render-resource "securityTemplate.tpl" data))
+
 (defn find-or-create-model [client type]
   (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
     model
@@ -64,8 +71,8 @@
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
   (api/update 
    (cond-> (api/map->Component component)
-     produces (assoc :produces produces)
-     consumes (assoc :consumes consumes)) client))
+           produces (dissoc (assoc :produces produces) :consumes)
+           consumes (dissoc (assoc :consumes consumes) :produces)) client))
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]

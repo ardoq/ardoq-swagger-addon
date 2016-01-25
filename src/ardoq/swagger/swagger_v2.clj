@@ -68,12 +68,12 @@
                                 (get-in v [:schema]))
                               response))
              op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
-                                      :description (common/generate-operation-description data models) 
-                                      :rootWorkspace (str wid) 
-                                      :model _id 
-                                      :parent (:_id parent) 
-                                      :method method
-                                      :typeId (api/type-id-by-name model "Operation")}) 
+                                         :description (common/generate-operation-description data models) 
+                                         :rootWorkspace (str wid) 
+                                         :model _id 
+                                         :parent (:_id parent) 
+                                         :method method
+                                         :typeId (api/type-id-by-name model "Operation")}) 
                  (api/create client) 
                  (assoc :return-model type
                         :input-models parameters
@@ -193,23 +193,13 @@
     (-> (create-models model wid _id paths spec)
         (common/save-models client))))
 
-(defn generate-param-description[data]
-  (tpl/render-resource "globalTemplate.tpl" data))
-
-(defn generate-security-description[data]
-  (tpl/render-resource "securityTemplate.tpl" data))
-
-(defn replace-newlines [schema]
-  (clojure.string/replace schema #"\n" "<br>"))
-
 (defn create-param-model [wid _id parameters description model]
   (reduce
    (fn [acc [param schema]]
-     (let [schema (replace-newlines schema)]
-       (assoc acc (keyword param)
-              (assoc
-                  (api/->Component param (generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
-                :schema schema))))
+     (assoc acc (keyword param)
+            (assoc
+                (api/->Component param (common/generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+              :schema schema)))
    {}
    parameters))
 
@@ -218,7 +208,7 @@
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-             (api/->Component sec (generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+             (api/->Component sec (common/generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
              :schema schema)))
    {}
    sec-defs))

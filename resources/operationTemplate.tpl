@@ -1,6 +1,8 @@
 ###Implementation notes
 
-{{notes}}
+####{{summary}}
+
+{{description}}
 
 ####Parameters
 |Name|Description|Required|Type|Parameter Type|Enum|Consumes|
