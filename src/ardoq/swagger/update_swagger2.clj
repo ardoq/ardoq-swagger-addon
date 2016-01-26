@@ -29,18 +29,6 @@
           {}
           definitions))
 
-(defn create-ref [client resource params]
-  (let [wid (get-in resource [:rootWorkspace])
-        _id (get-in resource [:_id])]
-    (doseq [{:keys [$ref]} params]
-      (let [k (keyword (last (.split $ref "/")))]
-        (if-let [m (k params)]
-          (-> (api/map->Reference {:rootWorkspace wid
-                                   :source (str _id)
-                                   :target (str(:_id m))
-                                   :type 1})
-              (api/create client)))))))
-
 (defn update-references [client operations]
   "random return")
 
@@ -58,11 +46,9 @@
           methods)))
 
 (defn create-method [client [path {description :description :as methods}] {wid :_id :as workspace} params {_id :_id :as model} tags params defs]
-  (println wid)
   (let [parent (-> (api/->Component path "" (str wid) _id (api/type-id-by-name model "Resource") nil)
                    (api/create client))
         parent (assoc parent :operations (create-operation client parent model wid path methods tags defs))]
-    (create-ref client parent params)
     ;;Should create the sub operations straight away. We know they don't exist anyway
     ;;And all references we need seeing how they all come from within or parameters
     ;;Those that don't get created seperately
@@ -96,9 +82,8 @@
       (update-references client)))
 
 (defn update-workspace [workspace client spec]
-  ;;Workspace exists, we will just update values in it.
-  ;;might need to update through the infoTemplate (see swagger-v2 line 17
-  ;(clojure.pprint/pprint (:components workspace))
+  ;;Workspace exists, we will just update values in it and potentially the description.
+;  (clojure.pprint/pprint workspace)
   (let [model (common/find-or-create-model client "Swagger 2.0")
         defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model" (partial common/model-template))
         params (update-components client (get-component-by-type workspace "Parameters")  (:Parameters spec) workspace model "Parameters" (partial common/generate-param-description)) ;TODO Been unable to find swagger with params to test
