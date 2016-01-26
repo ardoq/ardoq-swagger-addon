@@ -1,6 +1,7 @@
 (ns ardoq.swagger.update-swagger2
   (:require [ardoq.swagger.client :as api]
-            [ardoq.swagger.common :as common]))
+            [ardoq.swagger.common :as common]
+            [ardoq.swagger.swagger2-refs :as refs]))
 
 (defn get-component-by-type [workspace type]
   (doall (filter #(= type (:type %)) (:components workspace))))
@@ -29,26 +30,38 @@
           {}
           definitions))
 
-(defn update-references [client operations]
+(defn update-references [client operation]
   "random return")
 
-(defn create-operation [client parent {_id :_id :as model} wid path methods tags defs]
-  (doall (map 
+(defn create-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs]
+  (doall (keep
           (fn [[method-name method]]
-            (-> (api/map->Component {:name (str (name path) "/" (name method-name))
-                                     :description (common/generate-operation-description method defs)
-                                     :rootWorkspace (str wid)
-                                     :model _id
-                                     :parent (:_id parent)
-                                     :method (name method-name)
-                                     :typeId (api/type-id-by-name model "Operation")})
-                (api/create client)))
+            (if (not (= method-name (keyword "parameters")))
+              (-> (api/map->Component {:name (str (name path) "/" (name method-name))
+                                       :description (common/generate-operation-description method defs)
+                                       :rootWorkspace (str wid)
+                                       :model _id
+                                       :parent (:_id parent)
+                                       :method method-name
+                                       :typeId (api/type-id-by-name model "Operation")})
+                  (api/create client)
+                  (assoc :return-model (doall (map 
+                                               (fn [[_ v]] (get-in v [:schema]))
+                                               (:responses method)))
+                         :input-models (:parameters method)
+                         :security (:security method)))))
           methods)))
 
-(defn create-method [client [path {description :description :as methods}] {wid :_id :as workspace} params {_id :_id :as model} tags params defs]
-  (let [parent (-> (api/->Component path "" (str wid) _id (api/type-id-by-name model "Resource") nil)
-                   (api/create client))
-        parent (assoc parent :operations (create-operation client parent model wid path methods tags defs))]
+(defn create-method [client [path methods] {wid :_id :as workspace} params {_id :_id :as model} tags params defs securs]
+  (let [description (:description (first (vals methods)))
+        parameters (:parameters (first (vals methods)))
+        parent {:resource path
+                :paramters parameters
+                :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
+                    (api/create client))}
+        op (create-operation client parent model wid path methods tags defs)]
+    (refs/create-resource-refs client parent params)
+    (refs/create-refs client op defs securs)
     ;;Should create the sub operations straight away. We know they don't exist anyway
     ;;And all references we need seeing how they all come from within or parameters
     ;;Those that don't get created seperately
@@ -72,14 +85,21 @@
   (doseq [{path :name :as resource} resources]
     (when-not (first (filter #(= (name %) path) (keys paths)))
       (api/delete (api/map->Component resource) client)))
-  (-> (reduce (fn [acc [def-name data :as component]]        
-                (assoc acc (keyword def-name) 
-                       (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
-                                    (update-operation client (first (rest component))))
-                           (first (vals (create-method client component workspace params model tags params defs))))))
-              {}
-              paths)
-      (update-references client)))
+  (reduce (fn [acc [def-name data :as component]]        
+            (assoc acc (keyword def-name) 
+                   (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
+                                (update-operation client (first (rest component))))
+                       (first (vals (create-method client component workspace params model tags params defs securs))))))
+          {}
+          paths)
+  (refs/interdependent-model-refs client defs)
+  (common/find-or-create-fields client model);;THIS MIGHT BE A BIT EXCESSIVE
+  )
+
+(defn delete-references [client {references :references :as workspace}]
+  (doseq [ref references]
+    (when (= (:rootWorkspace ref) (:targetWorkspace ref) (:_id workspace))
+      (api/delete (api/map->Reference ref) client))))
 
 (defn update-workspace [workspace client spec]
   ;;Workspace exists, we will just update values in it and potentially the description.
@@ -89,7 +109,8 @@
         params (update-components client (get-component-by-type workspace "Parameters")  (:Parameters spec) workspace model "Parameters" (partial common/generate-param-description)) ;TODO Been unable to find swagger with params to test
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
         tags {}]     
-
+    (delete-references client workspace)
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags))
   ;;update tags
+  (println "DONE")
   "Random return thats not nil")
