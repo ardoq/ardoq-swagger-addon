@@ -30,55 +30,73 @@
           {}
           definitions))
 
-(defn update-references [client operation]
-  "random return")
-
-(defn create-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs]
+(defn create-or-update-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs resource components]
+  (doseq [child (:children parent)]
+    ;;We need to find if the name of the children parent and check if they fit with path+method
+    ;;If we got a child thats ont in the path+method list it should get deleted.
+    ;;Something link filtering the list of childs towards components then checking the name of each towards methods.
+    "This"
+    )
   (doall (keep
           (fn [[method-name method]]
             (if (not (= method-name (keyword "parameters")))
-              (-> (api/map->Component {:name (str (name path) "/" (name method-name))
-                                       :description (common/generate-operation-description method defs)
-                                       :rootWorkspace (str wid)
-                                       :model _id
-                                       :parent (:_id parent)
-                                       :method method-name
-                                       :typeId (api/type-id-by-name model "Operation")})
-                  (api/create client)
-                  (assoc :return-model (doall (map 
-                                               (fn [[_ v]] (get-in v [:schema]))
-                                               (:responses method)))
-                         :input-models (:parameters method)
-                         :security (:security method)))))
+              (or (some-> (first (filter #(and 
+                                           (= (:parent %) (:_id resource)) 
+                                           (= (str (:name resource) "/" (name method-name)) (:name %))) 
+                                         components))
+                          (assoc :description (common/generate-operation-description method defs))
+                          (api/map->Component)
+                          (api/update client)
+                          (assoc :return-model (doall (map 
+                                                       (fn [[_ v]] (get-in v [:schema]))
+                                                       (:responses method)))
+                                 :input-models (:parameters method)
+                                 :security (:security method)))
+                  (-> (api/map->Component {:name (str (name path) "/" (name method-name))
+                                           :description (common/generate-operation-description method defs)
+                                           :rootWorkspace (str wid)
+                                           :model _id
+                                           :parent (:_id parent)
+                                           :method method-name
+                                           :typeId (api/type-id-by-name model "Operation")})
+                      (api/create client)
+                      (assoc :return-model (doall (map 
+                                                   (fn [[_ v]] (get-in v [:schema]))
+                                                   (:responses method)))
+                             :input-models (:parameters method)
+                             :security (:security method))))))
           methods)))
 
-(defn create-method [client [path methods] {wid :_id :as workspace} params {_id :_id :as model} tags params defs securs]
+(defn create-method [client [path methods] {wid :_id :as workspace} params {_id :_id :as model} tags defs securs]
   (let [description (:description (first (vals methods)))
         parameters (:parameters (first (vals methods)))
         parent {:resource path
                 :paramters parameters
                 :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
                     (api/create client))}
-        op (create-operation client parent model wid path methods tags defs)]
+        op (create-or-update-operation client parent model wid path methods tags defs nil nil)]
     (refs/create-resource-refs client parent params)
     (refs/create-refs client op defs securs)
-    ;;Should create the sub operations straight away. We know they don't exist anyway
-    ;;And all references we need seeing how they all come from within or parameters
-    ;;Those that don't get created seperately
     parent))
 
-(defn update-operation [client method resource]
+(defn update-operation [client [path methods] {wid :_id :as workspace} params {_id :_id :as model} tags defs securs resource]
   ;;The path/resource operation itself has no true values, we just keep it as is
   ;;But the internal are different in regards to methods it has. 
   ;;However these are connected by parent in the resource
   ;;Only question remaining is if the consume or produces need changing
   
   ;;Things that might change - responses, parameters, produces, tags, references
-
-
-  ;(common/update-comp client resource spec)
-  
-  "Random return")
+  (let [description (:description (first (vals methods)))
+        parameters (:parameters (first (vals methods)))
+        parent {:resource path
+                :paramters parameters
+                :component (-> (api/map->Component resource)                          
+                               (api/update client))}
+        ;;Create or update op here
+        op (create-or-update-operation client parent model wid path methods tags defs resource (:components workspace))]
+    (refs/create-resource-refs client parent params)
+    (refs/create-refs client op defs securs)
+    parent))
 
 (defn update-operations [client resources {paths :paths :as spec} workspace model defs params securs tags]
   ;;This runs two times doseq filter. 
@@ -88,13 +106,12 @@
   (reduce (fn [acc [def-name data :as component]]        
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
-                                (update-operation client (first (rest component))))
-                       (first (vals (create-method client component workspace params model tags params defs securs))))))
+                                (update-operation client component workspace params model tags defs securs))
+                       (first (vals (create-method client component workspace params model tags defs securs))))))
           {}
           paths)
-  (refs/interdependent-model-refs client defs)
-  (common/find-or-create-fields client model);;THIS MIGHT BE A BIT EXCESSIVE
-  )
+  (refs/interdependent-model-refs client defs) ;;This doesn't happen for some reason
+  (common/find-or-create-fields client model))
 
 (defn delete-references [client {references :references :as workspace}]
   (doseq [ref references]
