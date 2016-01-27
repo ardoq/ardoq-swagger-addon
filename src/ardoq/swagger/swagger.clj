@@ -155,25 +155,38 @@
   (doall (create-refs client operations models)))
 
 (defn update-resources [client workspace url model resource]
+  "All of these should check if a resource is in workspace. If not then create otherwise update. Need to delete some as well."
+  (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace))
+              (str "Do and update here"))
+      (create-resource client workspace url model resource)))
+
+(defn update-model [client url workspace model resource]
+  "This gets in a full resource from the previous method. Need to complete that before this one"
+  ;; (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Model")) (:components workspace))
+  ;;             (str "Do and update here"))
+  ;;     (create-resource client workspace url model resource))
   "random return")
 
-(defn update-model [client url workspace model]
-  "random return")
-
-(defn update-resources [client url workspace model models]
+(defn update-operations [client url workspace model models]
+  "This gets in a full resource from the previous method. Need to complete that before this one"
+  ;; (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Model")) (:components workspace))
+  ;;             (str "Do and update here"))
+  ;;     (create-resource client workspace url model resource))
   "random return")
 
 (defn update-swagger [workspace client resource-listing url model]
-  (let [resources (doall (partial update-resources client workspace url model) (:apis resource-listing))
+  (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
         models (doall (-> (apply merge (map (partial update-model client url workspace model) resources))))
-        operations (doall (mapcat (partial update-operations client url workspace model models) resources))
-        refs (delete-and-create-refs client workspace operations models)
-        all {:workspace workspace
-                   :resources resources
-                   :models models
-                   :operations operations
-                   :refs refs}]
-    (common/find-or-create-fields client model)
+        ;operations (doall (mapcat (partial update-operations client url workspace model models) resources))
+        ;refs (delete-and-create-refs client workspace operations models)
+        ;; all
+        ;; {:workspace workspace
+        ;;  :resources resources
+        ;;  :models models
+        ;;  :operations operations
+        ;;  :refs refs}
+        ]
+    ;(common/find-or-create-fields client model)
     (println "Done updating Swagger")
     (str (:_id workspace))))
 
