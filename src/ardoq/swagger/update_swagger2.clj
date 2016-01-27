@@ -30,19 +30,20 @@
           {}
           definitions))
 
-(defn create-or-update-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs resource components]
+(defn create-or-update-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs components]
   (doseq [child (:children parent)]
-    ;;We need to find if the name of the children parent and check if they fit with path+method
-    ;;If we got a child thats ont in the path+method list it should get deleted.
-    ;;Something link filtering the list of childs towards components then checking the name of each towards methods.
-    "This"
-    )
+    (let [resource (first (filter #(= (:_id %) child) components))]
+      (when-not (first (filter #(= (str (name path) "/" (name %)) (:name resource)) (keys methods)))
+        (println "Deleting!")
+        (println (:name resource))
+        (api/delete (api/map->Component resource) client)
+        )))
   (doall (keep
           (fn [[method-name method]]
             (if (not (= method-name (keyword "parameters")))
               (or (some-> (first (filter #(and 
-                                           (= (:parent %) (:_id resource)) 
-                                           (= (str (:name resource) "/" (name method-name)) (:name %))) 
+                                           (= (:parent %) (:_id parent)) 
+                                           (= (str (:name parent) "/" (name method-name)) (:name %))) 
                                          components))
                           (assoc :description (common/generate-operation-description method defs))
                           (api/map->Component)
@@ -74,7 +75,7 @@
                 :paramters parameters
                 :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
                     (api/create client))}
-        op (create-or-update-operation client parent model wid path methods tags defs nil nil)]
+        op (create-or-update-operation client parent model wid path methods tags defs nil)]
     (refs/create-resource-refs client parent params)
     (refs/create-refs client op defs securs)
     parent))
@@ -93,7 +94,7 @@
                 :component (-> (api/map->Component resource)                          
                                (api/update client))}
         ;;Create or update op here
-        op (create-or-update-operation client parent model wid path methods tags defs resource (:components workspace))]
+        op (create-or-update-operation client parent model wid path methods tags defs (:components workspace))]
     (refs/create-resource-refs client parent params)
     (refs/create-refs client op defs securs)
     parent))
