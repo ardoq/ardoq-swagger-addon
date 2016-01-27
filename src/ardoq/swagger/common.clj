@@ -35,12 +35,6 @@
   ([client name type root-id]
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
-(defn set-id-and-version [{id :_id version :_version} resource]
-  (println id)
-  (println version)
-  (println resource)
-  (assoc resource :_id id :_version version))
-
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter
         (fn [{:keys [name model]}]
@@ -71,9 +65,26 @@
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
   (api/update 
    (cond-> (api/map->Component component)
-           produces (dissoc (assoc :produces produces) :consumes)
-           consumes (dissoc (assoc :consumes consumes) :produces)) client))
+           produces (-> ;This gets the cond macro
+                     (assoc :produces produces)
+                     (dissoc :consumes))
+           consumes (-> ;This gets the cond macro
+                     (assoc :consumes consumes)
+                     (dissoc :produces))) client))
 
 (defn save-models [models client]
   (map-vals #(let [schema (:schema %)]
                (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
+
+
+(defn find-or-create-tag [client tag wid op tags]
+  (doall (map (fn [name]
+                ;;Check if the tag exists, otherwise we create it
+                (if (not (clojure.string/blank? name))
+                  (if (get (deref tags) name)
+                    (when-not (some #{(:_id op)} (get-in @tags [name :components]))
+                      (swap! tags (fn [old]
+                                    (update-in old [name :components] conj (get-in op [:_id])))))
+                    (swap! tags (fn [old]
+                                  (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] [])))))))
+              tag)))

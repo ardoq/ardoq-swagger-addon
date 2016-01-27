@@ -39,17 +39,6 @@
           {}
           tags)))
 
-(defn find-or-create-tag [client tag wid op tags]
-  (doall (map (fn [name]
-                ;;Check if the tag excists, otherwise we create it
-                (if (not (clojure.string/blank? name))
-                  (if (get (deref tags) name)
-                    (swap! tags (fn [old]
-                                  (update-in old [name :components] conj (get-in op [:_id]))))
-                    (swap! tags (fn [old]
-                                  (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] [])))))))
-              tag)))
-
 (defn create-models [model wid _id path {:keys [definitions]}]
   ;;Creates links between components
   (reduce
@@ -79,7 +68,7 @@
                  (assoc :return-model type
                         :input-models parameters
                         :security security))]
-         (find-or-create-tag client tag wid op tags)
+         (common/find-or-create-tag client tag wid op tags)
          op)))
    methods))
 
