@@ -36,11 +36,9 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (if-let [workspace (common/find-existing-resource client name #(api/map->Workspace {}))]
-      workspace
-      (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
-          (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-          (api/create  client)))))
+    (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
+        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
+        (api/create  client))))
 
 (defn get-resource-listing [url]
   (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
@@ -151,21 +149,52 @@
         (urly/relative? u) (str (.mutatePath (urly/url-like url) (urly/path-of u)))))
     url))
 
+(defn delete-and-create-refs [client workspace operations models]
+  (doseq [ref (:references workspace)]
+    (api/delete (api/map->Reference ref) client))
+  (doall (create-refs client operations models)))
+
+(defn update-resources [client workspace url model resource]
+  "random return")
+
+(defn update-model [client url workspace model]
+  "random return")
+
+(defn update-resources [client url workspace model models]
+  "random return")
+
+(defn update-swagger [workspace client resource-listing url model]
+  (let [resources (doall (partial update-resources client workspace url model) (:apis resource-listing))
+        models (doall (-> (apply merge (map (partial update-model client url workspace model) resources))))
+        operations (doall (mapcat (partial update-operations client url workspace model models) resources))
+        refs (delete-and-create-refs client workspace operations models)
+        all {:workspace workspace
+                   :resources resources
+                   :models models
+                   :operations operations
+                   :refs refs}]
+    (common/find-or-create-fields client model)
+    (println "Done updating Swagger")
+    (str (:_id workspace))))
+
 (defn import-swagger [client resource-listing base-url name headers]
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
-          model (common/find-or-create-model client "Swagger")
-          workspace (create-workspace client url base-url name model resource-listing)
-          resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
-          models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
-                            (common/save-models client)))
-          operations (doall (mapcat (partial create-api client url workspace model models) resources))
-          refs (doall (create-refs client operations models))
-          all {:workspace workspace
-               :resources resources
-               :models models
-               :operations operations
-               :refs refs}]
-      (common/find-or-create-fields client model)
-      (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
-      (str (:_id workspace)))))
+          model (common/find-or-create-model client "Swagger")]
+      (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
+                        (api/find-aggregated client)
+                        (update-swagger client resource-listing url model))
+        (let [workspace (create-workspace client url base-url name model resource-listing)
+              resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
+              models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
+                                (common/save-models client)))
+              operations (doall (mapcat (partial create-api client url workspace model models) resources))
+              refs (doall (create-refs client operations models))
+              all {:workspace workspace
+                   :resources resources
+                   :models models
+                   :operations operations
+                   :refs refs}]
+          (common/find-or-create-fields client model)
+          (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
+          (str (:_id workspace)))))))
