@@ -154,6 +154,7 @@
 
 
 (defn import-swagger2 [client spec wsname]
+  (println client)
   ;;Extracts data from a given Swagger file into an emtpy object
   (->> {}
        (parse-info spec)

@@ -154,39 +154,84 @@
     (api/delete (api/map->Reference ref) client))
   (doall (create-refs client operations models)))
 
+(defn update-resource [client workspace url model resource component]
+  {:resource resource
+   :component (-> (assoc component :description (:description resource))
+                  (api/map->Component)
+                  (api/update client))})
+
 (defn update-resources [client workspace url model resource]
-  "All of these should check if a resource is in workspace. If not then create otherwise update. Need to delete some as well."
-  (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace))
-              (str "Do and update here"))
+  "DELETE HERE"
+  (or (some->> (first (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace)))
+               (update-resource client workspace url model resource))
       (create-resource client workspace url model resource)))
 
-(defn update-model [client url workspace model resource]
-  "This gets in a full resource from the previous method. Need to complete that before this one"
-  ;; (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Model")) (:components workspace))
-  ;;             (str "Do and update here"))
-  ;;     (create-resource client workspace url model resource))
+(defn update-model [client base-url {wid :_id model-id :componentModel :as workspace} model {:keys [resource component]}]
+  (let [url (str base-url (:path resource))
+        api-declaration (get-resource-listing url)]
+    (reduce 
+     (fn [acc [type schema]]
+       "DELETE HERE"
+       (assoc acc (keyword type) 
+              (or (some-> (first (filter #(and (= (:name %) (name type)) (= (:type %) "Model")) (:components workspace)))
+                          (api/map->Component)
+                          (assoc :description (model-template schema) :schema schema))
+                  (assoc
+                      (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                    :schema schema))))
+     {}
+     (:models api-declaration))))
+
+(defn create-or-update-operations [client {wid :_id model-id :componentModel :as workspace} parent model models {:keys [path operations]}]
+  (map
+   (fn [{:keys [method summary notes type items parameters] :as data}]
+     "DELETE HERE"
+     (or (some-> (first (filter #(and (= (:name %) (str method " " path)) 
+                                      (= (:type %) "Operation")
+                                      (= (:parent %) (:_id parent))) 
+                                (:components workspace)))
+                 (api/map->Component)
+                 (assoc :description (common/generate-operation-description data models))
+                 (assoc :return-model (keyword type)
+                        :input-models (set map keyword (keep :type parameters))))
+         (-> (api/map->Component {:name (str method " " path)
+                                  :description (common/generate-operation-description data models)
+                                  :rootWorkspace (str wid)
+                                  :model model-id
+                                  :parent (str (:_id parent))
+                                  :method method
+                                  :typeId (api/type-id-by-name model "Operation")})
+             (api/create client)
+             (assoc :return-model (keyword type)
+                    :input-models (set (map keyword (keep :type parameters)))))))
+   operations)
+  
   "random return")
 
-(defn update-operations [client url workspace model models]
-  "This gets in a full resource from the previous method. Need to complete that before this one"
-  ;; (or (some-> (filter #(and (= (:path resource) (:name %)) (= (:type %) "Model")) (:components workspace))
-  ;;             (str "Do and update here"))
-  ;;     (create-resource client workspace url model resource))
-  "random return")
+(defn update-operations [client base-url workspace model models {:keys [resource component]}]
+  (let [url (str base-url (:path resource))
+        api-declaration (get-resource-listing url)]
+    (common/update-comp client component api-declaration)
+    (mapcat (partial create-or-update-operations client workspace component model models) (:apis api-declaration))))
+
+(defn delete-and-create-refs [client workspace operations models]
+  "DELETE ALL INTERNAL REFS"
+  (create-refs client operations models))
 
 (defn update-swagger [workspace client resource-listing url model]
   (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
-        models (doall (-> (apply merge (map (partial update-model client url workspace model) resources))))
-        ;operations (doall (mapcat (partial update-operations client url workspace model models) resources))
-        ;refs (delete-and-create-refs client workspace operations models)
-        ;; all
-        ;; {:workspace workspace
-        ;;  :resources resources
-        ;;  :models models
-        ;;  :operations operations
-        ;;  :refs refs}
-        ]
-    ;(common/find-or-create-fields client model)
+        models (doall (-> (apply merge (map (partial update-model client url workspace model) resources)) 
+                          ;(common/save-models client)
+                          ))
+        operations (doall (mapcat (partial update-operations client url workspace model models) resources))
+        
+        refs (delete-and-create-refs client workspace operations models)
+        all {:workspace workspace
+             :resources resources
+             :models models
+             :operations operations
+             :refs refs}]
+                                        ;(common/find-or-create-fields client model)
     (println "Done updating Swagger")
     (str (:_id workspace))))
 
