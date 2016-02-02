@@ -72,9 +72,12 @@
                      (assoc :consumes consumes)
                      (dissoc :produces))) client))
 
-(defn save-models [models client]
-  (map-vals #(let [schema (:schema %)]
-               (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
+(defn save-models [models client workspace]
+  (map-vals (fn [model] 
+              (let [schema (:schema model)]
+                (if (first (filter #(and (= (:type %) "Model") (= (:name %) (:name model))) (:components workspace)))
+                            (assoc (api/update (dissoc model :schema) client) :schema schema)
+                            (assoc (api/create (dissoc model :schema) client) :schema schema)))) models))
 
 
 (defn find-or-create-tag [client tag wid op tags]

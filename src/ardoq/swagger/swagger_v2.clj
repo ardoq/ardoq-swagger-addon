@@ -82,7 +82,7 @@
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-models model wid _id paths spec)
-        (common/save-models client))))
+        (common/save-models client nil))))
 
 (defn create-param-model [wid _id parameters description model]
   (reduce
@@ -108,13 +108,13 @@
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-security model wid _id securityDefinitions description)
-        (common/save-models client))))
+        (common/save-models client nil))))
 
 (defn create-params [client model {:keys [parameters] :as spec} workspace]
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
     (-> (create-param-model wid _id parameters description model)
-        (common/save-models client))))
+        (common/save-models client nil))))
 
 (defn create-resource [client model {:keys [paths definitions] :as spec} defs params secur tags workspace]
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in

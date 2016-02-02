@@ -148,6 +148,5 @@
     (delete-references client workspace)
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
     (update-tags client @tags workspace))
-  ;;update tags
   (println "DONE")
   (str (:_id workspace)))
