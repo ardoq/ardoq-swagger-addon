@@ -173,8 +173,9 @@
                                         resources))]
     (doseq [{def-name :name :as component} components]
       (if (= (:type component) "Model") 
-        (when-not (first (filter #(= (name %) def-name) (keys (:models resource-listing))))          
+        (when-not (first (filter #(= (name %) def-name) (keys (:models resource-listing)))) 
           (api/delete (api/map->Component component) client)))
+      
       (if (= (:type component) "Operation")        
         (let [op (flatten (doall (map (fn [{path :path operations :operations}]
                                         (doall (map (fn [operation]
@@ -182,7 +183,10 @@
                                                     operations)))
                                       (:operations resource-listing))))]
           (when-not (first (filter #(= % def-name) op))
-            (api/delete (api/map->Component component) client)))))))
+            (try
+              (api/delete (api/map->Component component) client)
+              (catch clojure.lang.ExceptionInfo e
+                (println "Failed to delete operation. Most likely deleted through resource deletion")))))))))
 
 (defn delete-resources [client {components :components :as workspace} resources]
   (doseq [{def-name :name :as component} components]
@@ -255,7 +259,7 @@
              :operations operations
              :refs refs}]
     (delete-resources client workspace (:apis resource-listing))
-    (clojure.pprint/pprint (delete-operations-and-models client workspace url (:apis resource-listing)))
+    (delete-operations-and-models client workspace url (:apis resource-listing))
     (common/find-or-create-fields client model)
     (println "Done updating Swagger")
     (str (:_id workspace))))
