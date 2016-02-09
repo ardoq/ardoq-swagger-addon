@@ -100,7 +100,6 @@
               :body (json/write-str {:error (.getMessage e)})})
            (catch clojure.lang.ExceptionInfo e
              (.printStackTrace e)
-             (println (= 404 (-> e ex-data :status)))
              (if (= 404 (-> e ex-data :status))
                {:status 404
                 :headers {"Content-Type" "application/json"}
