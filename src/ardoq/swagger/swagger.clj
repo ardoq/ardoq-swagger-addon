@@ -183,10 +183,7 @@
                                                     operations)))
                                       (:operations resource-listing))))]
           (when-not (first (filter #(= % def-name) op))
-            (try
-              (api/delete (api/map->Component component) client)
-              (catch clojure.lang.ExceptionInfo e
-                (println "Failed to delete operation. Most likely deleted through resource deletion")))))))))
+            (api/delete (api/map->Component component) client)))))))
 
 (defn delete-resources [client {components :components :as workspace} resources]
   (doseq [{def-name :name :as component} components]
@@ -253,6 +250,7 @@
         operations (doall (mapcat (partial update-operations client url workspace model models) resources))
         
         refs (delete-and-create-refs client workspace operations models)
+        workspace (api/find-aggregated workspace client) ;Getting an updated version of the workspace
         all {:workspace workspace
              :resources resources
              :models models
@@ -280,7 +278,7 @@
               all {:workspace workspace
                    :resources resources
                    :models models
-                   :operations operations
+                   :oerations operations
                    :refs refs}]
           (common/find-or-create-fields client model)
           (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")

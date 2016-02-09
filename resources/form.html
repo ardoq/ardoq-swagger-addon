@@ -211,6 +211,9 @@
               result += "</p>";
             }
             $("#error-dialog p").empty().html(result).parent().show();
+         },
+         404: function(msg) {
+            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
          }
         }
       });

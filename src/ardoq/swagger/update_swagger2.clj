@@ -142,11 +142,12 @@
   ;;Workspace exists, we will just update values in it and potentially the description.
   (let [model (common/find-or-create-model client "Swagger 2.0")
         defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model" (partial common/model-template))
-        params (update-components client (get-component-by-type workspace "Parameters")  (:Parameters spec) workspace model "Parameters" (partial common/generate-param-description)) ;TODO Been unable to find swagger with params to test
+        params (update-components client (get-component-by-type workspace "Parameters")  (:Parameters spec) workspace model "Parameters" (partial common/generate-param-description))
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
-        tags (atom (collect-tags client workspace (:tags spec)))]     
+        tags (atom (collect-tags client workspace (:tags spec)))
+        workspace (api/find-aggregated workspace client)] ;Update the workspace, might have deleted things already. Could try catch delete as well    
     (delete-references client workspace)
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
     (update-tags client @tags workspace))
-  (println "DONE")
+  (println "Done updating swagger")
   (str (:_id workspace)))

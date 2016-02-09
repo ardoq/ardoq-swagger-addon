@@ -100,9 +100,14 @@
               :body (json/write-str {:error (.getMessage e)})})
            (catch clojure.lang.ExceptionInfo e
              (.printStackTrace e)
-             {:status 406
-              :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (-> e ex-data :causes)})})
+             (println (= 404 (-> e ex-data :status)))
+             (if (= 404 (-> e ex-data :status))
+               {:status 404
+                :headers {"Content-Type" "application/json"}
+                :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
+               {:status 406
+                :headers {"Content-Type" "application/json"}
+                :body (json/write-str {:error (-> e ex-data :causes)})}))
            (catch Exception e
              (.printStackTrace e)
              {:status 500
