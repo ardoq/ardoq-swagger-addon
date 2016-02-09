@@ -11,7 +11,7 @@
              (assoc
                  (api/->Component type (template schema) (str wid) _id (api/type-id-by-name model type-name)  nil)
                :schema schema))
-      (common/save-models client)))
+      (common/save-models client nil)))
 
 (defn update-component [client component template data]
   (-> (assoc data :description (template component))
