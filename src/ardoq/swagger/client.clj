@@ -30,6 +30,8 @@
   ArdoqResource
   (resource-path [_] "tag"))
 
+
+
 (defn- to-component-type-map
   "Takes the root of a model and flattens it returning a typeId->type-map map"
   [model]
@@ -57,7 +59,6 @@
                 :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
                                                                       "Content-Type" "application/json"
                                                                       "User-Agent" "ardoq-clojure-client"}})}]
-    (println "Client configuration: " client)
     client))
 
 (defn ok? [status]
@@ -71,8 +72,12 @@
    "create"
    (into-array Object args)))
 
+(defn record-ctor [rclass]
+  (fn [map]
+    (.invoke (.getMethod rclass "create" (into-array [clojure.lang.IPersistentMap])) nil (object-array [map]))))
+
 (defn- coerce-response [resource data]
-  (new-by-name (.getName (class resource)) data))
+  ((record-ctor (class resource)) data))
 
 (defn find-by-id [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))

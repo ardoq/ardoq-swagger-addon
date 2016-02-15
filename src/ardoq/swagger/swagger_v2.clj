@@ -19,19 +19,6 @@
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create client))))
 
-(defn parse-info [spec result]
-  ;;Copies the info data from spec into result
-  (assoc result 
-         :info (:info spec)
-         :paths (:paths spec)
-         :definitions (:definitions spec)
-         :produces (:produces spec)
-         :consumes (:consumes spec)
-         :parameters (:parameters spec)
-         :security (:security spec)
-         :securityDefinitions (:securityDefinitions spec)
-         :tags (:tags spec)))
-
 (defn create-tags [client {:keys [tags]} wid]
   (doall (reduce
           (fn [acc {:keys [name description]}]
@@ -137,11 +124,13 @@
     (api/create tag client)))
 
 (defn get-info [client wsname spec]
-  (when-not (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
-                  (api/find-aggregated client)
-                  (update/update-workspace client spec))
+  (or
+      (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
+              (api/find-aggregated client)
+              (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
           workspace (create-workspace client model wsname spec)
+          stuff (println (type workspace))
           defs (create-defs client model spec workspace)
           params (create-params client model spec workspace)
           secur (create-security-defs client model spec workspace)         
@@ -154,8 +143,4 @@
 
 
 (defn import-swagger2 [client spec wsname]
-  (println client)
-  ;;Extracts data from a given Swagger file into an emtpy object
-  (->> {}
-       (parse-info spec)
-       (get-info client wsname)))
+  (get-info client wsname spec))
