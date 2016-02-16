@@ -38,7 +38,7 @@
 (defn update-spec [spec wsname swag json-spec]
   (c/delete (c/map->Component {:_id (first (:components swag))}) client)
   (let [json-spec (assoc-in json-spec [:definitions :new-model] {:type "object"})
-        json-spec (assoc-in json-spec [:definitions :second-model] {:type "object"})
+        json-spec (assoc-in json-spec [:definitions :sec-model] {:type "object"})
         spec (generate-string json-spec)
         swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
                  (c/map->Workspace)
@@ -49,13 +49,11 @@
              (count-components json-spec))))))
 
 (deftest import-swaggers
-  (doall (take 2 (map (fn [f] 
-                        (when-not (.isDirectory f)
-                          (let [spec (slurp f)
-                                json-spec (parse-string spec true)
-                                swag (import-spec spec nil json-spec)] 
-                            (update-spec spec nil swag json-spec)
-                            (c/delete swag client)
-                            )))
-                      (.listFiles (java.io.File. "resources/swagger"))))))
+  (doall (take 5 (for [f (.listFiles (java.io.File. "resources/swagger"))]
+                   (when-not (.isDirectory f)
+                     (let [spec (slurp f)
+                           json-spec (parse-string spec true)
+                           swag (import-spec spec nil json-spec)] 
+                       (update-spec spec nil swag json-spec)
+                       (c/delete swag client)))))))
 
