@@ -38,26 +38,26 @@
    definitions))
 
 (defn create-ops [client model models wid parent _id methods tags]
-  (keep
-   (fn [[method {parameters :parameters response :responses security :security tag :tags :as data}]]
-     (if (not (= method (keyword "parameters")))
-       (let [type (doall (map (fn [[_ v]]
-                                (get-in v [:schema]))
-                              response))
-             op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
-                                         :description (common/generate-operation-description data models) 
-                                         :rootWorkspace (str wid) 
-                                         :model _id 
-                                         :parent (:_id parent) 
-                                         :method method
-                                         :typeId (api/type-id-by-name model "Operation")}) 
-                 (api/create client) 
-                 (assoc :return-model type
-                        :input-models parameters
-                        :security security))]
-         (common/find-or-create-tag client tag wid op tags)
-         op)))
-   methods))
+  (doall (keep
+           (fn [[method {parameters :parameters response :responses security :security tag :tags :as data}]]
+             (if (not (= method (keyword "parameters")))
+               (let [type (doall (map (fn [[_ v]]
+                                        (get-in v [:schema]))
+                                      response))
+                     op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
+                                                 :description (common/generate-operation-description data models) 
+                                                 :rootWorkspace (str wid) 
+                                                 :model _id 
+                                                 :parent (:_id parent) 
+                                                 :method method
+                                                 :typeId (api/type-id-by-name model "Operation")}) 
+                            (api/create client) 
+                            (assoc :return-model type
+                                   :input-models parameters
+                                   :security security))]
+                 (common/find-or-create-tag client tag wid op tags)
+                 op)))
+           methods)))
 
 (defn create-methods [client model models wid _id path spec {:keys [component]} methods tags] 
   ;; Used to create all methods for the resources and links them with the parent
