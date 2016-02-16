@@ -65,13 +65,6 @@
   (and (< status 300)
        (> status 199)))
 
-(defn- new-by-name
-  [class-name & args]
-  (clojure.lang.Reflector/invokeStaticMethod
-   (clojure.lang.RT/classForName class-name)
-   "create"
-   (into-array Object args)))
-
 (defn record-ctor [rclass]
   (fn [map]
     (.invoke (.getMethod rclass "create" (into-array [clojure.lang.IPersistentMap])) nil (object-array [map]))))

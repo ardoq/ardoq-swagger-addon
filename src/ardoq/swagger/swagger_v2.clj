@@ -130,7 +130,6 @@
               (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
           workspace (create-workspace client model wsname spec)
-          stuff (println (type workspace))
           defs (create-defs client model spec workspace)
           params (create-params client model spec workspace)
           secur (create-security-defs client model spec workspace)         
@@ -140,7 +139,6 @@
       (update-tags client @tags-cache)
       (println "Done importing swagger doc.")
       (str (:_id workspace)))))
-
 
 (defn import-swagger2 [client spec wsname]
   (get-info client wsname spec))

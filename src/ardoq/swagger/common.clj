@@ -9,7 +9,7 @@
             [clj-http.client :as http]))
 
 (defn replace-newlines [schema]
-  (clojure.string/replace schema #"\\n" ""))
+  (clojure.string/replace schema #"\\n" "<br>"))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -17,8 +17,7 @@
        "\n```"))
 
 (defn generate-param-description [data]
-  (-> (replace-newlines data)
-      (tpl/render-resource "globalTemplate.tpl" data)))
+  (-> (tpl/render-resource "globalTemplate.tpl" data)))
 
 (defn generate-security-description[data]
   (tpl/render-resource "securityTemplate.tpl" data))
