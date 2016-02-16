@@ -38,6 +38,15 @@
           0
           (flatten (seq spec))))
 
+(defn count-securities [paths]
+  (reduce (fn [counter [_ method]]
+           (+ counter (reduce (fn [inner [_ x]]                               
+                                (+ inner (count (:security x))))
+                         0
+                         method)))
+          0
+          paths))
+
 (defn import-spec [spec wsname json-spec]  
   (let [swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
                  (c/map->Workspace)
@@ -47,12 +56,9 @@
     (testing "Testing components in workspace"
       (is (= (count (:components swag))
              (count-components json-spec))))
-    (println (count-operations (:paths json-spec)))
-    (println (count-references json-spec))
-    (println (count (:references swag)))
-    (testing "Testing references in workspace"
-      (is (= (+ (count-operations (:paths json-spec))
-                (count-references json-spec))
+     (testing "Testing references in workspace"
+      (is (= (+ (count-references json-spec) 
+                (count-securities (:paths json-spec)))
              (count (:references swag)))))
     swag))
 
@@ -69,25 +75,17 @@
     (testing "Testing components in updated workspace"
       (is (= (count (:components swag))
              (count-components json-spec))))
-    (println (count-operations (:paths json-spec)))
-    (println (count-references json-spec))
-    (println (count (:references swag)))
     (testing "Testing references in workspace"
-      (is (= (+ (count-operations (:paths json-spec))
-                (count-references json-spec))
+      (is (= (+ (count-references json-spec) 
+                (count-securities (:paths json-spec)))
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (let [spec (slurp (io/resource "swagger/bikewise.org-v2-swagger.json"))]
-    (import-spec spec nil (parse-string spec true)))
-  
-  ;; (doall (take 2 (for [f (file-seq (io/as-file (io/resource "swagger")))]
-  ;;                  (when-not (.isDirectory f)
-  ;;                    (println (str "importing" f))
-  ;;                    (let [spec (slurp f)
-  ;;                          json-spec (parse-string spec true)
-  ;;                          swag (import-spec spec nil json-spec)] 
-  ;;                      (update-spec spec nil swag json-spec)
-  ;;                      (c/delete swag client))))))
-  )
+  (doall (take 5 (for [f (file-seq (io/as-file (io/resource "swagger")))]
+                   (when-not (.isDirectory f)
+                     (let [spec (slurp f)
+                           json-spec (parse-string spec true)
+                           swag (import-spec spec nil json-spec)]
+                       (update-spec spec nil swag json-spec)
+                       (c/delete swag client)))))))
 

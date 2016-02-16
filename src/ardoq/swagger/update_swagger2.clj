@@ -16,7 +16,8 @@
 (defn update-component [client component template data]
   (-> (assoc data :description (template component))
       (api/map->Component)
-      (api/update client)))
+      (api/update client)
+      (assoc :schema component)))
 
 (defn update-components [client components definitions workspace {_id :_id :as model} model-type template]
   (doseq [{def-name :name :as component} components]
@@ -70,9 +71,9 @@
 
 (defn create-method [client [path methods] {wid :_id :as workspace} params {_id :_id :as model} tags defs securs spec]
   (let [description (:description (first (vals methods)))
-        parameters (:parameters (first (vals methods)))
+        parameters (:parameters methods)
         parent {:resource path
-                :paramters parameters
+                :parameters parameters
                 :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
                     (api/create client))}
 
@@ -86,9 +87,9 @@
   ;;But the internal are different in regards to methods it has. 
   ;;However these are connected by parent in the resource
   (let [description (:description (first (vals methods)))
-        parameters (:parameters (first (vals methods)))
+        parameters (:parameters methods)
         parent {:resource path
-                :paramters parameters
+                :parameters parameters
                 :component (-> (api/map->Component resource)                          
                                (api/update client))}
         ;;Create or update op here
@@ -107,6 +108,7 @@
                    (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
                                 (update-operation client component workspace params model tags defs securs spec))
                        (first (vals (create-method client component workspace params model tags defs securs spec))))))
+          
           {}
           paths)
   (refs/interdependent-model-refs client defs) ;;This doesn't happen for some reason
@@ -145,7 +147,7 @@
         params (update-components client (get-component-by-type workspace "Parameters")  (:parameters spec) workspace model "Parameters" (partial common/generate-param-description))
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
         tags (atom (collect-tags client workspace (:tags spec)))
-        workspace (api/find-aggregated workspace client)] ;Update the workspace, might have deleted things already. Could try catch delete as well    
+        workspace (api/find-aggregated workspace client)]
     (delete-references client workspace)
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
     (update-tags client @tags workspace))
