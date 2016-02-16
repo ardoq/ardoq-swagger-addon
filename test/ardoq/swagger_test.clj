@@ -47,22 +47,22 @@
           0
           paths))
 
-(defn import-spec [spec wsname json-spec]  
+(defn import-spec [spec wsname json-spec f]  
   (let [swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
                  (c/map->Workspace)
                  (c/find-by-id client))]
-    (testing "Workspace name"
+    (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
-    (testing "Testing components in workspace"
+    (testing (str "Testing components in updated workspace when importing " f)
       (is (= (count (:components swag))
              (count-components json-spec))))
-     (testing "Testing references in workspace"
+    (testing (str "Testing references in workspace when importing " f)
       (is (= (+ (count-references json-spec) 
                 (count-securities (:paths json-spec)))
              (count (:references swag)))))
     swag))
 
-(defn update-spec [spec wsname swag json-spec]
+(defn update-spec [spec wsname swag json-spec f]
   (c/delete (c/map->Component {:_id (first (:components swag))}) client)
   (let [json-spec (assoc-in json-spec [:definitions :new-model] {:type "object"})
         json-spec (assoc-in json-spec [:definitions :sec-model] {:type "object"})
@@ -70,12 +70,12 @@
         swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
                  (c/map->Workspace)
                  (c/find-by-id client))]
-    (testing "Workspace name"
+    (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
-    (testing "Testing components in updated workspace"
+    (testing (str "Testing components in updated workspace when importing " f)
       (is (= (count (:components swag))
              (count-components json-spec))))
-    (testing "Testing references in workspace"
+    (testing (str "Testing references in workspace when importing " f)
       (is (= (+ (count-references json-spec) 
                 (count-securities (:paths json-spec)))
              (count (:references swag)))))))
@@ -85,7 +85,7 @@
                    (when-not (.isDirectory f)
                      (let [spec (slurp f)
                            json-spec (parse-string spec true)
-                           swag (import-spec spec nil json-spec)]
-                       (update-spec spec nil swag json-spec)
+                           swag (import-spec spec nil json-spec f)]
+                       (update-spec spec nil swag json-spec f)
                        (c/delete swag client)))))))
 
