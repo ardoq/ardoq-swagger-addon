@@ -67,7 +67,9 @@
 
 (defn record-ctor [rclass]
   (fn [map]
-    (.invoke (.getMethod rclass "create" (into-array [clojure.lang.IPersistentMap])) nil (object-array [map]))))
+    (-> rclass
+        (.getMethod "create" (into-array [clojure.lang.IPersistentMap]))
+        (.invoke nil (object-array [map])))))
 
 (defn- coerce-response [resource data]
   ((record-ctor (class resource)) data))
