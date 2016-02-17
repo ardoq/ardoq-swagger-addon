@@ -40,10 +40,10 @@
 
 (defn count-securities [paths]
   (reduce (fn [counter [_ method]]
-           (+ counter (reduce (fn [inner [_ x]]                               
-                                (+ inner (count (:security x))))
-                         0
-                         method)))
+            (reduce (fn [inner [_ x]]                               
+                         (+ inner (count (:security x))))
+                       counter
+                       method))
           0
           paths))
 
@@ -88,4 +88,3 @@
                            swag (import-spec spec nil json-spec f)]
                        (update-spec spec nil swag json-spec f)
                        (c/delete swag client)))))))
-
