@@ -9,9 +9,9 @@
                        :main ardoq.swagger.server}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [compojure "1.3.1"]
+                 [clj-http "1.1.2" :exclusions [com.fasterxml.jackson.core/jackson-databind]]
                  [ring/ring-core "1.3.2"]
                  [http-kit "2.1.19"]
-                 [clj-http "1.1.2"]
                  [de.ubercode.clostache/clostache "1.4.0"]
                  [cheshire "5.4.0"]
                  [clojurewerkz/urly "1.0.0"]

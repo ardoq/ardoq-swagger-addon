@@ -30,6 +30,8 @@
   ArdoqResource
   (resource-path [_] "tag"))
 
+
+
 (defn- to-component-type-map
   "Takes the root of a model and flattens it returning a typeId->type-map map"
   [model]
@@ -57,50 +59,63 @@
                 :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
                                                                       "Content-Type" "application/json"
                                                                       "User-Agent" "ardoq-clojure-client"}})}]
-    (println "Client configuration: " client)
     client))
 
 (defn ok? [status]
   (and (< status 300)
        (> status 199)))
 
-(defn- new-by-name
-  [class-name & args]
-  (clojure.lang.Reflector/invokeStaticMethod
-   (clojure.lang.RT/classForName class-name)
-   "create"
-   (into-array Object args)))
+(defn record-ctor [rclass]
+  (fn [map]
+    (-> rclass
+        (.getMethod "create" (into-array [clojure.lang.IPersistentMap]))
+        (.invoke nil (object-array [map])))))
 
 (defn- coerce-response [resource data]
-  (new-by-name (.getName (class resource)) data))
+  ((record-ctor (class resource)) data))
 
 (defn find-by-id [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
         {:keys [status body]} (http/get url (:options client))]
-    (cond
-      (ok? status) (coerce-response resource (json/read-json body true))
-      :else (throw (ex-info "client-exception" {:status status :body body})))))
+    (if (ok? status) 
+      (coerce-response resource (json/read-json body true))
+      (throw (ex-info "client-exception" {:status status :body body})))))
+
+(defn find-aggregated [resource client]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource) "/aggregated")
+        {:keys [status body]} (http/get url (:options client))]
+    (if (ok? status) 
+      (coerce-response resource (json/read-json body true))
+      (throw (ex-info "client-exception" {:status status :body body})))))
+
+(defn find-in-workspace [resource client root-id]
+  (let [url (str (:url client) "/api/" (resource-path resource) "/")
+        {:keys [status body]} (http/get url (:options client))]
+    (if (ok? status) 
+      (filter #(= (:rootWorkspace %) root-id) 
+              (map (partial coerce-response resource) (json/read-json body true)))
+      (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn find-all [resource client]
-  (let [url (str (:url client) "/api/" (resource-path resource))
+  (let [url (str (:url client) "/api/" (resource-path resource) "/")
         {:keys [status body]} (http/get url (:options client))]
-    (cond
-      (ok? status) (map (partial coerce-response resource) (json/read-json body true))
-      :else (throw (ex-info "client-exception" {:status status :body body})))))
+    (if (ok? status) 
+      (map (partial coerce-response resource) (json/read-json body true))
+      (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn create [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource))
         {:keys [status body]} (http/post url (assoc (:options client) :body (json/write-str resource)))]
-    (cond
-      (ok? status) (coerce-response resource (json/read-json body true))
-      :else (throw (ex-info "client-exception" {:status status :body body})))))
+    (if (ok? status) 
+      (coerce-response resource (json/read-json body true))
+      (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn update [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))
         {:keys [status body]} (http/put url (assoc (:options client) :body (json/write-str resource)))]
-    (cond
-      (ok? status) (coerce-response resource (json/read-json body true))
-      :else (throw (ex-info "client-exception" {:status status :body body})))))
+    (if (ok? status) 
+      (coerce-response resource (json/read-json body true))
+      (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn delete [resource client]
   (let [url (str (:url client) "/api/" (resource-path resource) "/" (:_id resource))

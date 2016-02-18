@@ -9,7 +9,18 @@
             [clj-http.client :as http]))
 
 (defn replace-newlines [schema]
-  (clojure.string/replace schema #"\\n" ""))
+  (clojure.string/replace schema #"\\n" "<br>"))
+
+(defn model-template [m]
+  (str "###JSON Schema\n```\n"
+       (generate-string m {:pretty true})
+       "\n```"))
+
+(defn generate-param-description [data]
+  (-> (tpl/render-resource "globalTemplate.tpl" data)))
+
+(defn generate-security-description[data]
+  (tpl/render-resource "securityTemplate.tpl" data))
 
 (defn find-or-create-model [client type]
   (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
@@ -17,12 +28,18 @@
     (-> (api/map->Model (parse-string (slurp (io/resource (if (= type = "Swagger") "modelv1.json" "modelv2.json"))) true))
         (api/create client))))
 
+(defn find-existing-resource 
+  ([client name type]
+   (first (filter #(= name (:name %)) (api/find-all (type) client))))
+  ([client name type root-id]
+   (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
+
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
-  (not (empty? (filter
-                (fn [{:keys [name model]}]
-                  (and (= name field-name)
-                       (= model (str _id))))
-                (api/find-all (api/map->Field {}) client)))))
+  (seq (filter
+        (fn [{:keys [name model]}]
+          (and (= name field-name)
+               (= model (str _id))))
+        (api/find-all (api/map->Field {}) client))))
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
@@ -47,9 +64,30 @@
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
   (api/update 
    (cond-> (api/map->Component component)
-     produces (assoc :produces produces)
-     consumes (assoc :consumes consumes)) client))
+           produces (-> ;This gets the cond macro
+                     (assoc :produces produces)
+                     (dissoc :consumes))
+           consumes (-> ;This gets the cond macro
+                     (assoc :consumes consumes)
+                     (dissoc :produces))) client))
 
-(defn save-models [models client]
-  (map-vals #(let [schema (:schema %)]
-               (assoc (api/create (dissoc % :schema) client) :schema schema)) models))
+(defn save-models [models client workspace]
+  (map-vals (fn [model] 
+              (let [schema (:schema model)]
+                (if (first (filter #(and (= (:type %) "Model") (= (:name %) (:name model))) (:components workspace)))
+                  (assoc (api/update (dissoc model :schema) client) :schema schema)
+                  (assoc (api/create (dissoc model :schema) client) :schema schema)))) 
+            models))
+
+
+(defn find-or-create-tag [client tag wid op tags]
+  (doall (map (fn [name]
+                ;;Check if the tag exists, otherwise we create it
+                (if (not (clojure.string/blank? name))
+                  (if (get (deref tags) name)
+                    (when-not (some #{(:_id op)} (get-in @tags [name :components]))
+                      (swap! tags (fn [old]
+                                    (update-in old [name :components] conj (get-in op [:_id])))))
+                    (swap! tags (fn [old]
+                                  (assoc old name (api/->Tag name "" wid [(get-in op [:_id])] [])))))))
+              tag)))

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ardoq Swagger Add-on</title>
+    <title>Ardoq Swagger Add-on (Open API)</title>
     <link href="public/css/bootstrap.min.css" rel="stylesheet">
 
     <!--[if lt IE 9]>
@@ -21,9 +21,9 @@
         <img src="/public/img/swaggerLogo360.png"
              style="width:100px; float:right;"></img>
 
-        <h2>Swagger</h2>
+        <h2>Swagger (Open API)</h2>
 
-        <p>This add-on let's you import Swagger api documentation</br>
+        <p>This add-on let's you import Swagger API (Open API) documentation</br>
       </div>
     </div>
 
@@ -67,7 +67,7 @@
 
         <div class="col-sm-10">
           <input type="text" class="form-control" id="wsname"
-                 placeholder="Leave empty to use name from Swagger"
+                 placeholder="Leave empty to use name from Swagger - Using an existing name will overwrite that workspace"
                  name="wsname">
         </div>
       </div>
@@ -211,6 +211,9 @@
               result += "</p>";
             }
             $("#error-dialog p").empty().html(result).parent().show();
+         },
+         404: function(msg) {
+            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
          }
         }
       });

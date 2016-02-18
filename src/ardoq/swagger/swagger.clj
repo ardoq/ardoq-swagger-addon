@@ -50,7 +50,7 @@
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
    :component (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
-                  (api/create client))})
+       (api/create client))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -122,7 +122,7 @@
            (fn [{input-models :input-models return-model :return-model id :_id :as comp}]
              (let [input-refs
                    (keep (fn [k]
-                           (if-let [m (k models)]
+                           (if-let [m (k models)]                            
                              (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
                                                       :source (str id)
                                                       :target (str (:_id m))
@@ -149,22 +149,137 @@
         (urly/relative? u) (str (.mutatePath (urly/url-like url) (urly/path-of u)))))
     url))
 
+(defn update-resource [client workspace url model resource component]
+  {:resource resource
+   :component (-> (assoc component :description (:description resource))
+                  (api/map->Component)
+                  (api/update client))})
+
+(defn update-resources [client workspace url model resource]
+  (or (some->> (first (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace)))
+               (update-resource client workspace url model resource))
+      (create-resource client workspace url model resource)))
+
+(defn get-operations-and-models [acc resource]
+  (assoc acc :models (into (:models acc) (:models resource)) :operations (into (:operations acc) (:apis resource))))
+
+(defn delete-operations-and-models [client {components :components :as workspace} base-url resources]
+  (let [resource-listing (doall (reduce (fn [acc resource]
+                                          (->> (:path resource)
+                                               (str base-url)
+                                               (get-resource-listing)
+                                               (get-operations-and-models acc)))
+                                        {}
+                                        resources))]
+    (doseq [{def-name :name :as component} components]
+      (if (= (:type component) "Model") 
+        (when-not (first (filter #(= (name %) def-name) (keys (:models resource-listing)))) 
+          (api/delete (api/map->Component component) client)))
+      
+      (if (= (:type component) "Operation")        
+        (let [op (flatten (doall (map (fn [{path :path operations :operations}]
+                                        (doall (map (fn [operation]
+                                                      (str (:method operation) " " path)) 
+                                                    operations)))
+                                      (:operations resource-listing))))]
+          (when-not (first (filter #(= % def-name) op))
+            (api/delete (api/map->Component component) client)))))))
+
+(defn delete-resources [client {components :components :as workspace} resources]
+  (doseq [{def-name :name :as component} components]
+    (if (= (:type component) "Resource") 
+      (when-not (first (filter #(= (:path %) def-name) resources))
+        (api/delete (api/map->Component component) client)))))
+
+(defn update-model [client base-url {wid :_id model-id :componentModel :as workspace} model {:keys [resource component]}]
+  (let [url (str base-url (:path resource))
+        api-declaration (get-resource-listing url)]
+    (reduce 
+     (fn [acc [type schema]]
+       (assoc acc (keyword type) 
+              (or (some-> (first (filter #(and (= (:name %) (name type)) (= (:type %) "Model")) (:components workspace)))
+                          (assoc :description (model-template schema))
+                          (api/map->Component)
+                          (assoc :schema schema))
+                  (assoc
+                      (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                    :schema schema))))
+     {}
+     (:models api-declaration))))
+
+(defn create-or-update-operations [client {wid :_id model-id :componentModel :as workspace} parent model models {:keys [path operations]}]
+  (map
+   (fn [{:keys [method summary notes type items parameters] :as data}]
+     (or (some-> (first (filter #(and (= (:name %) (str method " " path)) 
+                                      (= (:type %) "Operation")
+                                      (= (:parent %) (:_id parent))) 
+                                (:components workspace)))
+                 (api/map->Component)
+                 (assoc :description (common/generate-operation-description data models))
+                 (assoc :return-model (keyword type)
+                        :input-models (set (map keyword (keep :type parameters)))))
+         (-> (api/map->Component {:name (str method " " path)
+                                  :description (common/generate-operation-description data models)
+                                  :rootWorkspace (str wid)
+                                  :model model-id
+                                  :parent (str (:_id parent))
+                                  :method method
+                                  :typeId (api/type-id-by-name model "Operation")})
+             (api/create client)
+             (assoc :return-model (keyword type)
+                    :input-models (set (map keyword (keep :type parameters)))))))
+   operations))
+
+(defn update-operations [client base-url workspace model models {:keys [resource component]}]
+  (let [url (str base-url (:path resource))
+        api-declaration (get-resource-listing url)]
+    (common/update-comp client component api-declaration)
+    (mapcat (partial create-or-update-operations client workspace component model models) (:apis api-declaration))))
+
+(defn delete-and-create-refs [client {references :references :as workspace} operations models]
+  (doseq [ref references]
+    (when (= (:rootWorkspace ref) (:targetWorkspace ref) (:_id workspace))
+      (api/delete (api/map->Reference ref) client)))
+  (create-refs client operations models))
+
+(defn update-swagger [workspace client resource-listing url model]
+  (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
+        models (doall (-> (apply merge (map (partial update-model client url workspace model) resources)) 
+                          (common/save-models client workspace)
+                          ))
+        operations (doall (mapcat (partial update-operations client url workspace model models) resources))
+        
+        refs (delete-and-create-refs client workspace operations models)
+        workspace (api/find-aggregated workspace client) ;Getting an updated version of the workspace
+        all {:workspace workspace
+             :resources resources
+             :models models
+             :operations operations
+             :refs refs}]
+    (delete-resources client workspace (:apis resource-listing))
+    (delete-operations-and-models client workspace url (:apis resource-listing))
+    (common/find-or-create-fields client model)
+    (println "Done updating Swagger")
+    (str (:_id workspace))))
+
 (defn import-swagger [client resource-listing base-url name headers]
-  (println "Doing swagger 1")
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
-          model (common/find-or-create-model client "Swagger")
-          workspace (create-workspace client url base-url name model resource-listing)
-          resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
-          models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
-                            (common/save-models client)))
-          operations (doall (mapcat (partial create-api client url workspace model models) resources))
-          refs (doall (create-refs client operations models))
-          all {:workspace workspace
-               :resources resources
-               :models models
-               :operations operations
-               :refs refs}]
-      (common/find-or-create-fields client model)
-      (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
-      (str (:_id workspace)))))
+          model (common/find-or-create-model client "Swagger")]
+      (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
+                        (api/find-aggregated client)
+                        (update-swagger client resource-listing url model))
+        (let [workspace (create-workspace client url base-url name model resource-listing)
+              resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
+              models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
+                                (common/save-models client nil)))
+              operations (doall (mapcat (partial create-api client url workspace model models) resources))
+              refs (doall (create-refs client operations models))
+              all {:workspace workspace
+                   :resources resources
+                   :models models
+                   :oerations operations
+                   :refs refs}]
+          (common/find-or-create-fields client model)
+          (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
+          (str (:_id workspace)))))))

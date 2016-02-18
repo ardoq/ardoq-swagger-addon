@@ -1,0 +1,226 @@
+{
+  "host": "getit.embarcadero.com",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "GetIt REST API",
+    "description": "This is the V.1.0.0 for GetIt REST API",
+    "x-providerName": "embarcadero.com",
+    "x-origin": {
+      "format": "swagger",
+      "version": "1.2",
+      "url": "http://getit.embarcadero.com/api-docs"
+    }
+  },
+  "tags": [
+    {
+      "name": "catalog",
+      "description": "Operations about catalog"
+    },
+    {
+      "name": "categories",
+      "description": "Operations about categories"
+    }
+  ],
+  "paths": {
+    "/catalog/info": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "info",
+        "summary": "Return an array of matching elements by text",
+        "parameters": [
+          {
+            "in": "formData",
+            "description": "Search text",
+            "name": "Search",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Current RadStudio product supported personalities",
+            "name": "Personalities",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "CategoryID or list of CategoryIDs separated by \";\"",
+            "name": "Categories",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Catalog Version as positive entire value",
+            "name": "CatalogVersion",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Starting from...",
+            "name": "Start",
+            "required": false,
+            "type": "string",
+            "default": "0"
+          },
+          {
+            "in": "formData",
+            "description": "...ending at",
+            "name": "End",
+            "required": false,
+            "type": "string",
+            "default": "10"
+          },
+          {
+            "in": "formData",
+            "description": "Build Number",
+            "name": "BuildNumber",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Serial Number",
+            "name": "SerialNo",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Token",
+            "name": "Token",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Contact ID",
+            "name": "ContactId",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Identity",
+            "name": "Identity",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "No response was specified"
+          }
+        }
+      }
+    },
+    "/catalog/infobyids": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "infobyids",
+        "summary": "Return an array of matching elements by id",
+        "description": "",
+        "parameters": [
+          {
+            "in": "formData",
+            "description": "Search by Id",
+            "name": "Id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Catalog Version as positive entire value",
+            "name": "CatalogVersion",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "No response was specified"
+          }
+        }
+      }
+    },
+    "/catalog/dependencyinfo": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "operationId": "infobyids",
+        "summary": "Return dependencies Ids separated by ';'",
+        "description": "",
+        "parameters": [
+          {
+            "in": "formData",
+            "description": "Search dependencies for an Id",
+            "name": "Id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "No response was specified"
+          }
+        }
+      }
+    },
+    "/categories/info": {
+      "post": {
+        "tags": [
+          "categories"
+        ],
+        "operationId": "info",
+        "summary": "Return an array of categories",
+        "description": "",
+        "parameters": [
+          {
+            "in": "formData",
+            "description": "Catalog Version as positive entire value",
+            "name": "CatalogVersion",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Current RadStudio product supported personalities",
+            "name": "Personalities",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Build Number",
+            "name": "BuildNumber",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "formData",
+            "description": "Identity",
+            "name": "Identity",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "No response was specified"
+          }
+        }
+      }
+    }
+  }
+}

@@ -79,9 +79,8 @@
                                           :token-set (boolean token)
                                           :token token})
          :headers {"Content-Type" "text/html"}
-         :session (assoc session :referer (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))))})
+         :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
    (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
-         (println session)
          (try
            (let [client (c/client {:url (:base-url config)
                                    :org org
@@ -100,9 +99,13 @@
               :body (json/write-str {:error (.getMessage e)})})
            (catch clojure.lang.ExceptionInfo e
              (.printStackTrace e)
-             {:status 406
-              :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (-> e ex-data :causes)})})
+             (if (= 404 (-> e ex-data :status))
+               {:status 404
+                :headers {"Content-Type" "application/json"}
+                :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
+               {:status 406
+                :headers {"Content-Type" "application/json"}
+                :body (json/write-str {:error (-> e ex-data :causes)})}))
            (catch Exception e
              (.printStackTrace e)
              {:status 500
