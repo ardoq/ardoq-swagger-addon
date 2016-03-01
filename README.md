@@ -30,3 +30,11 @@ An example of a curl with a specification
 ```
 curl -X POST --form "url=&swag=<swag specification>&wsname=&headers=&org=<org_name>&token=<token>" http://swagger.addon.ardoq.com/import
 ```
+
+## Running the addon in Docker
+
+```
+docker run -e API_BASE_URL=https://app.ardoq.com -d --name="swagger" ardoq/ardoq-swagger-addon:latest
+```
+
+You can replace the API_BASE_URL with the URL to your own installation if you run locally, or on premise.  
