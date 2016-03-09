@@ -3,6 +3,8 @@
             [ardoq.swagger.swagger-v2 :as swaggerv2]
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
+            [org.httpkit.server :as srv]
+            [org.httpkit.timer :refer :all]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
@@ -14,6 +16,18 @@
             [clj-http.client :as http]
             [hiccup.form :refer [form-to submit-button text-field label hidden-field]]
             [compojure.route :as route]))
+
+(def ch (atom nil))
+
+(defn handler [system request]
+  (srv/with-channel request channel
+    (srv/on-close channel (fn [status]
+                            (println "Channel closed")))
+    (if (srv/websocket? channel)
+      (println "WebSocket channel")
+      (println "HTTP channel"))
+    (reset! ch channel)))
+
 
 (defn- content-type
   "Return the content-type of the request, or nil if no content-type is set."
@@ -38,10 +52,11 @@
 
 (defn version1 [client spec url name headers ignore-validate]
   (if ignore-validate
-    (swagger/import-swagger client spec url name headers)
+    (do (srv/send! @ch "Ignoring validation - Importing Swagger 1" false)
+        (swagger/import-swagger client spec url name headers))
     (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
       (if success
-        (do (println "Valid Swagger1")
+        (do (srv/send! @ch "Valid Swagger - Importing Swagger 1" false)
             (swagger/import-swagger client spec url name headers)
             (println "Done importing swagger doc from " url "."))
         (do (println "Not a valid Swagger file\nError: ") 
@@ -49,10 +64,12 @@
 
 (defn version2 [client spec wsname ignore-validate]
   (if ignore-validate
-    (swaggerv2/import-swagger2 client spec wsname)
+    (do (srv/send! @ch "Ignoring validation - Importing Swagger 2" false)
+        (swaggerv2/import-swagger2 client spec wsname @ch))
     (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
       (if success 
-        (swaggerv2/import-swagger2 client spec wsname)
+        (do (srv/send! @ch "Valid Swagger - Importing Swagger 2" false)
+            (swaggerv2/import-swagger2 client spec wsname @ch))
         (do (println "Not a valid Swagger file\nError: ") 
             (throw (ex-info "InvalidSwagger" {:causes message})))))))
 
@@ -68,19 +85,21 @@
       (version2 client spec wsname ignore-validate)
       (version1 client spec url wsname headers ignore-validate))))
 
-(defn swagger-api [{:keys [config]}]
+(defn swagger-api [{:keys [config] :as system}]
   (routes
    (route/resources "/public")
+   (GET "/socket" {} 
+        (partial handler system))
    (GET "/" {session :session
              headers :headers
-             {:strs [org token]} :query-params} 
+             {:strs [org token]} :query-params :as request}         
         {:status 200
          :body (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token})
          :headers {"Content-Type" "text/html"}
          :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
-   (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
+   (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session :as request}
          (try
            (let [client (c/client {:url (:base-url config)
                                    :org org

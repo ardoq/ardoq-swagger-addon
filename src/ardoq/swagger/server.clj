@@ -6,9 +6,11 @@
   (:gen-class :main true))
 
 (defn app [system]
-  (-> (swagger-api system)
+  (-> system
+      swagger-api
       (wrap-session {:cookie-name "reffie"})
       wrap-params))
+
 
 (defn start-server [system]
   (srv/run-server (app system) system))

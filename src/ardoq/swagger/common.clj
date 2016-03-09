@@ -8,8 +8,13 @@
             [medley.core :refer [map-vals]]
             [clj-http.client :as http]))
 
-(defn replace-newlines [schema]
-  (clojure.string/replace schema #"\\n" "<br>"))
+(defn replace-html-tags [schema]
+  (-> schema 
+      (clojure.string/replace #"\\n" "\n")
+      (clojure.string/replace #"</*b>" "**")
+      (clojure.string/replace #"<br/*>" "\n")
+      (clojure.string/replace #"<a href='(.+)'>(.+)</a>" "[$2]($1)")
+      (clojure.string/replace #"</*[a-z]+/*>" "")))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"
@@ -53,7 +58,9 @@
         (api/create client))))
 
 (defn generate-operation-description [data models]
-  (let [data (read-string (replace-newlines data))]
+  (let [data (-> data 
+                 (replace-html-tags)
+                 (read-string))]
     (reduce
      (fn [description [model-id {:keys [_id] :as model}]]
        (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))

@@ -123,7 +123,7 @@
       [[_ tag] tags]
     (api/create tag client)))
 
-(defn get-info [client wsname spec]
+(defn import-swagger2 [client spec wsname ch]
   (or
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
               (api/find-aggregated client)
@@ -133,12 +133,8 @@
           defs (create-defs client model spec workspace)
           params (create-params client model spec workspace)
           secur (create-security-defs client model spec workspace)         
-          ;;To here
           tags-cache (atom (create-tags client spec (:_id workspace)))]
       (create-resource client model spec defs params secur tags-cache workspace)
       (update-tags client @tags-cache)
       (println "Done importing swagger doc.")
       (str (:_id workspace)))))
-
-(defn import-swagger2 [client spec wsname]
-  (get-info client wsname spec))
