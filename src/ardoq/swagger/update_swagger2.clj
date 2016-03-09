@@ -1,6 +1,7 @@
 (ns ardoq.swagger.update-swagger2
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
+            [org.httpkit.server :as srv]
             [ardoq.swagger.swagger2-refs :as refs]))
 
 (defn get-component-by-type [workspace type]
@@ -140,16 +141,26 @@
     (when (= (:rootWorkspace ref) (:targetWorkspace ref) (:_id workspace))
       (api/delete (api/map->Reference ref) client))))
 
-(defn update-workspace [workspace client spec]
+(defn update-workspace [workspace client spec ch]
+  (srv/send! ch (str "Updating workspace " (:name workspace)) false)
   ;;Workspace exists, we will just update values in it and potentially the description.
   (let [model (common/find-or-create-model client "Swagger 2.0")
+        _ (srv/send! ch (str "Found Swagger 2 model") false)
         defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model" (partial common/model-template))
+        _ (srv/send! ch (str "Updated  " (count defs) " definitions") false)
         params (update-components client (get-component-by-type workspace "Parameters")  (:parameters spec) workspace model "Parameters" (partial common/generate-param-description))
+        _ (srv/send! ch (str "Updated  " (count params) " parameters") false)
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
+        _ (srv/send! ch (str "Updated  " (count securs) " security definitions") false)
         tags (atom (collect-tags client workspace (:tags spec)))
+        _ (srv/send! ch (str "Updated  " (count @tags) " tags") false)
         workspace (api/find-aggregated workspace client)]
     (delete-references client workspace)
+    (srv/send! ch (str "Deleted  " " references") false)
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
-    (update-tags client @tags workspace))
+    (srv/send! ch (str "Updated  " " operations") false)
+    (update-tags client @tags workspace)
+    (srv/send! ch (str "Updated  " " tags") false))
   (println "Done updating swagger")
+  (srv/close ch)
   (str (:_id workspace)))

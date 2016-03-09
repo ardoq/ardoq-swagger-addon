@@ -4,6 +4,7 @@
             [ardoq.swagger.update-swagger2 :as update]
             [ardoq.swagger.swagger2-refs :as refs]
             [cheshire.core :refer [generate-string parse-string]]
+            [org.httpkit.server :as srv]
             [clojure.java.io :as io]
             [clojure.string :as s]
             [clostache.parser :as tpl]
@@ -127,14 +128,23 @@
   (or
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
               (api/find-aggregated client)
-              (update/update-workspace client spec))
+              (update/update-workspace client spec ch))
     (let [model (common/find-or-create-model client "Swagger 2.0")
+          _ (srv/send! ch (str "Created Swagger2 model\nStarting on workspace") false)
           workspace (create-workspace client model wsname spec)
+          _ (srv/send! ch (str "Created workspace " (:name workspace) "\nStarting on defitinitions") false)
           defs (create-defs client model spec workspace)
+          _ (srv/send! ch (str "Created " (count defs) " definitions\nStarting on parameters") false)
           params (create-params client model spec workspace)
+          _ (srv/send! ch (str "Created " (count params) " parameters\nStarting on security definitions") false)
           secur (create-security-defs client model spec workspace)         
+          _ (srv/send! ch (str "Created " (count secur) " security definitions\nStarting on tags") false)
           tags-cache (atom (create-tags client spec (:_id workspace)))]
+      (srv/send! ch (str "Created " (count @tags-cache) " tags\nStarting on resources") false)
       (create-resource client model spec defs params secur tags-cache workspace)
+      (srv/send! ch (str "Created "  " resources\nUpdating tags") false)
       (update-tags client @tags-cache)
+      (srv/send! ch (str "Updated tags") false)
       (println "Done importing swagger doc.")
+      (srv/close ch)
       (str (:_id workspace)))))

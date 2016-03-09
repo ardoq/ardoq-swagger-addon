@@ -4,7 +4,6 @@
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
             [org.httpkit.server :as srv]
-            [org.httpkit.timer :refer :all]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
