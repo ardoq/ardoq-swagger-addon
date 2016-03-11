@@ -48,6 +48,7 @@
             (swagger/import-swagger client spec url name headers)
             (println "Done importing swagger doc from " url "."))
         (do (println "Not a valid Swagger file\nError: ") 
+            (socket-close)
             (throw (ex-info  "InvalidSwagger" {:causes message})))))))
 
 (defn version2 [client spec wsname ignore-validate]
@@ -59,6 +60,7 @@
         (do (socket-send "Valid Swagger - Importing Swagger 2")
             (swaggerv2/import-swagger2 client spec wsname))
         (do (println "Not a valid Swagger file\nError: ") 
+            (socket-close)
             (throw (ex-info "InvalidSwagger" {:causes message})))))))
 
 (defn- resolve-spec [spec url headers]

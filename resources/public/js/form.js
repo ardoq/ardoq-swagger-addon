@@ -1,11 +1,6 @@
 window.onload = form;
-//window.onload = socket;
 
 function form() {
-  var exampleSocket = new WebSocket("ws://localhost:4000/socket");
-  exampleSocket.onmessage = function (event) {
-    console.log(event.data);
-  };
   var vers = true;
   var imp = "/import";
   $("#fillerDiv").hide();
@@ -36,11 +31,18 @@ function form() {
     $("form").show();
     $("#error-dialog").hide();
     $("#progress-dialog").hide();
+    $("#socket-area").hide();
   });
   $("form#swagger").on("submit", function(e) {
     e.preventDefault();
     $("form").hide();
     $("#progress-dialog").show();
+    $("#socket-area").show();
+    var swaggerSocket = new WebSocket("ws://localhost:4000/socket");
+    swaggerSocket.onmessage = function (event) {
+      $("#socket-area").val($("#socket-area").val() + event.data + "\n");
+      $('#socket-area').scrollTop($('#socket-area')[0].scrollHeight);
+    };
     $.ajax({
       type: "POST",  
       url: imp,
@@ -49,11 +51,13 @@ function form() {
         window.top.location.href = data;
       },
       error: function() {
+        $("#socket-area").hide();
         $("#progress-dialog").hide();
         $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
       },
       statusCode: {
         406: function(msg) {
+          $("#socket-area").hide();
           $("#progress-dialog").hide();
           msg = JSON.parse(msg.responseJSON.error);
           var result = "<p> ERROR: Input file does not conform to Swagger specifications</p>";
@@ -65,13 +69,11 @@ function form() {
           $("#error-dialog p").empty().html(result).parent().show();
         },
         404: function(msg) {
+          $("#socket-area").hide();
+          $("#progress-dialog").hide();
           $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
         }
       }
     });
   });
-  var exampleSocket = new WebSocket("ws://localhost:4000/socket");
-  exampleSocket.onmessage = function (event) {
-    console.log(event.data);
-  };
 }

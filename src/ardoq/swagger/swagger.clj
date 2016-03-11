@@ -1,6 +1,7 @@
 (ns ardoq.swagger.swagger
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
+            [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -243,13 +244,16 @@
   (create-refs client operations models))
 
 (defn update-swagger [workspace client resource-listing url model]
+  (socket-send (str "Found workspace " (:name workspace)))
   (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
+        _ (socket-send (str "Updated " (count resources) " resources"))
         models (doall (-> (apply merge (map (partial update-model client url workspace model) resources)) 
-                          (common/save-models client workspace)
-                          ))
+                          (common/save-models client workspace)))
+        _ (socket-send (str "Updated " (count models) " models"))
         operations (doall (mapcat (partial update-operations client url workspace model models) resources))
-        
+        _ (socket-send (str "Updated " (count operations) " operations"))
         refs (delete-and-create-refs client workspace operations models)
+        _ (socket-send (str "Updated " (count refs) " refs"))
         workspace (api/find-aggregated workspace client) ;Getting an updated version of the workspace
         all {:workspace workspace
              :resources resources
@@ -257,7 +261,9 @@
              :operations operations
              :refs refs}]
     (delete-resources client workspace (:apis resource-listing))
+    (socket-send "Removed surplus resources")
     (delete-operations-and-models client workspace url (:apis resource-listing))
+    (socket-send "Removed surplus operationss")
     (common/find-or-create-fields client model)
     (println "Done updating Swagger")
     (str (:_id workspace))))
@@ -266,15 +272,21 @@
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
           model (common/find-or-create-model client "Swagger")]
+      (socket-send "Got Swagger 1 model")
       (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
                         (api/find-aggregated client)
                         (update-swagger client resource-listing url model))
         (let [workspace (create-workspace client url base-url name model resource-listing)
+              _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url)))
               resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
+              _ (socket-send (str "Created " (count resources) " resources"))
               models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
                                 (common/save-models client nil)))
+              _ (socket-send (str "Created " (count models) " models"))
               operations (doall (mapcat (partial create-api client url workspace model models) resources))
+              _ (socket-send (str "Created " (count operations) " operations"))
               refs (doall (create-refs client operations models))
+              _ (socket-send (str "Created " (count refs) " refs"))
               all {:workspace workspace
                    :resources resources
                    :models models

@@ -143,7 +143,7 @@
           tags-cache (atom (create-tags client spec (:_id workspace)))]
       (socket-send (str "Created " (count @tags-cache) " tags\nStarting on resources"))
       (create-resource client model spec defs params secur tags-cache workspace)
-      (socket-send (str "Created "  " resources\nUpdating tags") false)
+      (socket-send (str "Created "  " resources\nUpdating tags"))
       (update-tags client @tags-cache)
       (socket-send (str "Updated tags") false)
       (println "Done importing swagger doc.")
