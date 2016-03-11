@@ -3,6 +3,7 @@
             [ardoq.swagger.common :as common]
             [ardoq.swagger.update-swagger2 :as update]
             [ardoq.swagger.swagger2-refs :as refs]
+            [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
             [org.httpkit.server :as srv]
             [clojure.java.io :as io]
@@ -124,27 +125,26 @@
       [[_ tag] tags]
     (api/create tag client)))
 
-(defn import-swagger2 [client spec wsname ch]
+(defn import-swagger2 [client spec wsname]
   (or
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
               (api/find-aggregated client)
-              (update/update-workspace client spec ch))
+              (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
-          _ (srv/send! ch (str "Created Swagger2 model\nStarting on workspace") false)
+          _ (socket-send (str "Created Swagger2 mode\nStarting on workspace"))
           workspace (create-workspace client model wsname spec)
-          _ (srv/send! ch (str "Created workspace " (:name workspace) "\nStarting on defitinitions") false)
+          _ (socket-send (str "Created workspace " (:name workspace) "Starting on defitinitions"))
           defs (create-defs client model spec workspace)
-          _ (srv/send! ch (str "Created " (count defs) " definitions\nStarting on parameters") false)
+          _ (socket-send (str "Created " (count defs) " definitions\nStarting on parameters"))
           params (create-params client model spec workspace)
-          _ (srv/send! ch (str "Created " (count params) " parameters\nStarting on security definitions") false)
+          _ (socket-send (str "Created " (count params) " parameters\nStarting on security definitions"))
           secur (create-security-defs client model spec workspace)         
-          _ (srv/send! ch (str "Created " (count secur) " security definitions\nStarting on tags") false)
+          _ (socket-send (str "Created " (count secur) " security definitions\nStarting on tags"))
           tags-cache (atom (create-tags client spec (:_id workspace)))]
-      (srv/send! ch (str "Created " (count @tags-cache) " tags\nStarting on resources") false)
+      (socket-send (str "Created " (count @tags-cache) " tags\nStarting on resources"))
       (create-resource client model spec defs params secur tags-cache workspace)
-      (srv/send! ch (str "Created "  " resources\nUpdating tags") false)
+      (socket-send (str "Created "  " resources\nUpdating tags") false)
       (update-tags client @tags-cache)
-      (srv/send! ch (str "Updated tags") false)
+      (socket-send (str "Updated tags") false)
       (println "Done importing swagger doc.")
-      (srv/close ch)
       (str (:_id workspace)))))
