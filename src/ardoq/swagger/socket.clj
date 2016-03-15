@@ -7,6 +7,7 @@
 (defn handler [system request]
   (srv/with-channel request channel
     (srv/on-close channel (fn [status]
+                            (reset! ch nil)
                             (println "Channel closed")))
     (if (srv/websocket? channel)
       (println "WebSocket channel")

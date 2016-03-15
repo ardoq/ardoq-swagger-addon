@@ -277,7 +277,7 @@
                         (api/find-aggregated client)
                         (update-swagger client resource-listing url model))
         (let [workspace (create-workspace client url base-url name model resource-listing)
-              _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url) "\n Creating " (count (:apis resource-listing) " resources")))
+              _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url) "\n Creating " (count (:apis resource-listing)) " resources"))
               resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
               _ (socket-send (str "Created " (count resources) " resources"))
               models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
@@ -285,7 +285,7 @@
               _ (socket-send (str "Created " (count models) " models"))
               operations (doall (mapcat (partial create-api client url workspace model models) resources))
               _ (socket-send (str "Created " (count operations) " operations"))
-              refs (doall (create-refs client oprations models))
+              refs (doall (create-refs client operations models))
               _ (socket-send (str "Created " (count refs) " refs"))
               all {:workspace workspace
                    :resources resources
