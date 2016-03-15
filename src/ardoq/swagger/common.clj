@@ -9,7 +9,7 @@
             [clj-http.client :as http]))
 
 (defn replace-html-tags [schema]
-  (-> schema 
+  (-> schema
       (clojure.string/replace #"\\n" "\n")
       (clojure.string/replace #"</*b>" "**")
       (clojure.string/replace #"<br/*>" "\n")
