@@ -106,6 +106,7 @@
     (when-not (first (filter #(= (name %) path) (keys paths)))
       (api/delete (api/map->Component resource) client)))
   (reduce (fn [acc [def-name data :as component]]        
+            (socket-send (str "Updating operation " (name def-name)))
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
                                 (update-operation client component workspace params model tags defs securs spec))
@@ -160,7 +161,6 @@
     (socket-send (str "Deleted " (count (:references workspace))  " internal references\nUpdating operations"))
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
     (socket-send (str "Updated  " " operations"))
-    (update-tags client @tags workspace)
-    (socket-send (str "Updated  " " tags")))
-  (println "Done updating swagger")
+    (update-tags client @tags workspace))
+  (socket-send "Done updating swagger")
   (str (:_id workspace)))

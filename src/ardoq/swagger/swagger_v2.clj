@@ -115,6 +115,7 @@
                            :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
+        (socket-send (str "Created " (count operations) " operations for resource " path))
         (refs/create-resource-refs client parent params)
         (refs/create-refs client operations defs secur)))
     (refs/interdependent-model-refs client defs)
@@ -143,8 +144,7 @@
           tags-cache (atom (create-tags client spec (:_id workspace)))]
       (socket-send (str "Created " (count @tags-cache) " tags\nStarting on resources"))
       (create-resource client model spec defs params secur tags-cache workspace)
-      (socket-send (str "Created "  " resources\nUpdating tags"))
+      (socket-send (str "Updating tags"))
       (update-tags client @tags-cache)
-      (socket-send (str "Updated tags") false)
-      (println "Done importing swagger doc.")
+      (socket-send "Done importing swagger doc.")
       (str (:_id workspace)))))

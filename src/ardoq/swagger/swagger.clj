@@ -293,5 +293,5 @@
                    :oerations operations
                    :refs refs}]
           (common/find-or-create-fields client model)
-          (println "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs.")
+          (socket-send (str "Imported " (count resources) " resources, " (count models) " json schemas," (count operations) " operations and " (count refs) " refs."))
           (str (:_id workspace)))))))
