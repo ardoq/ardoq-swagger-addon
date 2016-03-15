@@ -99,7 +99,7 @@
 
 (defn swagger-api [{:keys [config] :as system}]
   (routes
-   (route/resources ")/public")
+   (route/resources "/public")
    (GET "/socket" {} 
         (partial handler system))
    (GET "/" {session :session
