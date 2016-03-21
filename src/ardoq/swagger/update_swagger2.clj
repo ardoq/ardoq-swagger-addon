@@ -155,12 +155,11 @@
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
         _ (socket-send (str "Updated " (count securs) " security definitions\nGonna update " (count (:tags spec)) " tags"))
         tags (atom (collect-tags client workspace (:tags spec)))
-        _ (socket-send (str "Updated  " (count @tags) " tagsPreparing references"))
+        _ (socket-send (str "Updated  " (count @tags) " tags\nPreparing references"))
         workspace (api/find-aggregated workspace client)]
     (delete-references client workspace)
     (socket-send (str "Deleted " (count (:references workspace))  " internal references\nUpdating operations"))
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
     (socket-send (str "Updated " "operations"))
     (update-tags client @tags workspace))
-  (socket-send "Done updating swagger")
   (str (:_id workspace)))

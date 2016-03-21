@@ -45,10 +45,8 @@
     (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
       (if success
         (do (socket-send "Valid Swagger - Importing Swagger 1" false)
-            (swagger/import-swagger client spec url name headers)
-            (println "Done importing swagger doc from " url "."))
-        (do (println "Not a valid Swagger file\nError: ") 
-            (socket-close)
+            (swagger/import-swagger client spec url name headers))
+        (do (socket-close)
             (throw (ex-info  "InvalidSwagger" {:causes message})))))))
 
 (defn version2 [client spec wsname ignore-validate]
@@ -59,8 +57,7 @@
       (if success 
         (do (socket-send "Valid Swagger - Importing Swagger 2")
             (swaggerv2/import-swagger2 client spec wsname))
-        (do (println "Not a valid Swagger file\nError: ") 
-            (socket-close)
+        (do (socket-close)
             (throw (ex-info "InvalidSwagger" {:causes message})))))))
 
 (defn- resolve-spec [spec url headers]
@@ -75,7 +72,7 @@
       (version2 client spec wsname ignore-validate)
       (version1 client spec url wsname headers ignore-validate))))
 
-(defn notify-success [wid org session client]
+(defn send-success-email! [wid org session client]
   (let [url (str (:url client) "/api/user/notify/email")]
     (try 
       (->> {:subject "Workspace is ready" :body (str "Your Open API (Swagger) workspace is fully imported.\nYou can visit it at " (:url client) "/app/view/workspace/" wid "?org=" org "\nRegards Ardoq")} 
@@ -85,17 +82,15 @@
       (catch Exception e
         (println "Failed to send e-mail")))))
 
-(defn notify-failure [session client e]
+(defn send-failure-email! [session client e]
   (let [url (str (:url client) "/api/user/notify/email")]
     (try
-      (->> {:subject "Swagger import failed" :body (str "Your Open API (Swagger) workspace is failed to import.\n" e)} 
+      (->> {:subject "Swagger import failed" :body (str "Your Open API (Swagger) workspace failed to import.\n" e)} 
            (generate-string)
            (assoc (:options client) :body)
            (http/post url))
       (catch Exception e
-        (println "Failed to send e-mail")))
-    )
-)
+        (println "Failed to send e-mail")))))
 
 (defn swagger-api [{:keys [config] :as system}]
   (routes
@@ -115,37 +110,43 @@
          (let [client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
+           (println notifier)
            (try
              (let [wid (get-spec client url wsname (read-headers headers) swag ignorer)]
+               (println (str "Already here\nNotifier is " notifier))
                (socket-close)
                (when notifier
-                 (notify-success wid org session client))
+                 (send-success-email! wid org session client))
                (str (:referer session) "/app/view/workspace/" wid "?org=" org))
              (catch com.fasterxml.jackson.core.JsonParseException e
-               (notify-failure session client "Failed to parse swagger endpoint")
                (.printStackTrace e)
-               {:status 406
+               (when notifier
+                 (send-failure-email! session client "Failed to parse swagger endpoint"))
+               {:status 400
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
              (catch IllegalArgumentException e
-               (notify-failure session client "Swagger file does not conform to Swagger specification")
                (.printStackTrace e)
-               {:status 406
+               (when notifier
+                 (send-failure-email! session client "Swagger file does not conform to Swagger specification"))
+               {:status 422
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (.getMessage e)})})
              (catch clojure.lang.ExceptionInfo e
-               (notify-failure session client "An unexpected error occured!")
                (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client "An unexpected error occured!"))
                (if (= 404 (-> e ex-data :status))
                  {:status 404
                   :headers {"Content-Type" "application/json"}
                   :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
-                 {:status 406
+                 {:status 500
                   :headers {"Content-Type" "application/json"}
                   :body (json/write-str {:error (-> e ex-data :causes)})}))
              (catch Exception e
-               (notify-failure session client "An unexpected error occured!")
                (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client "An unexpected error occured!"))
                {:status 500
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (str "An unexpected error occurred! ")})}))))))

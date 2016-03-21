@@ -38,7 +38,7 @@ function form() {
     $("form").hide();
     $("#progress-dialog").show();
     $("#socket-area").show();
-    var swaggerSocket = new WebSocket("ws://localhost:4000/socket");
+    var swaggerSocket = new WebSocket(getSocketAddress());
     swaggerSocket.onmessage = function (event) {
       $("#socket-area").val($("#socket-area").val() + event.data + "\n");
       $('#socket-area').scrollTop($('#socket-area')[0].scrollHeight);
@@ -56,7 +56,7 @@ function form() {
         $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
       },
       statusCode: {
-        406: function(msg) {
+        422: function(msg) {
           $("#socket-area").hide();
           $("#progress-dialog").hide();
           msg = JSON.parse(msg.responseJSON.error);
@@ -76,4 +76,12 @@ function form() {
       }
     });
   });
+}
+
+function getSocketAddress() {
+  if(location.protocl === 'https:') {
+    return "wss://" + location.host +"/socket";
+  } else {
+    return "ws://" + location.host + "/socket";
+  }
 }

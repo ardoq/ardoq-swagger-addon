@@ -246,14 +246,14 @@
 (defn update-swagger [workspace client resource-listing url model]
   (socket-send (str "Found workspace " (:name workspace) "\nUpdating " (count (:apis resource-listing)) " resources"))
   (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
-        _ (socket-send (str "Updated " (count resources) " resources"))
+        _ (socket-send (str "Updated " (count resources) " resources\nUpdating models"))
         models (doall (-> (apply merge (map (partial update-model client url workspace model) resources)) 
                           (common/save-models client workspace)))
-        _ (socket-send (str "Updated " (count models) " models"))
+        _ (socket-send (str "Updated " (count models) " models\nUpdating operations"))
         operations (doall (mapcat (partial update-operations client url workspace model models) resources))
-        _ (socket-send (str "Updated " (count operations) " operations"))
+        _ (socket-send (str "Updated " (count operations) " operations\nUpdating references"))
         refs (delete-and-create-refs client workspace operations models)
-        _ (socket-send (str "Updated " (count refs) " refs"))
+        _ (socket-send (str "Updated " (count refs) " refs\n Starting pruning of resources"))
         workspace (api/find-aggregated workspace client) ;Getting an updated version of the workspace
         all {:workspace workspace
              :resources resources
@@ -261,11 +261,10 @@
              :operations operations
              :refs refs}]
     (delete-resources client workspace (:apis resource-listing))
-    (socket-send "Removed surplus resources")
+    (socket-send "Done pruning resources\nStarting pruning of operations")
     (delete-operations-and-models client workspace url (:apis resource-listing))
-    (socket-send "Removed surplus operationss")
+    (socket-send "Done purning operationss")
     (common/find-or-create-fields client model)
-    (println "Done updating Swagger")
     (str (:_id workspace))))
 
 (defn import-swagger [client resource-listing base-url name headers]
@@ -279,12 +278,12 @@
         (let [workspace (create-workspace client url base-url name model resource-listing)
               _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url) "\n Creating " (count (:apis resource-listing)) " resources"))
               resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))
-              _ (socket-send (str "Created " (count resources) " resources"))
+              _ (socket-send (str "Created " (count resources) " resources\nCreating models"))
               models (doall (-> (apply merge (map (partial create-models client url workspace model) resources))
                                 (common/save-models client nil)))
-              _ (socket-send (str "Created " (count models) " models"))
+              _ (socket-send (str "Created " (count models) " models\nCreating operations"))
               operations (doall (mapcat (partial create-api client url workspace model models) resources))
-              _ (socket-send (str "Created " (count operations) " operations"))
+              _ (socket-send (str "Created " (count operations) " operations\nCreating references"))
               refs (doall (create-refs client operations models))
               _ (socket-send (str "Created " (count refs) " refs"))
               all {:workspace workspace
