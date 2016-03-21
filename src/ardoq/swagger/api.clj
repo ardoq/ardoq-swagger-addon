@@ -110,10 +110,8 @@
          (let [client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
-           (println notifier)
            (try
              (let [wid (get-spec client url wsname (read-headers headers) swag ignorer)]
-               (println (str "Already here\nNotifier is " notifier))
                (socket-close)
                (when notifier
                  (send-success-email! wid org session client))
