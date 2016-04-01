@@ -79,7 +79,7 @@ function form() {
 }
 
 function getSocketAddress() {
-  if(location.protocl === 'https:') {
+  if(location.protocol === 'https:') {
     return "wss://" + location.host +"/socket";
   } else {
     return "ws://" + location.host + "/socket";
