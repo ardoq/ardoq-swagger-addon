@@ -1,6 +1,8 @@
 (ns ardoq.swagger.update-swagger2
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
+            [ardoq.swagger.socket :refer [socket-send]]
+            [org.httpkit.server :as srv]
             [ardoq.swagger.swagger2-refs :as refs]))
 
 (defn get-component-by-type [workspace type]
@@ -104,6 +106,7 @@
     (when-not (first (filter #(= (name %) path) (keys paths)))
       (api/delete (api/map->Component resource) client)))
   (reduce (fn [acc [def-name data :as component]]        
+            (socket-send (str "Updating operation " (name def-name)))
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) resources))
                                 (update-operation client component workspace params model tags defs securs spec))
@@ -141,15 +144,22 @@
       (api/delete (api/map->Reference ref) client))))
 
 (defn update-workspace [workspace client spec]
+  (socket-send (str "Updating workspace " (:name workspace)))
   ;;Workspace exists, we will just update values in it and potentially the description.
   (let [model (common/find-or-create-model client "Swagger 2.0")
+        _ (socket-send (str "Found Swagger 2 model""\nGonna update " (count (:paths spec)) " defitinitions"))
         defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model" (partial common/model-template))
+        _ (socket-send (str "Updated " (count defs) " definitions\nGonna update " (count (:parameters spec)) " parameters"))
         params (update-components client (get-component-by-type workspace "Parameters")  (:parameters spec) workspace model "Parameters" (partial common/generate-param-description))
+        _ (socket-send (str "Updated " (count params) " parameters\nGonna update " (count (:securityDefinitions spec)) " security definitions"))
         securs (update-components client (get-component-by-type workspace "securityDefinitions") (:securityDefinitions spec) workspace model "securityDefinitions" (partial common/generate-security-description))
+        _ (socket-send (str "Updated " (count securs) " security definitions\nGonna update " (count (:tags spec)) " tags"))
         tags (atom (collect-tags client workspace (:tags spec)))
+        _ (socket-send (str "Updated  " (count @tags) " tags\nPreparing references"))
         workspace (api/find-aggregated workspace client)]
     (delete-references client workspace)
+    (socket-send (str "Deleted " (count (:references workspace))  " internal references\nUpdating operations"))
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
+    (socket-send (str "Updated " "operations"))
     (update-tags client @tags workspace))
-  (println "Done updating swagger")
   (str (:_id workspace)))

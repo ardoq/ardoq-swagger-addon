@@ -3,7 +3,9 @@
             [ardoq.swagger.common :as common]
             [ardoq.swagger.update-swagger2 :as update]
             [ardoq.swagger.swagger2-refs :as refs]
+            [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
+            [org.httpkit.server :as srv]
             [clojure.java.io :as io]
             [clojure.string :as s]
             [clostache.parser :as tpl]
@@ -113,6 +115,7 @@
                            :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
                                (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
+        (socket-send (str "Created " (count operations) " operations for resource " path))
         (refs/create-resource-refs client parent params)
         (refs/create-refs client operations defs secur)))
     (refs/interdependent-model-refs client defs)
@@ -123,22 +126,25 @@
       [[_ tag] tags]
     (api/create tag client)))
 
-(defn get-info [client wsname spec]
+(defn import-swagger2 [client spec wsname]
   (or
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
               (api/find-aggregated client)
               (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
+          _ (socket-send (str "Created Swagger2 mode\nStarting on workspace"))
           workspace (create-workspace client model wsname spec)
+          _ (socket-send (str "Created workspace " (:name workspace) "\nGonna create " (count (:paths spec)) " defitinitions"))
           defs (create-defs client model spec workspace)
+          _ (socket-send (str "Created " (count defs) " definitions\nGonna create " (count (:parameters spec)) " parameters"))
           params (create-params client model spec workspace)
+          _ (socket-send (str "Created " (count params) " parameters\nGonna create " (count (:securityDefinitions spec)) " security definitions"))
           secur (create-security-defs client model spec workspace)         
-          ;;To here
+          _ (socket-send (str "Created " (count secur) " security definitions\nGonna create " (count (:tags spec)) " tags"))
           tags-cache (atom (create-tags client spec (:_id workspace)))]
+      (socket-send (str "Created " (count @tags-cache) " tags\nGonna create " (count (:path spec)) "resources"))
       (create-resource client model spec defs params secur tags-cache workspace)
+      (socket-send (str "Updating tags"))
       (update-tags client @tags-cache)
-      (println "Done importing swagger doc.")
+      (socket-send "Done importing swagger doc.")
       (str (:_id workspace)))))
-
-(defn import-swagger2 [client spec wsname]
-  (get-info client wsname spec))

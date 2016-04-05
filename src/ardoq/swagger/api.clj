@@ -3,6 +3,8 @@
             [ardoq.swagger.swagger-v2 :as swaggerv2]
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
+            [ardoq.swagger.socket :refer [handler socket-send socket-close]]
+            [org.httpkit.server :as srv]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
             [clojure.string :refer [blank?]]
@@ -38,22 +40,24 @@
 
 (defn version1 [client spec url name headers ignore-validate]
   (if ignore-validate
-    (swagger/import-swagger client spec url name headers)
+    (do (socket-send "Ignoring validation - Importing Swagger 1" false)
+        (swagger/import-swagger client spec url name headers))
     (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
       (if success
-        (do (println "Valid Swagger1")
-            (swagger/import-swagger client spec url name headers)
-            (println "Done importing swagger doc from " url "."))
-        (do (println "Not a valid Swagger file\nError: ") 
+        (do (socket-send "Valid Swagger - Importing Swagger 1" false)
+            (swagger/import-swagger client spec url name headers))
+        (do (socket-close)
             (throw (ex-info  "InvalidSwagger" {:causes message})))))))
 
 (defn version2 [client spec wsname ignore-validate]
   (if ignore-validate
-    (swaggerv2/import-swagger2 client spec wsname)
+    (do (socket-send "Ignoring validation - Importing Swagger 2")
+        (swaggerv2/import-swagger2 client spec wsname))
     (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
       (if success 
-        (swaggerv2/import-swagger2 client spec wsname)
-        (do (println "Not a valid Swagger file\nError: ") 
+        (do (socket-send "Valid Swagger - Importing Swagger 2")
+            (swaggerv2/import-swagger2 client spec wsname))
+        (do (socket-close)
             (throw (ex-info "InvalidSwagger" {:causes message})))))))
 
 (defn- resolve-spec [spec url headers]
@@ -68,46 +72,79 @@
       (version2 client spec wsname ignore-validate)
       (version1 client spec url wsname headers ignore-validate))))
 
-(defn swagger-api [{:keys [config]}]
+(defn send-success-email! [wid org session client]
+  (let [url (str (:url client) "/api/user/notify/email")]
+    (try 
+      (->> {:subject "Workspace is ready" :body (str "Your Open API (Swagger) workspace is fully imported.\nYou can visit it at " (:url client) "/app/view/workspace/" wid "?org=" org "\nRegards Ardoq")} 
+           (generate-string)
+           (assoc (:options client) :body)
+           (http/post url))
+      (catch Exception e
+        (println "Failed to send e-mail")))))
+
+(defn send-failure-email! [session client e]
+  (let [url (str (:url client) "/api/user/notify/email")]
+    (try
+      (->> {:subject "Swagger import failed" :body (str "Your Open API (Swagger) workspace failed to import.\n" e)} 
+           (generate-string)
+           (assoc (:options client) :body)
+           (http/post url))
+      (catch Exception e
+        (println "Failed to send e-mail")))))
+
+(defn swagger-api [{:keys [config] :as system}]
   (routes
    (route/resources "/public")
+   (GET "/socket" {} 
+        (partial handler system))
    (GET "/" {session :session
              headers :headers
-             {:strs [org token]} :query-params} 
+             {:strs [org token]} :query-params :as request}         
         {:status 200
          :body (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
                                           :token-set (boolean token)
                                           :token token})
          :headers {"Content-Type" "text/html"}
          :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
-   (POST "/import" {{:strs [url token org wsname headers swag ignorer] :as params} :form-params session :session}
-         (try
-           (let [client (c/client {:url (:base-url config)
-                                   :org org
-                                   :token token})
-                 wid (get-spec client url wsname (read-headers headers) swag ignorer)]
-             (str (:referer session) "/app/view/workspace/" wid "?org=" org))
-           (catch com.fasterxml.jackson.core.JsonParseException e
-             (.printStackTrace e)
-             {:status 406
-              :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
-           (catch IllegalArgumentException e
-             (.printStackTrace e)
-             {:status 406
-              :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (.getMessage e)})})
-           (catch clojure.lang.ExceptionInfo e
-             (.printStackTrace e)
-             (if (= 404 (-> e ex-data :status))
-               {:status 404
+   (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier] :as params} :form-params session :session :as request}
+         (let [client (c/client {:url (:base-url config)
+                                 :org org
+                                 :token token})]
+           (try
+             (let [wid (get-spec client url wsname (read-headers headers) swag ignorer)]
+               (socket-close)
+               (when notifier
+                 (send-success-email! wid org session client))
+               (str (:referer session) "/app/view/workspace/" wid "?org=" org))
+             (catch com.fasterxml.jackson.core.JsonParseException e
+               (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client "Failed to parse swagger endpoint"))
+               {:status 400
                 :headers {"Content-Type" "application/json"}
-                :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
-               {:status 406
+                :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
+             (catch IllegalArgumentException e
+               (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client (str "Failed reading request " (.getMessage e))))
+               {:status 422
                 :headers {"Content-Type" "application/json"}
-                :body (json/write-str {:error (-> e ex-data :causes)})}))
-           (catch Exception e
-             (.printStackTrace e)
-             {:status 500
-              :headers {"Content-Type" "application/json"}
-              :body (json/write-str {:error (str "An unexpected error occurred! ")})})))))
+                :body (json/write-str {:error (.getMessage e)})})
+             (catch clojure.lang.ExceptionInfo e
+               (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client (str "An unexpected error occured!")))
+               (if (= 404 (-> e ex-data :status))
+                 {:status 404
+                  :headers {"Content-Type" "application/json"}
+                  :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
+                 {:status 500
+                  :headers {"Content-Type" "application/json"}
+                  :body (json/write-str {:error (str "Internal error" (-> e ex-data :causes))})}))
+             (catch Exception e
+               (.printStackTrace e)
+               (when notifier
+                 (send-failure-email! session client "An unexpected error occured!"))
+               {:status 500
+                :headers {"Content-Type" "application/json"}
+                :body (json/write-str {:error (str "An unexpected error occurred! ")})}))))))

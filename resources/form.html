@@ -33,7 +33,7 @@
         <div class="col-sm-offset-2 col-sm-10">
           <a class="btn btn-primary disabled" id="Boxer">
             Paste spec
-            </a>
+          </a>
         </div>
       </div>
       <div id="urldiv">
@@ -56,8 +56,8 @@
           <div class="col-sm-10">
             <textarea id="swag" class="form-control" rows="3"
                       name="swag" placeholder='{ 
-  "swagger": "2.0",
-  ...}'></textarea>
+                      "swagger": "2.0",
+                      ...}'></textarea>
           </div>
         </div>        
       </div>
@@ -92,7 +92,14 @@
         <div class="col-sm-offset-2 col-sm-10 checkbox" id="Ignore">
           <label>
             <input name="ignorer" type="checkbox"> Ignore validation? (Not recommended!)
-            </label>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10 checkbox" id="Notify">
+          <label>
+            <input name="notifier" type="checkbox"> E-mail notifcation upon completion? (Useful for large documents)
+          </label>
         </div>
       </div>
 
@@ -132,14 +139,8 @@
     </form>
     <div id="progress-dialog" style="display: none;">
       <h4>Importing...</h4>
-
-      <div class="progress">
-        <div class="progress-bar progress-bar-striped active"
-             role="progressbar" aria-valuenow="45" aria-valuemin="0"
-             aria-valuemax="100" style="width: 45%"><span class="sr-only">45%
-            Complete</span></div>
-      </div>
     </div>
+    <textarea class="form-control" rows="10" id="socket-area" style="display: none;"></textarea>
     <div id="error-dialog" class="alert alert-danger" role="alert" style="display: none;">
       <p></p>
       <button id="clear-form" class="btn btn-link">Back</button>
@@ -152,73 +153,6 @@
 <!-- Include all compiled plugins (below), or include individual files as needed -->
 <script src="public/js/bootstrap.min.js"></script>
 
-<script>
-  $(function() {
-    var vers = true;
-    var imp = "/import";
-    $("#fillerDiv").hide();
-    $("#selector").click(function(){
-      if(!vers) {
-        $("#fillerDiv").hide();
-        $("#urldiv").show();
-        $("#Head").show();
-        $("#url").prop('required', true);
-        $("#swag").prop('required', false);
-        $("#swag").val("");
-        $("#Boxer").addClass("disabled")
-        vers = true;
-      } else {
-        $("#fillerDiv").show();
-        $("#urldiv").hide();
-        $("#Head").hide();
-        $("#url").prop('required', false);
-        $("#swag").prop('required', true);
-        $("#url").val("");
-        $("#headers").val("");
-        $("#Boxer").removeClass("disabled");
-        vers = false;
-      }
-    });
-    $("#clear-form").click(function() {
-      $("form").find("input#url, input#wsname, textarea").val("");
-      $("form").show();
-      $("#error-dialog").hide();
-      $("#progress-dialog").hide();
-    });
-    $("form#swagger").on("submit", function(e) {
-      e.preventDefault();
-      $("form").hide();
-      $("#progress-dialog").show();
-      $.ajax({
-        type: "POST",  
-        url: imp,
-        data: $("form#swagger").serialize(),
-        success: function(data) {
-          window.top.location.href = data;
-        },
-        error: function() {
-          $("#progress-dialog").hide();
-          $("#error-dialog p").empty().html("<p>An unexpected error occurred! Please help us make this addon better by submitting an issue.</p>").parent().show();
-        },
-        statusCode: {
-          406: function(msg) {
-            $("#progress-dialog").hide();
-            msg = JSON.parse(msg.responseJSON.error);
-            var result = "<p> ERROR: Input file does not conform to Swagger specifications</p>";
-            for (var i = 0; i < msg.length; i++) {
-              result += "<p>";
-              result += msg[i].message;
-              result += "</p>";
-            }
-            $("#error-dialog p").empty().html(result).parent().show();
-         },
-         404: function(msg) {
-            $("#error-dialog p").empty().html(msg.responseJSON.error).parent().show();
-         }
-        }
-      });
-    });
-  });
-</script>
+<script type="text/javascript" src="public/js/form.js"></script>
 </body>
 </html>
