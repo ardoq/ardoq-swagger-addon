@@ -40,11 +40,11 @@
 
 (defn version1 [client spec url name headers ignore-validate]
   (if ignore-validate
-    (do (socket-send "Ignoring validation - Importing Swagger 1" false)
+    (do (socket-send "Ignoring validation - Importing Swagger 1")
         (swagger/import-swagger client spec url name headers))
     (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
       (if success
-        (do (socket-send "Valid Swagger - Importing Swagger 1" false)
+        (do (socket-send "Valid Swagger - Importing Swagger 1")
             (swagger/import-swagger client spec url name headers))
         (do (socket-close)
             (throw (ex-info  "InvalidSwagger" {:causes message})))))))
