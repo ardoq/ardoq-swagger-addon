@@ -127,7 +127,7 @@
                (.printStackTrace e)
                (when notifier
                  (send-failure-email! session client (str "Failed reading request " (.getMessage e))))
-               {:status 422
+               {:status 500
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (.getMessage e)})})
              (catch clojure.lang.ExceptionInfo e
@@ -138,9 +138,9 @@
                  {:status 404
                   :headers {"Content-Type" "application/json"}
                   :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
-                 {:status 500
+                 {:status 422
                   :headers {"Content-Type" "application/json"}
-                  :body (json/write-str {:error (str "Internal error" (-> e ex-data :causes))})}))
+                  :body (json/write-str {:error (-> e ex-data :causes)})}))
              (catch Exception e
                (.printStackTrace e)
                (when notifier
