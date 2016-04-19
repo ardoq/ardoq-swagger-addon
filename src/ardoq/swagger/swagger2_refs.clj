@@ -1,5 +1,6 @@
 (ns ardoq.swagger.swagger2-refs
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.implement.api :as api]
+            [ardoq.core :as c]
             [ardoq.swagger.common :as common]))
 
 
@@ -19,7 +20,9 @@
               (doall (keep
                       (fn [model-key]
                         (if-let [m ((keyword model-key) models)]
-                          (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
+                          (-> (api/map->Reference {:name ""
+                                                   :description ""
+                                                   :rootWorkspace (:rootWorkspace model)
                                                    :source (str (:_id model))
                                                    :target (str (:_id m))
                                                    :type 3})
@@ -34,7 +37,9 @@
                   (let [ref (.split ref "/")
                         k (keyword (last ref))]
                     (if-let [m (k models)]
-                      (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                      (-> (api/map->Reference  {:name ""
+                                                :description ""
+                                                :rootWorkspace (:rootWorkspace comp)
                                                 :source (str id)
                                                 :target (str(:_id m))
                                                 :type type})
@@ -43,7 +48,9 @@
     (let [ref (.split keys "/")
           k (keyword (last ref))]
       (if-let [m (k models)]
-        (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+        (-> (api/map->Reference  {:name ""
+                                  :description ""
+                                  :rootWorkspace (:rootWorkspace comp)
                                   :source (str id)
                                   :target (str(:_id m))
                                   :type type})
@@ -54,12 +61,8 @@
         _id (get-in resource [:component :_id])]
     (doseq [{:keys [$ref]} parameters]
       (let [k (keyword (last (.split $ref "/")))]
-        (if-let [m (k params)]
-          (-> (api/map->Reference {:rootWorkspace wid
-                                   :source (str _id)
-                                   :target (str(:_id m))
-                                   :type 1})
-              (api/create client)))))))
+        (if-let [m (k params)]          
+          (c/create-reference "" "" wid (str _id) (str (:_id m)) 1 client))))))
 
 (defn create-input-refs [client input-models models comp id]
   (doall (keep (fn [k]
@@ -83,7 +86,9 @@
 (defn create-security-refs [client securities security models comp id]
   (doall (keep (fn [k]        
                  (if-let [m ((first (first k)) security)]
-                   (-> (api/map->Reference  {:rootWorkspace (:rootWorkspace comp)
+                   (-> (api/map->Reference  {:name ""
+                                             :description ""
+                                             :rootWorkspace (:rootWorkspace comp)
                                              :source (str id)
                                              :target (str(:_id m))
                                              :type 1})

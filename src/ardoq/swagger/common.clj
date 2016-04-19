@@ -1,5 +1,6 @@
 (ns ardoq.swagger.common
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.implement.api :as api]
+            [ardoq.core :as c]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -37,7 +38,7 @@
   ([client name type]
    (first (filter #(= name (:name %)) (api/find-all (type) client))))
   ([client name type root-id]
-   (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
+   (first (filter #(= name (:name %)) (api/find-resource-in-workspace (type) root-id client)))))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter
@@ -48,13 +49,13 @@
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(api/type-id-by-name model "Operation")])
+    (-> (api/->Field "method" "method" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client)])
         (api/create client)))
   (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client) (c/component-type-id-by-name (:_id model) "Resource" client)])
         (api/create client)))
   (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client) (c/component-type-id-by-name (:_id model) "Resource" client)])
         (api/create client))))
 
 (defn generate-operation-description [data models]
@@ -69,7 +70,7 @@
 
 (defn update-comp [client component {:keys [produces consumes]}]
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
-  (api/update 
+  (api/update* 
    (cond-> (api/map->Component component)
            produces (-> ;This gets the cond macro
                      (assoc :produces produces)
@@ -82,7 +83,7 @@
   (map-vals (fn [model] 
               (let [schema (:schema model)]
                 (if (first (filter #(and (= (:type %) "Model") (= (:name %) (:name model))) (:components workspace)))
-                  (assoc (api/update (dissoc model :schema) client) :schema schema)
+                  (assoc (api/update* (dissoc model :schema) client) :schema schema)
                   (assoc (api/create (dissoc model :schema) client) :schema schema)))) 
             models))
 

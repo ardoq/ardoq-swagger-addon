@@ -19,4 +19,5 @@
                  [com.github.fge/json-schema-validator "2.2.6"]
                  [com.google.guava/guava "18.0"]
                  [org.clojure/data.json "0.2.5"]
+                 [com.ardoq/ardoq-client "0.0.1"]
                  [medley "0.5.5"]])

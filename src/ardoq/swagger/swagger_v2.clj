@@ -1,5 +1,6 @@
 (ns ardoq.swagger.swagger-v2
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.implement.api :as api]
+            [ardoq.core :as c]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.update-swagger2 :as update]
             [ardoq.swagger.swagger2-refs :as refs]
@@ -28,14 +29,14 @@
           {}
           tags)))
 
-(defn create-models [model wid _id path {:keys [definitions]}]
+(defn create-models [client model wid _id path {:keys [definitions]}]
   ;;Creates links between components
   (reduce
    (fn [acc [type schema]]
      (assoc acc (keyword type)
             (assoc
-             (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
-             :schema schema)))
+                (api/map->Component {:name type :description (common/model-template schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
+              :schema schema)))
    {}
    definitions))
 
@@ -52,7 +53,7 @@
                                                  :model _id 
                                                  :parent (:_id parent) 
                                                  :method method
-                                                 :typeId (api/type-id-by-name model "Operation")}) 
+                                                 :typeId (c/component-type-id-by-name (:_id model) "Operation" client)}) 
                             (api/create client) 
                             (assoc :return-model type
                                    :input-models parameters
@@ -70,25 +71,26 @@
   ;; Creates the models
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
-    (-> (create-models model wid _id paths spec)
+    (-> (create-models client model wid _id paths spec)
         (common/save-models client nil))))
 
-(defn create-param-model [wid _id parameters description model]
+(defn create-param-model [client wid _id parameters description model]
   (reduce
    (fn [acc [param schema]]
      (assoc acc (keyword param)
             (assoc
-                (api/->Component param (common/generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+                (api/map->Component 
+                 {:name (name param) :description (common/generate-param-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Parameters" client) :parent nil})
               :schema schema)))
    {}
    parameters))
 
-(defn create-security [model wid _id sec-defs description]
+(defn create-security [client model wid _id sec-defs description]
   (reduce
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-             (api/->Component sec (common/generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+                (api/map->Component {:name sec :description (common/generate-security-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "securityDefinitions" client) :parent nil})
              :schema schema)))
    {}
    sec-defs))
@@ -96,13 +98,13 @@
 (defn create-security-defs [client model {:keys [securityDefinitions] :as spec} workspace]
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
-    (-> (create-security model wid _id securityDefinitions description)
+    (-> (create-security client model wid _id securityDefinitions description)
         (common/save-models client nil))))
 
 (defn create-params [client model {:keys [parameters] :as spec} workspace]
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
-    (-> (create-param-model wid _id parameters description model)
+    (-> (create-param-model client wid _id parameters description model)
         (common/save-models client nil))))
 
 (defn create-resource [client model {:keys [paths definitions] :as spec} defs params secur tags workspace]
@@ -112,7 +114,7 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                           :component (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
                                (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (socket-send (str "Created " (count operations) " operations for resource " path))
@@ -129,7 +131,8 @@
 (defn import-swagger2 [client spec wsname]
   (or
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
-              (api/find-aggregated client)
+              (:_id)
+              (c/get-aggregated-workspace-by-id client)
               (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
           _ (socket-send (str "Created Swagger2 mode\nStarting on workspace"))

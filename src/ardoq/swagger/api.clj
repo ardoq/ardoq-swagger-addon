@@ -1,7 +1,7 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.swagger :as swagger]
             [ardoq.swagger.swagger-v2 :as swaggerv2]
-            [ardoq.swagger.client :as c]
+            [ardoq.core :as c]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
             [org.httpkit.server :as srv]

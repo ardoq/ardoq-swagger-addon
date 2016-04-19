@@ -81,10 +81,10 @@
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (doall (take 5 (for [f (file-seq (io/as-file (io/resource "swagger")))]
-                   (when-not (.isDirectory f)
-                     (let [spec (slurp f)
-                           json-spec (parse-string spec true)
-                           swag (import-spec spec nil json-spec f)]
-                       (update-spec spec nil swag json-spec f)
-                       (c/delete swag client)))))))
+  (doall (for [f (file-seq (io/as-file (io/resource "swagger")))]
+           (when-not (.isDirectory f)
+             (let [spec (slurp f)
+                   json-spec (parse-string spec true)
+                   swag (import-spec spec nil json-spec f)]
+               (update-spec spec nil swag json-spec f)
+               (c/delete swag client))))))

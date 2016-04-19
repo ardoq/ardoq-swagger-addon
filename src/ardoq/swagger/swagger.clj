@@ -1,5 +1,6 @@
 (ns ardoq.swagger.swagger
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.implement.api :as api]
+            [ardoq.core :as c]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
@@ -50,8 +51,8 @@
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
-   :component (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
-       (api/create client))})
+   :component (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
+                  (api/create client))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -60,7 +61,7 @@
      (fn [acc [type schema]]
        (assoc acc (keyword type)
               (assoc
-                  (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                  (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
                :schema schema)))
      {}
      (:models api-declaration))))
@@ -74,7 +75,7 @@
                               :model model-id
                               :parent (str (:_id parent))
                               :method method
-                              :typeId (api/type-id-by-name model "Operation")})
+                              :typeId (c/component-type-id-by-name (:_id model) "Operation" client)})
          (api/create client)
          (assoc :return-model (keyword type)
                 :input-models (set (map keyword (keep :type parameters))))))
@@ -110,7 +111,9 @@
               (doall (keep
                       (fn [model-key]
                         (if-let [m ((keyword model-key) models)]
-                          (-> (api/map->Reference {:rootWorkspace (:rootWorkspace model)
+                          (-> (api/map->Reference {:name ""
+                                                   :description ""
+                                                   :rootWorkspace (:rootWorkspace model)
                                                    :source (str (:_id model))
                                                    :target (str (:_id m))
                                                    :type 3})
@@ -124,7 +127,9 @@
              (let [input-refs
                    (keep (fn [k]
                            (if-let [m (k models)]                            
-                             (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
+                             (-> (api/map->Reference {:name ""
+                                                      :description ""
+                                                      :rootWorkspace (:rootWorkspace comp)
                                                       :source (str id)
                                                       :target (str (:_id m))
                                                       :type 1})
@@ -133,7 +138,9 @@
                (if (and return-model
                         (return-model models))
                  (conj input-refs
-                       (-> (api/map->Reference {:rootWorkspace (:rootWorkspace comp)
+                       (-> (api/map->Reference {:name ""
+                                                :description ""
+                                                :rootWorkspace (:rootWorkspace comp)
                                                 :source (str id)
                                                 :target (str (:_id (return-model models)))
                                                 :type 0})
@@ -154,7 +161,7 @@
   {:resource resource
    :component (-> (assoc component :description (:description resource))
                   (api/map->Component)
-                  (api/update client))})
+                  (api/update* client))})
 
 (defn update-resources [client workspace url model resource]
   (or (some->> (first (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace)))
@@ -203,7 +210,7 @@
                           (api/map->Component)
                           (assoc :schema schema))
                   (assoc
-                      (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                      (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
                     :schema schema))))
      {}
      (:models api-declaration))))
@@ -225,7 +232,7 @@
                                   :model model-id
                                   :parent (str (:_id parent))
                                   :method method
-                                  :typeId (api/type-id-by-name model "Operation")})
+                                  :typeId (c/component-type-id-by-name (:_id model) "Operation" client)})
              (api/create client)
              (assoc :return-model (keyword type)
                     :input-models (set (map keyword (keep :type parameters)))))))
@@ -254,7 +261,7 @@
         _ (socket-send (str "Updated " (count operations) " operations\nUpdating references"))
         refs (delete-and-create-refs client workspace operations models)
         _ (socket-send (str "Updated " (count refs) " refs\n Starting pruning of resources"))
-        workspace (api/find-aggregated workspace client) ;Getting an updated version of the workspace
+        workspace (c/get-aggregated-workspace-by-id (:_id workspace) client) ;Getting an updated version of the workspace
         all {:workspace workspace
              :resources resources
              :models models
@@ -273,7 +280,8 @@
           model (common/find-or-create-model client "Swagger")]
       (socket-send "Got Swagger 1 model")
       (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
-                        (api/find-aggregated client)
+                        (:_id)
+                        (c/get-aggregated-workspace-by-id client)
                         (update-swagger client resource-listing url model))
         (let [workspace (create-workspace client url base-url name model resource-listing)
               _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url) "\n Creating " (count (:apis resource-listing)) " resources"))

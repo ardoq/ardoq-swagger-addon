@@ -1,5 +1,6 @@
 (ns ardoq.swagger.update-swagger2
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.implement.api :as api]
+            [ardoq.core :as c]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.socket :refer [socket-send]]
             [org.httpkit.server :as srv]
@@ -11,14 +12,13 @@
 (defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name template]
   (-> (assoc nil (keyword type)
              (assoc
-                 (api/->Component type (template schema) (str wid) _id (api/type-id-by-name model type-name)  nil)
-               :schema schema))
-      (common/save-models client nil)))
+                 (c/create-component type (template schema) (str wid) (c/component-type-id-by-name (:_id model) type-name client) nil client)
+               :schema schema))))
 
 (defn update-component [client component template data]
   (-> (assoc data :description (template component))
       (api/map->Component)
-      (api/update client)
+      (api/update* client)
       (assoc :schema component)))
 
 (defn update-components [client components definitions workspace {_id :_id :as model} model-type template]
@@ -48,7 +48,7 @@
                                                   components))
                                    (assoc :description (common/generate-operation-description method defs))
                                    (api/map->Component)
-                                   (api/update client)
+                                   (api/update* client)
                                    (assoc :return-model (doall (map 
                                                                 (fn [[_ v]] (get-in v [:schema]))
                                                                 (:responses method)))
@@ -60,7 +60,7 @@
                                                     :model _id
                                                     :parent (:_id parent)
                                                     :method method-name
-                                                    :typeId (api/type-id-by-name model "Operation")})
+                                                    :typeId (c/component-type-id-by-name (:_id  model) "Operation" client)})
                                (api/create client)
                                (assoc :return-model (doall (map 
                                                             (fn [[_ v]] (get-in v [:schema]))
@@ -76,8 +76,7 @@
         parameters (:parameters methods)
         parent {:resource path
                 :parameters parameters
-                :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
-                    (api/create client))}
+                :component (c/create-component path (or description "") (str wid) (c/component-type-id-by-name (:_id model) "Resource" client) nil client)}
 
         op (create-or-update-operation client parent model wid path methods tags defs nil spec)]
     (refs/create-resource-refs client parent params)
@@ -93,7 +92,7 @@
         parent {:resource path
                 :parameters parameters
                 :component (-> (api/map->Component resource)                          
-                               (api/update client))}
+                               (api/update* client))}
         ;;Create or update op here
         op (create-or-update-operation client parent model wid path methods tags defs (:components workspace) spec)]
     (refs/create-resource-refs client parent params)
@@ -135,7 +134,7 @@
     (if (:_version tag)
       (-> (assoc tag :_version (:_version (api/find-by-id (api/map->Tag tag) client)))
           (api/map->Tag)
-          (api/update client))
+          (api/update* client))
       (api/create (api/map->Tag tag) client))))
 
 (defn delete-references [client {references :references :as workspace}]
@@ -156,7 +155,7 @@
         _ (socket-send (str "Updated " (count securs) " security definitions\nGonna update " (count (:tags spec)) " tags"))
         tags (atom (collect-tags client workspace (:tags spec)))
         _ (socket-send (str "Updated  " (count @tags) " tags\nPreparing references"))
-        workspace (api/find-aggregated workspace client)]
+        workspace (c/get-aggregated-workspace-by-id (:_id workspace) client)]
     (delete-references client workspace)
     (socket-send (str "Deleted " (count (:references workspace))  " internal references\nUpdating operations"))
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)
