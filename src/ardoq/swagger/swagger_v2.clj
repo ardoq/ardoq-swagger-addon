@@ -111,13 +111,11 @@
   ;;Create a resource. Does so by setting first path resource then adding the operations to it. Requires a full swagger file as input and the workspace it is being created in
   (let [{:keys [_id description]} model
         wid (:_id workspace)]
-    (doseq [[path methods] paths]
+    (doseq [[path {:keys [parameters]:as methods}] paths]
       (let [parent (doall {:resource path
-                           :parameters nil
-                           :component (c/create-component path description (str wid) (c/component-type-id-by-name (:_id model) "Resource" client) nil client) 
-                           ;; (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
-                           ;;     (api/create client))
-                           })
+                           :parameters parameters
+                           :component (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
+                               (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (socket-send (str "Created " (count operations) " operations for resource " path))
         (refs/create-resource-refs client parent params)

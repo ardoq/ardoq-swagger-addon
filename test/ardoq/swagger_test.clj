@@ -73,20 +73,19 @@
                  (core/find-by-id client))]
     (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
-    (testing (str "Testing components in updated workspace when importing " f)
+    (testing (str "Testing components in updated workspace when updating " f)
       (is (= (count (:components swag))
              (count-components json-spec))))
-    (testing (str "Testing references in workspace when importing " f)
+    (testing (str "Testing references in workspace when updating " f)
       (is (= (+ (count-references json-spec) 
                 (count-securities (:paths json-spec)))
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (doall (for [f (file-seq (io/as-file (io/resource "swagger")))]
-           (when-not (.isDirectory f)
-             (do (println (str "Doing file " f))
-                 (let [spec (slurp f)
-                       json-spec (parse-string spec true)
-                       swag (import-spec spec nil json-spec f)]
-                   (update-spec spec nil swag json-spec f)
-                   (core/delete swag client)))))))
+  (doall (take 5 (for [f (file-seq (io/as-file (io/resource "swagger")))]
+                   (when-not (.isDirectory f)
+                     (let [spec (slurp f)
+                           json-spec (parse-string spec true)
+                           swag (import-spec spec nil json-spec f)]
+                       (update-spec spec nil swag json-spec f)
+                       (core/delete swag client)))))))
