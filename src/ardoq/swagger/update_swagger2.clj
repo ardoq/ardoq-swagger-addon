@@ -76,7 +76,7 @@
         parameters (:parameters methods)
         parent {:resource path
                 :parameters parameters
-                :component (c/create-component path (or description "") (str wid) (c/component-type-id-by-name (:_id model) "Resource" client) nil client)}
+                :component (c/create-component path "" (str wid) (c/component-type-id-by-name (:_id model) "Resource" client) nil client)}
 
         op (create-or-update-operation client parent model wid path methods tags defs nil spec)]
     (refs/create-resource-refs client parent params)

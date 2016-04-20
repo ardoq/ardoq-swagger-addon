@@ -14,8 +14,9 @@
       (clojure.string/replace #"\\n" "\n")
       (clojure.string/replace #"</*b>" "**")
       (clojure.string/replace #"<br/*>" "\n")
+      (clojure.string/replace #"<pre class='prettyprint'>(.+)</pre>" "\n```\n$1\n```\n")
       (clojure.string/replace #"<a href='(.+)'>(.+)</a>" "[$2]($1)")
-      (clojure.string/replace #"</*[a-z]+/*>" "")))
+      (clojure.string/replace #"</*[a-z]+/*>" " ")))
 
 (defn model-template [m]
   (str "###JSON Schema\n```\n"

@@ -1,5 +1,6 @@
 (ns ardoq.swagger-test
-  (:require [ardoq.swagger.client :as c]
+  (:require [ardoq.core :as client]
+            [ardoq.implement.api :as core]
             [ardoq.swagger.api :as api]
             [clojure.test :refer :all]
             [cheshire.core :refer [parse-string generate-string]]
@@ -8,9 +9,9 @@
 (def ^:dynamic client nil)
 
 (defn connect-ardoq [f]
-  (binding [client (c/client {:url (System/getenv "BASE_URL")
-                              :org (System/getenv "ORGANIZATION")
-                              :token (System/getenv "API_TOKEN")})]
+  (binding [client (client/client {:url (System/getenv "BASE_URL")
+                                 :org (System/getenv "ORGANIZATION")
+                                 :token (System/getenv "API_TOKEN")})]
     (f)))
 
 (use-fixtures :once connect-ardoq)
@@ -49,8 +50,8 @@
 
 (defn import-spec [spec wsname json-spec f]  
   (let [swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
-                 (c/map->Workspace)
-                 (c/find-by-id client))]
+                 (core/map->Workspace)
+                 (core/find-by-id client))]
     (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
     (testing (str "Testing components in updated workspace when importing " f)
@@ -63,13 +64,13 @@
     swag))
 
 (defn update-spec [spec wsname swag json-spec f]
-  (c/delete (c/map->Component {:_id (first (:components swag))}) client)
+  (core/delete (core/map->Component {:_id (first (:components swag))}) client)
   (let [json-spec (assoc-in json-spec [:definitions :new-model] {:type "object"})
         json-spec (assoc-in json-spec [:definitions :sec-model] {:type "object"})
         spec (generate-string json-spec)
         swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
-                 (c/map->Workspace)
-                 (c/find-by-id client))]
+                 (core/map->Workspace)
+                 (core/find-by-id client))]
     (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
     (testing (str "Testing components in updated workspace when importing " f)
@@ -81,10 +82,11 @@
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (doall (take 5 (for [f (file-seq (io/as-file (io/resource "swagger")))]
-                   (when-not (.isDirectory f)
-                     (let [spec (slurp f)
-                           json-spec (parse-string spec true)
-                           swag (import-spec spec nil json-spec f)]
-                       (update-spec spec nil swag json-spec f)
-                       (c/delete swag client)))))))
+  (doall (for [f (file-seq (io/as-file (io/resource "swagger")))]
+           (when-not (.isDirectory f)
+             (do (println (str "Doing file " f))
+                 (let [spec (slurp f)
+                       json-spec (parse-string spec true)
+                       swag (import-spec spec nil json-spec f)]
+                   (update-spec spec nil swag json-spec f)
+                   (core/delete swag client)))))))

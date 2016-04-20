@@ -10,11 +10,11 @@
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
    [cheshire.core :refer [parse-string]]
+   [ardoq.core :as c]
    [ardoq.swagger 
     [server :as server]
     [swagger :as swagger]
     [api :as api]
-    [client :as c]
     [validate :as validate]
     [common :as common]]
    [ardoq.swagger.swagger-v2
