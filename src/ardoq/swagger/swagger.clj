@@ -38,9 +38,8 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
-        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-        (api/create  client))))
+    (-> (api/create client (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model))))
+        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"]))))
 
 (defn get-resource-listing [url]
   (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers *custom-headers* :insecure? true})]
@@ -51,8 +50,8 @@
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
-   :component (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
-                  (api/create client))})
+   :component (->> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name client (:_id model) "Resource") :parent nil})
+                   (api/create client))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -61,7 +60,7 @@
      (fn [acc [type schema]]
        (assoc acc (keyword type)
               (assoc
-                  (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
+                  (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name client (:_id model) "Model") :parent nil})
                :schema schema)))
      {}
      (:models api-declaration))))
@@ -69,14 +68,13 @@
 (defn create-operations [client {wid :_id model-id :componentModel :as w} parent model models {:keys [path operations]}]
   (map
    (fn [{:keys [method summary notes type items parameters] :as data}]
-     (-> (api/map->Component {:name (str method " " path)
-                              :description (common/generate-operation-description data models)
-                              :rootWorkspace (str wid)
-                              :model model-id
-                              :parent (str (:_id parent))
-                              :method method
-                              :typeId (c/component-type-id-by-name (:_id model) "Operation" client)})
-         (api/create client)
+     (-> (api/create client (api/map->Component {:name (str method " " path)
+                                                 :description (common/generate-operation-description data models)
+                                                 :rootWorkspace (str wid)
+                                                 :model model-id
+                                                 :parent (str (:_id parent))
+                                                 :method method
+                                                 :typeId (c/component-type-id-by-name client (:_id model) "Operation")}))
          (assoc :return-model (keyword type)
                 :input-models (set (map keyword (keep :type parameters))))))
    operations))
@@ -111,13 +109,13 @@
               (doall (keep
                       (fn [model-key]
                         (if-let [m ((keyword model-key) models)]
-                          (-> (api/map->Reference {:name ""
-                                                   :description ""
-                                                   :rootWorkspace (:rootWorkspace model)
-                                                   :source (str (:_id model))
-                                                   :target (str (:_id m))
-                                                   :type 3})
-                              (api/create client))))
+                          (->> (api/map->Reference {:name ""
+                                                    :description ""
+                                                    :rootWorkspace (:rootWorkspace model)
+                                                    :source (str (:_id model))
+                                                    :target (str (:_id m))
+                                                    :type 3})
+                               (api/create client))))
                       rrr))))
           (vals models))))
 
@@ -127,24 +125,24 @@
              (let [input-refs
                    (keep (fn [k]
                            (if-let [m (k models)]                            
-                             (-> (api/map->Reference {:name ""
-                                                      :description ""
-                                                      :rootWorkspace (:rootWorkspace comp)
-                                                      :source (str id)
-                                                      :target (str (:_id m))
-                                                      :type 1})
-                                 (api/create client))))
+                             (->> (api/map->Reference {:name ""
+                                                       :description ""
+                                                       :rootWorkspace (:rootWorkspace comp)
+                                                       :source (str id)
+                                                       :target (str (:_id m))
+                                                       :type 1})
+                                  (api/create client))))
                          input-models)]
                (if (and return-model
                         (return-model models))
                  (conj input-refs
-                       (-> (api/map->Reference {:name ""
-                                                :description ""
-                                                :rootWorkspace (:rootWorkspace comp)
-                                                :source (str id)
-                                                :target (str (:_id (return-model models)))
-                                                :type 0})
-                           (api/create client)))
+                       (->> (api/map->Reference {:name ""
+                                                 :description ""
+                                                 :rootWorkspace (:rootWorkspace comp)
+                                                 :source (str id)
+                                                 :target (str (:_id (return-model models)))
+                                                 :type 0})
+                            (api/create client)))
                  input-refs)))
            operations)
           (interdependent-model-refs client models)))
@@ -159,9 +157,9 @@
 
 (defn update-resource [client workspace url model resource component]
   {:resource resource
-   :component (-> (assoc component :description (:description resource))
-                  (api/map->Component)
-                  (api/update* client))})
+   :component (->> (assoc component :description (:description resource))
+                   (api/map->Component)
+                   (api/update* client))})
 
 (defn update-resources [client workspace url model resource]
   (or (some->> (first (filter #(and (= (:path resource) (:name %)) (= (:type %) "Resource")) (:components workspace)))
@@ -182,7 +180,7 @@
     (doseq [{def-name :name :as component} components]
       (if (= (:type component) "Model") 
         (when-not (first (filter #(= (name %) def-name) (keys (:models resource-listing)))) 
-          (api/delete (api/map->Component component) client)))
+          (api/delete client (api/map->Component component))))
       
       (if (= (:type component) "Operation")        
         (let [op (flatten (doall (map (fn [{path :path operations :operations}]
@@ -191,13 +189,13 @@
                                                     operations)))
                                       (:operations resource-listing))))]
           (when-not (first (filter #(= % def-name) op))
-            (api/delete (api/map->Component component) client)))))))
+            (api/delete client (api/map->Component component))))))))
 
 (defn delete-resources [client {components :components :as workspace} resources]
   (doseq [{def-name :name :as component} components]
     (if (= (:type component) "Resource") 
       (when-not (first (filter #(= (:path %) def-name) resources))
-        (api/delete (api/map->Component component) client)))))
+        (api/delete client (api/map->Component component))))))
 
 (defn update-model [client base-url {wid :_id model-id :componentModel :as workspace} model {:keys [resource component]}]
   (let [url (str base-url (:path resource))
@@ -210,7 +208,7 @@
                           (api/map->Component)
                           (assoc :schema schema))
                   (assoc
-                      (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
+                      (api/map->Component {:name type :description (model-template schema) :rootWorkspace (str wid) :model model-id :type (c/component-type-id-by-name client (:_id model) "Model") :parent nil})
                     :schema schema))))
      {}
      (:models api-declaration))))
@@ -226,13 +224,13 @@
                  (assoc :description (common/generate-operation-description data models))
                  (assoc :return-model (keyword type)
                         :input-models (set (map keyword (keep :type parameters)))))
-         (-> (api/map->Component {:name (str method " " path)
-                                  :description (common/generate-operation-description data models)
-                                  :rootWorkspace (str wid)
-                                  :model model-id
-                                  :parent (str (:_id parent))
-                                  :method method
-                                  :typeId (c/component-type-id-by-name (:_id model) "Operation" client)})
+         (->> (api/map->Component {:name (str method " " path)
+                                   :description (common/generate-operation-description data models)
+                                   :rootWorkspace (str wid)
+                                   :model model-id
+                                   :parent (str (:_id parent))
+                                   :method method
+                                   :typeId (c/component-type-id-by-name client (:_id model) "Operation")})
              (api/create client)
              (assoc :return-model (keyword type)
                     :input-models (set (map keyword (keep :type parameters)))))))
@@ -247,10 +245,10 @@
 (defn delete-and-create-refs [client {references :references :as workspace} operations models]
   (doseq [ref references]
     (when (= (:rootWorkspace ref) (:targetWorkspace ref) (:_id workspace))
-      (api/delete (api/map->Reference ref) client)))
+      (api/delete client (api/map->Reference ref))))
   (create-refs client operations models))
 
-(defn update-swagger [workspace client resource-listing url model]
+(defn update-swagger [client resource-listing url model workspace]
   (socket-send (str "Found workspace " (:name workspace) "\nUpdating " (count (:apis resource-listing)) " resources"))
   (let [resources (doall (map (partial update-resources client workspace url model) (:apis resource-listing)))
         _ (socket-send (str "Updated " (count resources) " resources\nUpdating models"))
@@ -261,7 +259,7 @@
         _ (socket-send (str "Updated " (count operations) " operations\nUpdating references"))
         refs (delete-and-create-refs client workspace operations models)
         _ (socket-send (str "Updated " (count refs) " refs\n Starting pruning of resources"))
-        workspace (c/get-aggregated-workspace-by-id (:_id workspace) client) ;Getting an updated version of the workspace
+        workspace (c/get-aggregated-workspace-by-id client (:_id workspace)) ;Getting an updated version of the workspace
         all {:workspace workspace
              :resources resources
              :models models
@@ -279,10 +277,10 @@
     (let [url (resolve-url resource-listing base-url)
           model (common/find-or-create-model client "Swagger")]
       (socket-send "Got Swagger 1 model")
-      (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
-                        (:_id)
-                        (c/get-aggregated-workspace-by-id client)
-                        (update-swagger client resource-listing url model))
+      (when-not (some->> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
+                         (:_id)
+                         (c/get-aggregated-workspace-by-id client)
+                         (update-swagger client resource-listing url model))
         (let [workspace (create-workspace client url base-url name model resource-listing)
               _ (socket-send (str "Created workspace " (or name (:title (:info resource-listing)) base-url) "\n Creating " (count (:apis resource-listing)) " resources"))
               resources (doall (map (partial create-resource client workspace url model) (:apis resource-listing)))

@@ -18,9 +18,9 @@
         wsname (if (s/blank? wsname)
                  (:title info)
                  wsname)]
-    (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
-        (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
-        (api/create client))))
+    (api/create client 
+                (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
+                    (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])))))
 
 (defn create-tags [client {:keys [tags]} wid]
   (doall (reduce
@@ -35,7 +35,7 @@
    (fn [acc [type schema]]
      (assoc acc (keyword type)
             (assoc
-                (api/map->Component {:name type :description (common/model-template schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Model" client) :parent nil})
+                (api/map->Component {:name type :description (common/model-template schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name client (:_id model) "Model") :parent nil})
               :schema schema)))
    {}
    definitions))
@@ -47,14 +47,15 @@
                (let [type (doall (map (fn [[_ v]]
                                         (get-in v [:schema]))
                                       response))
-                     op (-> (api/map->Component {:name (str (:name parent) "/" (name method)) 
-                                                 :description (common/generate-operation-description data models) 
-                                                 :rootWorkspace (str wid) 
-                                                 :model _id 
-                                                 :parent (:_id parent) 
-                                                 :method method
-                                                 :typeId (c/component-type-id-by-name (:_id model) "Operation" client)}) 
-                            (api/create client) 
+                     op (-> (api/create client 
+                                        (api/map->Component 
+                                         {:name (str (:name parent) "/" (name method)) 
+                                          :description (common/generate-operation-description data models) 
+                                          :rootWorkspace (str wid) 
+                                          :model _id 
+                                          :parent (:_id parent) 
+                                          :method method
+                                          :typeId (c/component-type-id-by-name client (:_id model) "Operation")})) 
                             (assoc :return-model type
                                    :input-models parameters
                                    :security security))]
@@ -80,7 +81,7 @@
      (assoc acc (keyword param)
             (assoc
                 (api/map->Component 
-                 {:name (name param) :description (common/generate-param-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Parameters" client) :parent nil})
+                 {:name (name param) :description (common/generate-param-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name client (:_id model) "Parameters") :parent nil})
               :schema schema)))
    {}
    parameters))
@@ -90,7 +91,7 @@
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-                (api/map->Component {:name sec :description (common/generate-security-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "securityDefinitions" client) :parent nil})
+                (api/map->Component {:name sec :description (common/generate-security-description schema) :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name client (:_id model) "securityDefinitions") :parent nil})
              :schema schema)))
    {}
    sec-defs))
@@ -114,7 +115,7 @@
     (doseq [[path {:keys [parameters]:as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (-> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name (:_id model) "Resource" client) :parent nil})
+                           :component (->> (api/map->Component {:name path :description description :rootWorkspace (str wid) :model _id :type (c/component-type-id-by-name client (:_id model) "Resource") :parent nil})
                                (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (socket-send (str "Created " (count operations) " operations for resource " path))
@@ -126,14 +127,14 @@
 (defn update-tags [client tags]
   (doseq
       [[_ tag] tags]
-    (api/create tag client)))
+    (api/create client tag)))
 
 (defn import-swagger2 [client spec wsname]
   (or
-      (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
-              (:_id)
-              (c/get-aggregated-workspace-by-id client)
-              (update/update-workspace client spec))
+   (some->> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
+            (:_id)
+            (c/get-aggregated-workspace-by-id client)
+            (update/update-workspace client spec))
     (let [model (common/find-or-create-model client "Swagger 2.0")
           _ (socket-send (str "Created Swagger2 mode\nStarting on workspace"))
           workspace (create-workspace client model wsname spec)

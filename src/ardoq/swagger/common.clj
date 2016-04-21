@@ -30,34 +30,34 @@
   (tpl/render-resource "securityTemplate.tpl" data))
 
 (defn find-or-create-model [client type]
-  (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
+  (if-let [model (first (filter #(= type (:name %)) (api/find-all client (api/map->Model {}))))]
     model
-    (-> (api/map->Model (parse-string (slurp (io/resource (if (= type "Swagger") "modelv1.json" "modelv2.json"))) true))
-        (api/create client))))
+    (->> (api/map->Model (parse-string (slurp (io/resource (if (= type "Swagger") "modelv1.json" "modelv2.json"))) true))
+         (api/create client))))
 
 (defn find-existing-resource 
   ([client name type]
-   (first (filter #(= name (:name %)) (api/find-all (type) client))))
+   (first (filter #(= name (:name %)) (api/find-all client (type)))))
   ([client name type root-id]
-   (first (filter #(= name (:name %)) (api/find-resource-in-workspace (type) root-id client)))))
+   (first (filter #(= name (:name %)) (api/find-resource-in-workspace client (type) root-id)))))
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter
         (fn [{:keys [name model]}]
           (and (= name field-name)
                (= model (str _id))))
-        (api/find-all (api/map->Field {}) client))))
+        (api/find-all client (api/map->Field {})))))
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client)])
-        (api/create client)))
+    (->> (api/->Field "method" "method" "Text" (str model-id) [(c/component-type-id-by-name client (:_id model) "Operation")])
+         (api/create client)))
   (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client) (c/component-type-id-by-name (:_id model) "Resource" client)])
-        (api/create client)))
+    (->> (api/->Field "produces" "produces" "Text" (str model-id) [(c/component-type-id-by-name client (:_id model) "Operation") (c/component-type-id-by-name client (:_id model) "Resource")])
+         (api/create client)))
   (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(c/component-type-id-by-name (:_id model) "Operation" client) (c/component-type-id-by-name (:_id model) "Resource" client)])
-        (api/create client))))
+    (->> (api/->Field "consumes" "consumes" "Text" (str model-id) [(c/component-type-id-by-name client (:_id model) "Operation") (c/component-type-id-by-name client (:_id model) "Resource")])
+         (api/create client))))
 
 (defn generate-operation-description [data models]
   (let [data (-> data 
@@ -71,21 +71,21 @@
 
 (defn update-comp [client component {:keys [produces consumes]}]
   ;; Updates a component based on previous modelling. Uses the swagger file to detect what it needs. 
-  (api/update* 
+  (api/update* client
    (cond-> (api/map->Component component)
            produces (-> ;This gets the cond macro
                      (assoc :produces produces)
                      (dissoc :consumes))
            consumes (-> ;This gets the cond macro
                      (assoc :consumes consumes)
-                     (dissoc :produces))) client))
+                     (dissoc :produces)))))
 
 (defn save-models [models client workspace]
   (map-vals (fn [model] 
               (let [schema (:schema model)]
                 (if (first (filter #(and (= (:type %) "Model") (= (:name %) (:name model))) (:components workspace)))
-                  (assoc (api/update* (dissoc model :schema) client) :schema schema)
-                  (assoc (api/create (dissoc model :schema) client) :schema schema)))) 
+                  (assoc (api/update* client (dissoc model :schema)) :schema schema)
+                  (assoc (api/create client (dissoc model :schema)) :schema schema)))) 
             models))
 
 

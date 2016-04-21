@@ -12,19 +12,19 @@
 (defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name template]
   (-> (assoc nil (keyword type)
              (assoc
-                 (c/create-component type (template schema) (str wid) (c/component-type-id-by-name (:_id model) type-name client) nil client)
+                 (c/create-component client type (template schema) (str wid) (c/component-type-id-by-name client (:_id model) type-name) nil)
                :schema schema))))
 
 (defn update-component [client component template data]
-  (-> (assoc data :description (template component))
-      (api/map->Component)
-      (api/update* client)
-      (assoc :schema component)))
+  (assoc (->> (assoc data :description (template component))
+              (api/map->Component)
+              (api/update* client))
+    :schema component))
 
 (defn update-components [client components definitions workspace {_id :_id :as model} model-type template]
   (doseq [{def-name :name :as component} components]
     (when-not (first (filter #(= (name %) def-name) (keys definitions)))
-      (api/delete (api/map->Component component) client)))
+      (api/delete client (api/map->Component component))))
   (reduce (fn [acc [def-name data :as component]]        
             (assoc acc (keyword def-name) 
                    (or (some->> (first (filter #(= (name def-name) (:name %)) components))
@@ -33,12 +33,15 @@
           {}
           definitions))
 
+(defn update-wrap [resource client]
+  (api/update* client resource))
+
 (defn create-or-update-operation [client {parent :component} {_id :_id :as model} wid path methods tags defs components spec]
   (common/update-comp client parent spec)
   (doseq [child (:children parent)]
     (let [resource (first (filter #(= (:_id %) child) components))]
       (when-not (first (filter #(= (str (name path) "/" (name %)) (:name resource)) (keys methods)))
-        (api/delete (api/map->Component resource) client))))
+        (api/delete client (api/map->Component resource)))))
   (doall (map
           (fn [[method-name method]]
             (if (not (= method-name (keyword "parameters")))
@@ -48,20 +51,20 @@
                                                   components))
                                    (assoc :description (common/generate-operation-description method defs))
                                    (api/map->Component)
-                                   (api/update* client)
+                                   (update-wrap client)
                                    (assoc :return-model (doall (map 
                                                                 (fn [[_ v]] (get-in v [:schema]))
                                                                 (:responses method)))
                                           :input-models (:parameters method)
                                           :security (:security method)))
-                           (-> (api/map->Component {:name (str (name path) "/" (name method-name))
-                                                    :description (common/generate-operation-description method defs)
-                                                    :rootWorkspace (str wid)
-                                                    :model _id
-                                                    :parent (:_id parent)
-                                                    :method method-name
-                                                    :typeId (c/component-type-id-by-name (:_id  model) "Operation" client)})
-                               (api/create client)
+                           (-> (api/create client 
+                                           (api/map->Component {:name (str (name path) "/" (name method-name))
+                                                                :description (common/generate-operation-description method defs)
+                                                                :rootWorkspace (str wid)
+                                                                :model _id
+                                                                :parent (:_id parent)
+                                                                :method method-name
+                                                                :typeId (c/component-type-id-by-name client (:_id  model) "Operation")}))
                                (assoc :return-model (doall (map 
                                                             (fn [[_ v]] (get-in v [:schema]))
                                                             (:responses method)))
@@ -76,7 +79,7 @@
         parameters (:parameters methods)
         parent {:resource path
                 :parameters parameters
-                :component (c/create-component path "" (str wid) (c/component-type-id-by-name (:_id model) "Resource" client) nil client)}
+                :component (c/create-component client path "" (str wid) (c/component-type-id-by-name client (:_id model) "Resource") nil)}
 
         op (create-or-update-operation client parent model wid path methods tags defs nil spec)]
     (refs/create-resource-refs client parent params)
@@ -91,8 +94,8 @@
         parameters (:parameters methods)
         parent {:resource path
                 :parameters parameters
-                :component (-> (api/map->Component resource)                          
-                               (api/update* client))}
+                :component (->> (api/map->Component resource)                          
+                                (api/update* client))}
         ;;Create or update op here
         op (create-or-update-operation client parent model wid path methods tags defs (:components workspace) spec)]
     (refs/create-resource-refs client parent params)
@@ -103,7 +106,7 @@
   ;;This runs two times doseq filter. 
   (doseq [{path :name :as resource} resources]
     (when-not (first (filter #(= (name %) path) (keys paths)))
-      (api/delete (api/map->Component resource) client)))
+      (api/delete client (api/map->Component resource))))
   (reduce (fn [acc [def-name data :as component]]        
             (socket-send (str "Updating operation " (name def-name)))
             (assoc acc (keyword def-name) 
@@ -119,7 +122,7 @@
 (defn collect-tags [client {wtags :tags wid :_id :as workspace} tags]
   (doseq [{tag-name :name :as wtag} wtags]
     (when-not (first (filter #(= (:name %) tag-name) tags))
-      (api/delete (api/map->Tag wtag) client)))
+      (api/delete client (api/map->Tag wtag))))
   (doall (reduce
           (fn [acc {name :name description :description :as tag}]
             (assoc acc name
@@ -132,17 +135,17 @@
 (defn update-tags [client tags {wid :_id}]
   (doseq [[_ tag] tags] 
     (if (:_version tag)
-      (-> (assoc tag :_version (:_version (api/find-by-id (api/map->Tag tag) client)))
-          (api/map->Tag)
-          (api/update* client))
-      (api/create (api/map->Tag tag) client))))
+      (->> (assoc tag :_version (:_version (api/find-by-id client (api/map->Tag tag))))
+           (api/map->Tag)
+           (api/update* client))
+      (api/create client (api/map->Tag tag)))))
 
 (defn delete-references [client {references :references :as workspace}]
   (doseq [ref references]
     (when (= (:rootWorkspace ref) (:targetWorkspace ref) (:_id workspace))
-      (api/delete (api/map->Reference ref) client))))
+      (api/delete client (api/map->Reference ref)))))
 
-(defn update-workspace [workspace client spec]
+(defn update-workspace [client spec workspace]
   (socket-send (str "Updating workspace " (:name workspace)))
   ;;Workspace exists, we will just update values in it and potentially the description.
   (let [model (common/find-or-create-model client "Swagger 2.0")
@@ -155,7 +158,7 @@
         _ (socket-send (str "Updated " (count securs) " security definitions\nGonna update " (count (:tags spec)) " tags"))
         tags (atom (collect-tags client workspace (:tags spec)))
         _ (socket-send (str "Updated  " (count @tags) " tags\nPreparing references"))
-        workspace (c/get-aggregated-workspace-by-id (:_id workspace) client)]
+        workspace (c/get-aggregated-workspace-by-id client (:_id workspace))]
     (delete-references client workspace)
     (socket-send (str "Deleted " (count (:references workspace))  " internal references\nUpdating operations"))
     (update-operations client (get-component-by-type workspace "Resource") spec workspace model defs params securs tags)

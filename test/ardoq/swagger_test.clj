@@ -24,15 +24,15 @@
 
 (defn count-components [spec]
   (+ (count-operations (:paths spec))
-     (count (:paths spec)) 
-     (count (:definitions spec)) 
-     (count (:securityDefinitions spec)) 
+     (count (:paths spec))
+     (count (:definitions spec))
+     (count (:securityDefinitions spec))
      (count (:parameters spec))))
 
 (defn count-references [spec]
-  (reduce (fn [result x] 
-            (+ result 
-               (cond 
+  (reduce (fn [result x]
+            (+ result
+               (cond
                 (= (keyword "$ref") x) 1
                 (map? x) (count-references x)
                 :else 0)))
@@ -41,43 +41,43 @@
 
 (defn count-securities [paths]
   (reduce (fn [counter [_ method]]
-            (reduce (fn [inner [_ x]]                               
+            (reduce (fn [inner [_ x]]
                          (+ inner (count (:security x))))
                        counter
                        method))
           0
           paths))
 
-(defn import-spec [spec wsname json-spec f]  
-  (let [swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
-                 (core/map->Workspace)
-                 (core/find-by-id client))]
+(defn import-spec [spec wsname json-spec f]
+  (let [swag (->> {:_id (api/get-spec client nil wsname nil spec nil)}
+                  (core/map->Workspace)
+                  (core/find-by-id client))]
     (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
     (testing (str "Testing components in updated workspace when importing " f)
       (is (= (count (:components swag))
              (count-components json-spec))))
     (testing (str "Testing references in workspace when importing " f)
-      (is (= (+ (count-references json-spec) 
+      (is (= (+ (count-references json-spec)
                 (count-securities (:paths json-spec)))
              (count (:references swag)))))
     swag))
 
 (defn update-spec [spec wsname swag json-spec f]
-  (core/delete (core/map->Component {:_id (first (:components swag))}) client)
+  (core/delete client (core/map->Component {:_id (first (:components swag))}))
   (let [json-spec (assoc-in json-spec [:definitions :new-model] {:type "object"})
         json-spec (assoc-in json-spec [:definitions :sec-model] {:type "object"})
         spec (generate-string json-spec)
-        swag (-> {:_id (api/get-spec client nil wsname nil spec nil)}
-                 (core/map->Workspace)
-                 (core/find-by-id client))]
+        swag (->> {:_id (api/get-spec client nil wsname nil spec nil)}
+                  (core/map->Workspace)
+                  (core/find-by-id client))]
     (testing (str "Workspace name for " f)
       (is (= (:name swag) (:title (:info json-spec)))))
     (testing (str "Testing components in updated workspace when updating " f)
       (is (= (count (:components swag))
              (count-components json-spec))))
     (testing (str "Testing references in workspace when updating " f)
-      (is (= (+ (count-references json-spec) 
+      (is (= (+ (count-references json-spec)
                 (count-securities (:paths json-spec)))
              (count (:references swag)))))))
 
@@ -88,4 +88,4 @@
                            json-spec (parse-string spec true)
                            swag (import-spec spec nil json-spec f)]
                        (update-spec spec nil swag json-spec f)
-                       (core/delete swag client)))))))
+                       (core/delete client swag)))))))
