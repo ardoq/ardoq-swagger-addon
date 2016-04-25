@@ -1,5 +1,5 @@
 (ns ardoq.swagger.swagger
-  (:require [ardoq.implement.api :as api]
+  (:require [ardoq.impl.api :as api]
             [ardoq.core :as c]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.socket :refer [socket-send]]

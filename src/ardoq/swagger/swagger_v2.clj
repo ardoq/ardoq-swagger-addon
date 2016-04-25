@@ -1,5 +1,5 @@
 (ns ardoq.swagger.swagger-v2
-  (:require [ardoq.implement.api :as api]
+  (:require [ardoq.impl.api :as api]
             [ardoq.core :as c]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.update-swagger2 :as update]

@@ -1,5 +1,5 @@
 (ns ardoq.swagger.common
-  (:require [ardoq.implement.api :as api]
+  (:require [ardoq.impl.api :as api]
             [ardoq.core :as c]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
