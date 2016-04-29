@@ -84,14 +84,13 @@
 
 (deftest import-swaggers
   (doall (take 5 (for [[name swag] (:body (http/get "https://apis-guru.github.io/api-models/api/v1/list.json" {:as :json}))] 
-                   (do (println (str "Testing " name))
-                       (let  [spec (->> swag 
-                                        (:versions) 
-                                        ((keyword (:preferred swag)))
-                                        (:swaggerUrl)
-                                        (http/get)
-                                        (:body))
-                              parsed-spec (parse-string spec true)
-                              old-spec (import-spec spec nil parsed-spec name)]
-                         (update-spec spec nil old-spec parsed-spec name)
-                         (c/delete old-spec client)))))))
+                   (let  [spec (->> swag 
+                                    (:versions) 
+                                    ((keyword (:preferred swag)))
+                                    (:swaggerUrl)
+                                    (http/get)
+                                    (:body))
+                          parsed-spec (parse-string spec true)
+                          old-spec (import-spec spec nil parsed-spec name)]
+                     (update-spec spec nil old-spec parsed-spec name)
+                     (c/delete old-spec client))))))

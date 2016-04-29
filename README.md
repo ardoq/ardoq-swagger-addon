@@ -38,3 +38,8 @@ docker run -e API_BASE_URL=https://app.ardoq.com -d --name="swagger" ardoq/ardoq
 ```
 
 You can replace the API_BASE_URL with the URL to your own installation if you run locally, or on premise.  
+
+
+### Examples
+
+The tests import sample files from [APIs.guru - Wikipedia for Web APIs](https://github.com/APIs-guru/api-models), specifically through the [API endpoint](https://github.com/APIs-guru/api-models/blob/master/API.md).  
