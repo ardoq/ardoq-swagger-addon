@@ -1,6 +1,6 @@
 (ns ardoq.swagger-test
   (:require [ardoq.core :as client]
-            [ardoq.implement.api :as core]
+            [ardoq.impl.api :as core]
             [ardoq.swagger.api :as api]
             [clojure.test :refer :all]
             [cheshire.core :refer [parse-string generate-string]]
