@@ -3,14 +3,16 @@
             [ardoq.swagger.api :as api]
             [clojure.test :refer :all]
             [cheshire.core :refer [parse-string generate-string]]
+            [clj-http.client :as http]
             [clojure.java.io :as io]))
 
 (def ^:dynamic client nil)
 
 (defn connect-ardoq [f]
-  (binding [client (c/client {:url (System/getenv "BASE_URL")
-                              :org (System/getenv "ORGANIZATION")
-                              :token (System/getenv "API_TOKEN")})]
+  (binding [client (c/client {:url "http://localhost:8080";(System/getenv "BASE_URL")
+                              :org "ardoq";(System/getenv "ORGANIZATION")
+                              :token "451c4a98508e47f5997c6fd61a33ecff";(System/getenv "API_TOKEN")
+                              })]
     (f)))
 
 (use-fixtures :once connect-ardoq)
@@ -81,10 +83,15 @@
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (doall (take 5 (for [f (file-seq (io/as-file (io/resource "swagger")))]
-                   (when-not (.isDirectory f)
-                     (let [spec (slurp f)
-                           json-spec (parse-string spec true)
-                           swag (import-spec spec nil json-spec f)]
-                       (update-spec spec nil swag json-spec f)
-                       (c/delete swag client)))))))
+  (doall (take 5 (for [[name swag] (:body (http/get "https://apis-guru.github.io/api-models/api/v1/list.json" {:as :json}))] 
+                   (do (println (str "Testing " name))
+                       (let  [spec (->> swag 
+                                        (:versions) 
+                                        ((keyword (:preferred swag)))
+                                        (:swaggerUrl)
+                                        (http/get)
+                                        (:body))
+                              parsed-spec (parse-string spec true)
+                              old-spec (import-spec spec nil parsed-spec name)]
+                         (update-spec spec nil old-spec parsed-spec name)
+                         (c/delete old-spec client)))))))

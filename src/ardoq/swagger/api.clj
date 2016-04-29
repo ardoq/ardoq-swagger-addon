@@ -66,7 +66,7 @@
     (get-resource-listing url headers)))
 
 (defn get-spec [client url wsname headers spec ignore-validate]
-  ;;if swag is not null then use that as spec
+  ;;if spec is not null then use that as spec
   (let [{:keys [swagger] :as spec} (resolve-spec spec url headers)]
     (if (= swagger "2.0")
       (version2 client spec wsname ignore-validate)
