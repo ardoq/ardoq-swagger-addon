@@ -1,6 +1,7 @@
 {
   "name" : "Swagger 1.x",
   "description" : "",
+  "useAsTemplate": true,
   "referenceTypes" : {
     "4" : {
       "lineEnding" : "top",

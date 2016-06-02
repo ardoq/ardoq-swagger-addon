@@ -1,6 +1,7 @@
 {
   "name": "Swagger 2.0",
   "description": "",
+  "useAsTemplate": true,
   "referenceTypes": {
     "0": {
       "lineEnding": "bothFilled",
