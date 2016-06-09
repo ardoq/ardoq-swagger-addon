@@ -83,7 +83,7 @@
              (count (:references swag)))))))
 
 (deftest import-swaggers
-  (doall (take 5 (for [[name swag] (:body (http/get "https://apis-guru.github.io/api-models/api/v1/list.json" {:as :json}))] 
+  (doall (take 5 (for [[name swag] (:body (http/get "https://api.apis.guru/v2/list.json" {:as :json}))] 
                    (let  [spec (->> swag 
                                     (:versions) 
                                     ((keyword (:preferred swag)))
