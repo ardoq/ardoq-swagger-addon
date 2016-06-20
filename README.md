@@ -42,4 +42,4 @@ You can replace the API_BASE_URL with the URL to your own installation if you ru
 
 ### Examples
 
-The tests import sample files from [APIs.guru - Wikipedia for Web APIs](https://github.com/APIs-guru/api-models), specifically through the [API endpoint](https://github.com/APIs-guru/api-models/blob/master/API.md).  
+The tests import sample files from [APIs.guru - Wikipedia for Web APIs](https://APIs.guru), specifically through the [API endpoint](https://github.com/APIs-guru/api-models/blob/master/API.md).
