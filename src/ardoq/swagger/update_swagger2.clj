@@ -146,7 +146,7 @@
 (defn update-workspace [workspace client spec]
   (socket-send (str "Updating workspace " (:name workspace)))
   ;;Workspace exists, we will just update values in it and potentially the description.
-  (let [model (common/find-or-create-model client "Swagger 2.0")
+  (let [model (api/find-by-id (:componentModel workspace) client)
         _ (socket-send (str "Found Swagger 2 model""\nGonna update " (count (:paths spec)) " defitinitions"))
         defs (update-components client (get-component-by-type workspace "Model")  (:definitions spec) workspace model "Model" (partial common/model-template))
         _ (socket-send (str "Updated " (count defs) " definitions\nGonna update " (count (:parameters spec)) " parameters"))

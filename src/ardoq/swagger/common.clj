@@ -27,11 +27,9 @@
 (defn generate-security-description[data]
   (tpl/render-resource "securityTemplate.tpl" data))
 
-(defn find-or-create-model [client type]
-  (if-let [model (first (filter #(= type (:name %)) (api/find-all (api/map->Model {}) client)))]
-    model
-    (-> (api/map->Model (parse-string (slurp (io/resource (if (= type "Swagger") "modelv1.json" "modelv2.json"))) true))
-        (api/create client))))
+(defn create-model [client type]
+  (-> (api/map->Model (parse-string (slurp (io/resource (if (= type "Swagger") "modelv1.json" "modelv2.json"))) true))
+      (api/create client)))
 
 (defn find-existing-resource 
   ([client name type]
