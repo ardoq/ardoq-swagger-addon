@@ -131,7 +131,7 @@
       (some-> (common/find-existing-resource client (if (s/blank? wsname) (:title (:info spec)) wsname) #(api/map->Workspace {}))
               (api/find-aggregated client)
               (update/update-workspace client spec))
-    (let [model (common/create-model client "Swagger 2.0")
+    (let [model (common/create-model client :swagger-2.0)
           _ (socket-send (str "Created Swagger2 mode\nStarting on workspace"))
           workspace (create-workspace client model wsname spec)
           _ (socket-send (str "Created workspace " (:name workspace) "\nAbout to create " (count (:paths spec)) " definitions"))

@@ -28,7 +28,7 @@
   (tpl/render-resource "securityTemplate.tpl" data))
 
 (defn create-model [client type]
-  (-> (api/map->Model (parse-string (slurp (io/resource (if (= type "Swagger") "modelv1.json" "modelv2.json"))) true))
+  (-> (api/map->Model (parse-string (slurp (io/resource (if (= type :swagger-1.x) "modelv1.json" "modelv2.json"))) true))
       (api/create client)))
 
 (defn find-existing-resource 

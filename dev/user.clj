@@ -56,7 +56,7 @@
   (let [files (drop 1 (file-seq (io/file "")))]
     (doseq [f files]
       (doall
-       (import-swagger2 (c/client {:url "http://dockerhost"
-                                   :org "demo"
+       (import-swagger2 (c/client {:url "http://localhost:8080"
+                                   :org "ardoq"
                                    :token ""})
                         (parse-string (slurp f) true) (.getName f))))))

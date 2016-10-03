@@ -270,7 +270,7 @@
 (defn import-swagger [client resource-listing base-url name headers]
   (binding [*custom-headers* headers]
     (let [url (resolve-url resource-listing base-url)
-          model (common/create-model client "Swagger 1.x")]
+          model (common/create-model client :swagger-1.x)]
       (socket-send "Got Swagger 1 model")
       (when-not (some-> (common/find-existing-resource client (if (s/blank? name) (or (:title resource-listing) base-url) name) #(api/map->Workspace {}))
                         (api/find-aggregated client)

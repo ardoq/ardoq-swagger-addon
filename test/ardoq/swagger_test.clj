@@ -11,7 +11,7 @@
 (defn connect-ardoq [f]
   (binding [client (c/client {:url "http://localhost:8080";(System/getenv "BASE_URL")
                               :org "ardoq";(System/getenv "ORGANIZATION")
-                              :token "451c4a98508e47f5997c6fd61a33ecff";(System/getenv "API_TOKEN")
+                              :token "60421a608c34459fbd1ae9b8c9f1155a";(System/getenv "API_TOKEN")
                               })]
     (f)))
 
