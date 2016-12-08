@@ -29,7 +29,7 @@
 
 
 (defn model-template [m]
-  (str "###JSON Schema\n```\n"
+  (str "###JSON Schema\n```json\n"
        (generate-string m {:pretty true})
        "\n```"))
 
