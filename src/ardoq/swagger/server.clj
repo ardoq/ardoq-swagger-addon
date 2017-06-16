@@ -20,7 +20,8 @@
                         (System/getenv "API_BASE_URL"))]
     (do
       (println "Starting server...")
-      (srv/run-server (app {:config {:base-url base-url}}) {})
+      (srv/run-server (app {:port 80
+                            :config {:base-url base-url}}) {})
       (println "Server started! API: " base-url))
     (do
       (println "Unable to start. Missing required environment variable: API_BASE_URL")
