@@ -1,5 +1,9 @@
-FROM ardoq/leiningen:3.3-8u74-2.6.1
+FROM ardoq/leiningen:3.5-8u131-2.7.1
 RUN mkdir -p /usr/src/app
+
+ENV VERSION 1.3
+ENV LEIN_ROOT disable
+
 WORKDIR /usr/src/app
 COPY project.clj /usr/src/app/
 RUN lein deps
