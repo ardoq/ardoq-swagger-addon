@@ -23,6 +23,7 @@ An example curl command with an url
 
 ```
 curl -X POST --form "url=<spec_url>&swag=&wsname=&headers=&org=<org_name>&token=<token>" http://swagger.addon.ardoq.com/import
+curl 'https://swagger.addon.ardoq.com/import' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'accept: */*' --data 'url=<spec_url>&swag=&wsname=sWAGGER&headers=&org=<org>&token=<token>'
 ```
 
 An example of a curl with a specification
