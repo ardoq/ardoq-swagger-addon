@@ -17,14 +17,14 @@ dependencies:
     - docker version
     - docker info
 
-test:
-  override:
-    - docker run -d -p 8084:80 --name swag ardoq/ardoq-swagger-addon:test
-    - curl --retry 5 --retry-delay 3 -v http://localhost:8084
-
 compile:
   override:
     - docker build -t $TAG .
+
+test:
+  override:
+    - docker run -d -p 8084:80 --name swagger-addon $TAG
+    - curl --retry 5 --retry-delay 3 -v http://localhost:8084
 
 deployment:
   master:
