@@ -53,13 +53,16 @@
   (let [wid (get-in resource [:component :rootWorkspace])
         _id (get-in resource [:component :_id])]
     (doseq [{:keys [$ref]} parameters]
-      (let [k (keyword (last (.split $ref "/")))]
-        (if-let [m (k params)]
-          (-> (api/map->Reference {:rootWorkspace wid
-                                   :source (str _id)
-                                   :target (str(:_id m))
-                                   :type 1})
-              (api/create client)))))))
+      (if $ref
+        (let [k (keyword (last (.split $ref "/")))]
+          (if-let [m (k params)]
+            (-> (api/map->Reference {:rootWorkspace wid
+                                     :source (str _id)
+                                     :target (str(:_id m))
+                                     :type 1})
+              (api/create client)))))
+
+      )))
 
 (defn create-input-refs [client input-models models comp id]
   (doall (keep (fn [k]
