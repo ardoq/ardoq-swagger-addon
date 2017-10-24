@@ -19,8 +19,8 @@ dependencies:
 
 test:
   override:
-    - ./ci-test.sh:
-        parallel: true
+    - docker run -d -p 8084:80 --name swag ardoq/ardoq-swagger-addon:test
+    - curl --retry 5 --retry-delay 3 -v http://localhost:8084
 
 compile:
   override:
