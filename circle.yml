@@ -1,0 +1,46 @@
+## Customize test commands
+machine:
+  services:
+    - docker
+  java:
+    version: oraclejdk8
+  environment:
+    STACK: swagger
+    IMAGE: ardoq/ardoq-swagger-addon
+    VERSION: build-$CIRCLE_BUILD_NUM
+    TAG: $IMAGE:$VERSION
+    TAG_LATEST: $IMAGE:latest
+    TAG_TESTTAG: $IMAGE:test
+
+dependencies:
+  override:
+    - docker version
+    - docker info
+
+test:
+  override:
+    - ./ci-test.sh:
+        parallel: true
+
+compile:
+  override:
+    - docker build -t $TAG .
+
+deployment:
+  master:
+    branch: master
+    commands:
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push $TAG
+      - docker tag $TAG $TAG_LATEST
+      - docker push $TAG_LATEST
+      - aws sqs send-message --queue-url https://sqs.eu-west-1.amazonaws.com/468209928328/ardoq-production-swarm-queue  --message-body "{\"stack\":\"${STACK}\",\"version\":\"${VERSION}\"}" --region eu-west-1
+
+  test:
+    branch: test
+    commands:
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push $TAG
+      - docker tag $TAG $TAG_TESTTAG
+      - docker push $TAG_TESTTAG
+      - aws sqs send-message --queue-url https://sqs.eu-central-1.amazonaws.com/468209928328/ardoq-test-swarm-queue --message-body "{\"stack\":\"${STACK}\",\"version\":\"${VERSION}\"}" --region eu-central-1
