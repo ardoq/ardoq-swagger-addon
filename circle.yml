@@ -24,7 +24,7 @@ compile:
 test:
   override:
     - docker run -d -p 8084:80 --name swagger-addon $TAG
-    - curl --retry 5 --retry-delay 3 -v http://localhost:8084
+#    - curl --retry 5 --retry-delay 3 --fail --silent http://localhost:8084
 
 deployment:
   master:
