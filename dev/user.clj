@@ -6,21 +6,20 @@
    [clojure.reflect :refer [reflect]]
    [clojure.repl :refer [apropos dir doc find-doc pst source]]
    [clojure.set :as set]
-   [clojure.string :as str]
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
    [cheshire.core :refer [parse-string]]
-   [ardoq.swagger 
+   [superstring.core :as str]
+   [ardoq.swagger
     [server :as server]
     [swagger :as swagger]
     [api :as api]
     [client :as c]
     [validate :as validate]
     [common :as common]]
-   [ardoq.swagger.swagger-v2
-    :refer :all]
-   [ardoq.swagger.api
-    :refer :all]))
+   [ardoq.swagger.swagger-v3 :as v3]
+   [ardoq.swagger.swagger-v2 :as v2]
+   [ardoq.swagger.api :as v1]))
 
 (def system
   "A Var containing an object representing the application under
@@ -52,11 +51,22 @@
   (stop)
   (refresh :after 'user/go))
 
+
+
+(defn oa3 []
+  (let [client (c/client {:url "http://piedpiper.localhost:8080"
+                          :org "piedpiper"
+                          :token "42f5d07007594f61bb7b66548c182b16"})
+        spec-text (slurp "test/spec.yaml")
+        spec (api/parse-swagger spec-text)]
+
+    (v3/import-swagger3 client spec "swaggertest")))
+
 (defn validate-all []
   (let [files (drop 1 (file-seq (io/file "")))]
     (doseq [f files]
       (doall
-       (import-swagger2 (c/client {:url "http://localhost:8080"
+       (v2/import-swagger2 (c/client {:url "http://localhost:8080"
                                    :org "ardoq"
                                    :token ""})
                         (parse-string (slurp f) true) (.getName f))))))

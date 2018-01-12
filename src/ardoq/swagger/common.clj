@@ -27,15 +27,61 @@
 (defn generate-security-description[data]
   (tpl/render-resource "securityTemplate.tpl" data))
 
-(defn create-model [client type]
-  (-> (api/map->Model (parse-string (slurp (io/resource (if (= type :swagger-1.x) "modelv1.json" "modelv2.json"))) true))
-      (api/create client)))
+(defn get-model-template [spec-version]
+  (let [resource (case spec-version
+                   :swagger-1.x "modelv1.json"
+                   :swagger-2.x "modelv2.json"
+                   :openapi-3.x "modelv3.json")]
+    (parse-string (slurp (io/resource resource)) true)))
+
+(defn create-model [client spec-version]
+  (->
+    (api/map->Model (get-model-template spec-version))
+    (api/create client)))
+
+(defn create-workspace-and-model [client wsname spec spec-version]
+  ;; Creates a new workspace in the client.
+  (let [model (create-model client spec-version)
+        model-id (:_id model)
+        description (tpl/render-resource "infoTemplate.tpl" spec)
+        workspace (->
+                    (api/->Workspace wsname description model-id)
+                    (assoc
+                      :views ["relationships" "tableview" "tagscape" "reader" "processflow"])
+                    (api/create client))]
+    {:new? true
+     :model model
+     :key->component {}
+     :references {}
+     :workspace workspace}))
+
+(defn ensure-model-has-all-types [model client spec-version]
+  (let [model-template (get-model-template spec-version)])
+  ;;TODO actually do something here
+  model)
+
 
 (defn find-existing-resource 
   ([client name type]
    (first (filter #(= name (:name %)) (api/find-all (type) client))))
   ([client name type root-id]
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
+
+(defn find-workspace-and-model [client wsname spec-version]
+  (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
+    (let [aggregated-workspace (api/find-aggregated workspace client)
+          model-id (:componentModel workspace)
+          model (-> {:_id model-id}
+                  (api/map->Model)
+                  (api/find-by-id client)
+                  (ensure-model-has-all-types client spec-version))]
+
+      {:new? false?
+       :model model
+       :key->component (:components aggregated-workspace)
+       :references (:references aggregated-workspace)
+       :workspace workspace})))
+
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter

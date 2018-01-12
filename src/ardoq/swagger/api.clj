@@ -1,17 +1,19 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.swagger :as swagger]
             [ardoq.swagger.swagger-v2 :as swaggerv2]
+            [ardoq.swagger.swagger-v3 :as swaggerv3]
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
             [org.httpkit.server :as srv]
             [clojure.data.json :as json]
             [compojure.core :refer [routes POST GET]]
-            [clojure.string :refer [blank?]]
+            [superstring.core :as str]
             [clojure.java.io :as io]
             [cheshire.core :refer [generate-string parse-string]]
             [ring.util.response :refer [redirect-after-post response]]
             [clostache.parser :as tpl]
+            [yaml.core :as yaml]
             [hiccup.core :refer [html]]
             [clj-http.client :as http]
             [hiccup.form :refer [form-to submit-button text-field label hidden-field]]
@@ -25,17 +27,22 @@
 
 (defn read-headers [headers]
   (try
-    (when-not (blank? headers)
+    (when-not (str/blank? headers)
       (json/read-str headers))
     (catch Exception e
       (throw (IllegalArgumentException. "Invalid headers (must be valid JSON)")))))
+
+(defn parse-swagger [spec-text]
+  (if (str/starts-with? (clojure.string/trim spec-text) "{")
+    (parse-string spec-text true)
+    (yaml/parse-string spec-text)))
 
 (defn get-resource-listing [url headers]
   (println "Importing swagger doc from " url ". Custom headers" headers)
   (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers headers :insecure? true})]
     (println "\nResponse from " url "\n")
     (if (= 200 status)
-      (parse-string body true)
+      (parse-swagger body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
 (defn version1 [client spec url name headers ignore-validate]
@@ -60,17 +67,25 @@
         (do (socket-close)
             (throw (ex-info "InvalidSwagger" {:causes message})))))))
 
-(defn- resolve-spec [spec url headers]
-  (if (not (blank? spec))
-    (parse-string spec true)
+(defn version3 [client spec wsname ignore-validate]
+  (swaggerv3/import-swagger3 client spec wsname))
+
+(defn- resolve-spec [spec-text url headers]
+  (if (not (str/blank? spec-text))
+    (parse-swagger spec-text)
     (get-resource-listing url headers)))
 
-(defn get-spec [client url wsname headers spec ignore-validate]
+(defn get-spec [client url wsname headers spec-text ignore-validate]
   ;;if spec is not null then use that as spec
-  (let [{:keys [swagger] :as spec} (resolve-spec spec url headers)]
-    (if (= swagger "2.0")
-      (version2 client spec wsname ignore-validate)
-      (version1 client spec url wsname headers ignore-validate))))
+  (let [spec (resolve-spec spec-text url headers)
+        {:keys [swagger openapi]} spec
+        wsname (if (str/blank? wsname)
+                 (:title spec)
+                 wsname)]
+    (cond
+      openapi (version3 client spec wsname ignore-validate)
+      (= swagger "2.0") (version2 client spec wsname ignore-validate)
+      :else (version1 client spec url wsname headers ignore-validate))))
 
 (defn send-success-email! [wid org session client]
   (let [url (str (:url client) "/api/user/notify/email")]

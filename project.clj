@@ -16,6 +16,8 @@
                  [cheshire "5.4.0"]
                  [clojurewerkz/urly "1.0.0"]
                  [hiccup "1.0.5"]
+                 [superstring "2.1.0"]
+                 [io.forward/yaml "1.0.6"]
                  [com.github.fge/json-schema-validator "2.2.6"]
                  [com.google.guava/guava "18.0"]
                  [org.clojure/data.json "0.2.5"]
