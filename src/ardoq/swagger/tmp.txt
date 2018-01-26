@@ -1,0 +1,24 @@
+(defn transform-parameters-object [data path spec]
+  (reduce
+    (fn [data parameter-spec]
+      (let [key {:name (:name parameter-spec)
+                 :path (name path)
+                 :type (types :OpenAPI-Parameter)}]
+        (if-let [ref (:$ref parameter-spec)]
+          (-> data
+            (update-in [:references] conj {:source-key key :target-path ref}))
+          (-> data
+            (update-in [:key->swagger-object key] assoc :description (str "#In\n\n" (:in path-spec) "\n\n#Description\n\n" (:description path-spec)))
+            ))))
+    data
+    (:parameters spec)))
+
+(defn transform-operation-objects [data path-spec]
+  (reduce
+    (fn [data [operation operation-spec]]
+      (let [key (object-key operation :OpenAPI-Operation)]
+        (-> data
+          (update-in [:key->swagger-object key] assoc :description (str "#Summary\n\n" (:summary operation-spec) "\n\n#Description\n\n" (:description operation-spec)))
+          (transform-parameters operation-spec))))
+    data
+    (select-keys path-spec [:get :put :post :delete :options :head :patch :trace])))

@@ -60,7 +60,7 @@
         spec-text (slurp "test/spec.yaml")
         spec (api/parse-swagger spec-text)]
 
-    (v3/import-swagger3 client spec "swaggertest")))
+    (v3/import-swagger3 client spec "swaggertest 4")))
 
 (defn validate-all []
   (let [files (drop 1 (file-seq (io/file "")))]

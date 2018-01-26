@@ -2,6 +2,7 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.socket :refer [socket-send]]
+            [ardoq.swagger.model-utils :as model-utils]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -37,7 +38,7 @@
   (let [name (if (s/blank? title)
                (or (:title info) base-url)
                title)]
-    (-> (api/->Workspace name (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
+    (-> (api/->Workspace name (tpl/render-resource "templates/infoTemplate.tpl" (assoc info :workspaceName name :baseUrl base-url)) (str (:_id model)))
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create  client))))
 
@@ -50,7 +51,7 @@
 
 (defn create-resource [client {wid :_id model-id :componentModel :as w} base-url model {:keys [path description] :as r}]
   {:resource r
-   :component (-> (api/->Component path description (str wid) model-id (api/type-id-by-name model "Resource") nil)
+   :component (-> (api/->Component path description (str wid) model-id (model-utils/type-id-by-name model "Resource") nil)
        (api/create client))})
 
 (defn create-models [client base-url {wid :_id model-id :componentModel :as w} model {:keys [resource component]}]
@@ -60,7 +61,7 @@
      (fn [acc [type schema]]
        (assoc acc (keyword type)
               (assoc
-                  (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                  (api/->Component type (model-template schema) (str wid) model-id (model-utils/type-id-by-name model "Model")  nil)
                :schema schema)))
      {}
      (:models api-declaration))))
@@ -74,7 +75,7 @@
                               :model model-id
                               :parent (str (:_id parent))
                               :method method
-                              :typeId (api/type-id-by-name model "Operation")})
+                              :typeId (model-utils/type-id-by-name model "Operation")})
          (api/create client)
          (assoc :return-model (keyword type)
                 :input-models (set (map keyword (keep :type parameters))))))
@@ -203,7 +204,7 @@
                           (api/map->Component)
                           (assoc :schema schema))
                   (assoc
-                      (api/->Component type (model-template schema) (str wid) model-id (api/type-id-by-name model "Model")  nil)
+                      (api/->Component type (model-template schema) (str wid) model-id (model-utils/type-id-by-name model "Model")  nil)
                     :schema schema))))
      {}
      (:models api-declaration))))
@@ -225,7 +226,7 @@
                                   :model model-id
                                   :parent (str (:_id parent))
                                   :method method
-                                  :typeId (api/type-id-by-name model "Operation")})
+                                  :typeId (model-utils/type-id-by-name model "Operation")})
              (api/create client)
              (assoc :return-model (keyword type)
                     :input-models (set (map keyword (keep :type parameters)))))))

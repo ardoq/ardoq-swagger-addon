@@ -2,6 +2,7 @@
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.socket :refer [socket-send]]
+            [ardoq.swagger.model-utils :as model-utils]
             [org.httpkit.server :as srv]
             [ardoq.swagger.swagger2-refs :as refs]))
 
@@ -11,7 +12,7 @@
 (defn create-component [client type schema {wid :_id} {_id :_id :as model} type-name template]
   (-> (assoc nil (keyword type)
              (assoc
-                 (api/->Component type (template schema) (str wid) _id (api/type-id-by-name model type-name)  nil)
+                 (api/->Component type (template schema) (str wid) _id (model-utils/type-id-by-name model type-name)  nil)
                :schema schema))
       (common/save-models client nil)))
 
@@ -60,7 +61,7 @@
                                                     :model _id
                                                     :parent (:_id parent)
                                                     :method method-name
-                                                    :typeId (api/type-id-by-name model "Operation")})
+                                                    :typeId (model-utils/type-id-by-name model "Operation")})
                                (api/create client)
                                (assoc :return-model (doall (map 
                                                             (fn [[_ v]] (get-in v [:schema]))
@@ -76,7 +77,7 @@
         parameters (:parameters methods)
         parent {:resource path
                 :parameters parameters
-                :component (-> (api/->Component path (or description "") (str wid) _id (api/type-id-by-name model "Resource") nil)
+                :component (-> (api/->Component path (or description "") (str wid) _id (model-utils/type-id-by-name model "Resource") nil)
                     (api/create client))}
 
         op (create-or-update-operation client parent model wid path methods tags defs nil spec)]

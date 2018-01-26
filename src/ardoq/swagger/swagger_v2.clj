@@ -1,6 +1,7 @@
 (ns ardoq.swagger.swagger-v2
   (:require [ardoq.swagger.client :as api]
             [ardoq.swagger.common :as common]
+            [ardoq.swagger.model-utils :as model-utils]
             [ardoq.swagger.update-swagger2 :as update]
             [ardoq.swagger.swagger2-refs :as refs]
             [ardoq.swagger.socket :refer [socket-send]]
@@ -17,7 +18,7 @@
         wsname (if (s/blank? wsname)
                  (:title info)
                  wsname)]
-    (-> (api/->Workspace wsname (tpl/render-resource "infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
+    (-> (api/->Workspace wsname (tpl/render-resource "templates/infoTemplate.tpl" (assoc info :workspaceName wsname)) _id)
         (assoc :views ["swimlane" "sequence" "integrations" "componenttree" "relationships" "tableview" "tagscape" "reader" "processflow"])
         (api/create client))))
 
@@ -34,7 +35,7 @@
    (fn [acc [type schema]]
      (assoc acc (keyword type)
             (assoc
-             (api/->Component type (common/model-template schema) (str wid) _id (api/type-id-by-name model "Model")  nil)
+             (api/->Component type (common/model-template schema) (str wid) _id (model-utils/type-id-by-name model "Model")  nil)
              :schema schema)))
    {}
    definitions))
@@ -52,7 +53,7 @@
                                                  :model _id 
                                                  :parent (:_id parent) 
                                                  :method method
-                                                 :typeId (api/type-id-by-name model "Operation")}) 
+                                                 :typeId (model-utils/type-id-by-name model "Operation")})
                             (api/create client) 
                             (assoc :return-model type
                                    :input-models parameters
@@ -78,7 +79,7 @@
    (fn [acc [param schema]]
      (assoc acc (keyword param)
             (assoc
-                (api/->Component param (common/generate-param-description schema) (str wid) _id (api/type-id-by-name model "Parameters") nil)
+                (api/->Component param (common/generate-param-description schema) (str wid) _id (model-utils/type-id-by-name model "Parameters") nil)
               :schema schema)))
    {}
    parameters))
@@ -88,7 +89,7 @@
    (fn [acc [sec schema]]
      (assoc acc (keyword sec)
             (assoc
-             (api/->Component sec (common/generate-security-description schema) (str wid) _id (api/type-id-by-name model "securityDefinitions") nil)
+             (api/->Component sec (common/generate-security-description schema) (str wid) _id (model-utils/type-id-by-name model "securityDefinitions") nil)
              :schema schema)))
    {}
    sec-defs))
@@ -112,7 +113,7 @@
     (doseq [[path {:keys [parameters] :as methods}] paths]
       (let [parent (doall {:resource path
                            :parameters parameters
-                           :component (-> (api/->Component path description (str wid) _id (api/type-id-by-name model "Resource") nil)
+                           :component (-> (api/->Component path description (str wid) _id (model-utils/type-id-by-name model "Resource") nil)
                                (api/create client))})
             operations (create-methods client model defs wid _id path spec parent methods tags)]
         (socket-send (str "Created " (count operations) " operations for resource " path))

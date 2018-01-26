@@ -1,132 +1,203 @@
 {
-  "name": "Swagger 2.0",
-  "description": "",
-  "useAsTemplate": false,
+  "description": "OpenAPI model",
+  "category": "Technology",
   "referenceTypes": {
     "0": {
-      "lineEnding": "bothFilled",
-      "name": "Return value",
-      "svgStyle": "stroke: blue;",
-      "returnsValue": false,
-      "color": "blue",
-      "charLine": "=",
+      "name": "OpenAPI $ref",
       "id": 0,
-      "line": "solid"
-    },
-    "1": {
+      "line": "solid",
+      "color": "darkblue",
       "lineEnding": "both",
-      "name": "Input parameter",
-      "svgStyle": "stroke: orange;stroke-dasharray:2",
       "returnsValue": true,
-      "color": "orange",
-      "charLine": "-",
-      "id": 1,
-      "line": "dotted"
+      "charLine": "=",
+      "svgStyle": "stroke: darkblue;"
     },
     "2": {
       "name": "Implicit",
       "id": 2,
       "line": "dashed",
       "color": "red",
+      "lineBeginning": "none",
       "lineEnding": "bothFilled",
       "returnsValue": false,
-      "charLine": "_",
       "svgStyle": "stroke: red;stroke-dasharray:10,5"
-    },
-    "3": {
-      "lineEnding": "top",
-      "name": "Submodel",
-      "svgStyle": "stroke: black;stroke-dasharray:10,5",
-      "returnsValue": false,
-      "color": "black",
-      "charLine": "+",
-      "id": 3,
-      "line": "dashed"
-    },
-    "4": {
-      "lineEnding": "top",
-      "name": "N/A",
-      "svgStyle": "stroke: gray;stroke-dasharray:10,5",
-      "returnsValue": false,
-      "color": "gray",
-      "charLine": "?",
-      "id": 4,
-      "line": "dashed"
     }
   },
+  "flexible": true,
+  "name": "OpenAPI model",
+  "useAsTemplate": false,
   "root": {
-    "p1401973684058": {
-      "name": "Resource",
-      "icon": "dashboard",
-      "defaults": {},
+    "p1516195145888": {
+      "description": "",
       "children": {
-        "p1401973689425": {
-          "description": "description",
-          "children": {},
-          "color": "#872687",
+        "p1516195190112": {
+          "id": "p1516195190112",
           "index": 1,
-          "canLinkTo": [
-            "p1401973674057",
-            "p1435242945287"
-          ],
-          "name": "Operation",
-          "icon": "wrench",
-          "defaults": {},
+          "name": "OpenAPI Server",
           "level": 2,
-          "returnsValue": "true",
-          "id": "p1401973689425"
+          "returnsValue": false,
+          "children": {},
+          "icon": "server",
+          "standard": "custom"
+        },
+        "p1516195310662": {
+          "children": {
+            "p1516289562456": {
+              "id": "p1516289562456",
+              "index": 1,
+              "name": "OpenAPI Operation",
+              "level": 3,
+              "returnsValue": false,
+              "children": {}
+            }
+          },
+          "color": "#e67373",
+          "index": 2,
+          "name": "OpenAPI Path",
+          "icon": "archimate-path-icon",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195310662",
+          "standard": "custom"
+        },
+        "p1516195366917": {
+          "children": {
+            "p1516289656058": {
+              "id": "p1516289656058",
+              "index": 1,
+              "name": "OpenAPI Security Scheme",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "key",
+              "standard": "custom"
+            },
+            "p1516289682488": {
+              "id": "p1516289682488",
+              "index": 2,
+              "name": "OpenAPI Callback",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "phone",
+              "standard": "custom"
+            },
+            "p1516289638368": {
+              "id": "p1516289638368",
+              "index": 3,
+              "name": "OpenAPI Header",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "wrench",
+              "standard": "custom"
+            },
+            "p1516289581631": {
+              "id": "p1516289581631",
+              "index": 4,
+              "name": "OpenAPI Response",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "envelope",
+              "standard": "custom"
+            },
+            "p1516289626375": {
+              "id": "p1516289626375",
+              "index": 5,
+              "name": "OpenAPI Request Body",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "file-o",
+              "standard": "custom"
+            },
+            "p1516783769696": {
+              "id": "p1516783769696",
+              "index": 6,
+              "name": "OpenAPI Schema",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "film",
+              "standard": "custom"
+            },
+            "p1516289594382": {
+              "id": "p1516289594382",
+              "index": 7,
+              "name": "OpenAPI Parameter",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "puzzle-piece",
+              "standard": "custom"
+            },
+            "p1516289673246": {
+              "id": "p1516289673246",
+              "index": 8,
+              "name": "OpenAPI Link",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "link",
+              "standard": "custom"
+            },
+            "p1516289615722": {
+              "id": "p1516289615722",
+              "index": 9,
+              "name": "OpenAPI Example",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "icon": "bar-chart",
+              "standard": "custom"
+            }
+          },
+          "color": "#3f51b6",
+          "index": 3,
+          "name": "OpenAPI Component",
+          "icon": "archimate-component-icon",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195366917",
+          "standard": "custom"
+        },
+        "p1516195750425": {
+          "id": "p1516195750425",
+          "index": 4,
+          "name": "OpenAPI Security Requirement",
+          "level": 2,
+          "returnsValue": false,
+          "children": {},
+          "standard": "custom",
+          "icon": "key"
+        },
+        "p1516195808068": {
+          "id": "p1516195808068",
+          "index": 5,
+          "name": "OpenAPI External Documentation",
+          "level": 2,
+          "returnsValue": false,
+          "children": {},
+          "icon": "file-o",
+          "standard": "custom"
         }
       },
-      "color": "#545454",
+      "color": "",
       "index": 1,
-      "description": "description",
-      "level": 1,
-      "returnsValue": false,
-      "id": "p1401973684058",
       "canLinkTo": [
-        "p1435242653499"
-      ]
-    },
-    "p1401973674057": {
-      "description": "description",
-      "children": {},
-      "index": 2,
-      "canLinkTo": null,
-      "name": "Model",
-      "icon": "sitemap",
-      "defaults": {},
-      "level": 1,
-      "returnsValue": false,
-      "id": "p1401973674057"
-    },
-    "p1435242653499": {
-      "description": "",
-      "children": {},
-      "index": 3,
-      "canLinkTo": null,
-      "name": "Parameters",
-      "icon": "archive",
+        "p1516195145888",
+        "p1516195151446"
+      ],
+      "name": "OpenAPI Structure",
+      "icon": "folder-open",
       "defaults": {
         "description": ""
       },
       "level": 1,
       "returnsValue": false,
-      "id": "p1435242653499"
-    },
-    "p1435242945287": {
-      "description": "",
-      "children": {},
-      "index": 4,
-      "canLinkTo": null,
-      "name": "securityDefinitions",
-      "icon": "bell-alt",
-      "defaults": {
-        "description": ""
-      },
-      "level": 1,
-      "returnsValue": false,
-      "id": "p1435242945287"
+      "id": "p1516195145888",
+      "standard": "custom"
     }
   }
 }
-

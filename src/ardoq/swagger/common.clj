@@ -1,5 +1,6 @@
 (ns ardoq.swagger.common
   (:require [ardoq.swagger.client :as api]
+            [ardoq.swagger.model-utils :as model-utils]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -22,10 +23,10 @@
        "\n```"))
 
 (defn generate-param-description [data]
-  (-> (tpl/render-resource "globalTemplate.tpl" data)))
+  (-> (tpl/render-resource "templates/globalTemplate.tpl" data)))
 
 (defn generate-security-description[data]
-  (tpl/render-resource "securityTemplate.tpl" data))
+  (tpl/render-resource "templates/securityTemplate.tpl" data))
 
 (defn get-model-template [spec-version]
   (let [resource (case spec-version
@@ -43,7 +44,7 @@
   ;; Creates a new workspace in the client.
   (let [model (create-model client spec-version)
         model-id (:_id model)
-        description (tpl/render-resource "infoTemplate.tpl" spec)
+        description (tpl/render-resource "templates/infoTemplate.tpl" spec)
         workspace (->
                     (api/->Workspace wsname description model-id)
                     (assoc
@@ -51,8 +52,9 @@
                     (api/create client))]
     {:new? true
      :model model
+     :model-name->type-id (model-utils/type-ids-by-name model)
      :key->component {}
-     :references {}
+     :key-reference {}
      :workspace workspace}))
 
 (defn ensure-model-has-all-types [model client spec-version]
@@ -67,6 +69,19 @@
   ([client name type root-id]
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
+
+(defn- component-key [component model-types-by-id]
+  (->
+    (select-keys component [:name])
+    (assoc :type (:name (model-types-by-id (keyword (:typeId component)))))))
+
+
+(defn map-open-api-component [data-map component]
+  (if-let [open-api-path (:open-api-path component)]
+    (assoc data-map open-api-path component)
+    data-map))
+
+
 (defn find-workspace-and-model [client wsname spec-version]
   (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
     (let [aggregated-workspace (api/find-aggregated workspace client)
@@ -74,12 +89,15 @@
           model (-> {:_id model-id}
                   (api/map->Model)
                   (api/find-by-id client)
-                  (ensure-model-has-all-types client spec-version))]
+                  (ensure-model-has-all-types client spec-version))
+          model-types-by-id (model-utils/to-component-type-map model)]
 
-      {:new? false?
+      {:new? false
        :model model
-       :key->component (:components aggregated-workspace)
-       :references (:references aggregated-workspace)
+       :model-name->type-id (model-utils/type-ids-by-name model)
+       :key->component (reduce map-open-api-component {} (:components aggregated-workspace))
+;;       :id->component (reduce #(assoc %1 (:_id %2) %2) {} (:components aggregated-workspace))
+       :key->reference (reduce #(assoc %1 (select-keys %2 [:source :target :type]) %2) {} (:references aggregated-workspace))
        :workspace workspace})))
 
 
@@ -92,13 +110,13 @@
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(api/type-id-by-name model "Operation")])
+    (-> (api/->Field "method" "method" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation")])
         (api/create client)))
   (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
         (api/create client)))
   (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(api/type-id-by-name model "Operation") (api/type-id-by-name model "Resource")])
+    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
         (api/create client))))
 
 (defn generate-operation-description [data models]
@@ -108,7 +126,7 @@
     (reduce
      (fn [description [model-id {:keys [_id] :as model}]]
        (s/replace description (re-pattern (str "\\|" (name model-id) "\\|")) (str "|[" (name model-id) "](comp://" _id ")|")))
-     (tpl/render-resource "operationTemplate.tpl" data)
+     (tpl/render-resource "templates/operationTemplate.tpl" data)
      models)))
 
 (defn update-comp [client component {:keys [produces consumes]}]
