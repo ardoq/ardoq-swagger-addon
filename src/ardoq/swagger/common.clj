@@ -70,17 +70,25 @@
    (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
 
 
-(defn- component-key [component model-types-by-id]
-  (->
-    (select-keys component [:name])
-    (assoc :type (:name (model-types-by-id (keyword (:typeId component)))))))
+(defn find-components-referencing-other-workspaces [aggregated-workspace]
+  (concat
+    (map :target (:incoming-references aggregated-workspace))
+    (->>
+      (:references aggregated-workspace)
+      (filter #(not= (:rootWorkspace %) (:targetWorkspace %)))
+      (map :source)
+      (into #{}))))
 
-
-(defn map-open-api-component [data-map component]
-  (if-let [open-api-path (:open-api-path component)]
-    (assoc data-map open-api-path component)
-    data-map))
-
+(defn map-by
+  "Returns a map of the elements of coll keyed by the result of
+  f on each element. Only the last element with a key will remain."
+  [f coll]
+  (persistent!
+    (reduce
+      (fn [ret x]
+        (let [k (f x)]
+          (assoc! ret k x)))
+      (transient {}) coll)))
 
 (defn find-workspace-and-model [client wsname spec-version]
   (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
@@ -95,9 +103,10 @@
       {:new? false
        :model model
        :model-name->type-id (model-utils/type-ids-by-name model)
-       :key->component (reduce map-open-api-component {} (:components aggregated-workspace))
+       :key->component (->> (:components aggregated-workspace) (filter :open-api-path) (map #(-> [(:open-api-path %) %])) (into {}))
 ;;       :id->component (reduce #(assoc %1 (:_id %2) %2) {} (:components aggregated-workspace))
-       :key->reference (reduce #(assoc %1 (select-keys %2 [:source :target :type]) %2) {} (:references aggregated-workspace))
+       :key->reference (->> (:references aggregated-workspace) (map #(-> [(select-keys % [:source :target :type]) %])) (into {}))
+       :components-referencing-other-workspaces (find-components-referencing-other-workspaces aggregated-workspace)
        :workspace workspace})))
 
 
