@@ -71,13 +71,14 @@
 
 
 (defn find-components-referencing-other-workspaces [aggregated-workspace]
-  (concat
-    (map :target (:incoming-references aggregated-workspace))
-    (->>
-      (:references aggregated-workspace)
-      (filter #(not= (:rootWorkspace %) (:targetWorkspace %)))
-      (map :source)
-      (into #{}))))
+  (into #{}
+    (concat
+      (map :target (:incoming-references aggregated-workspace))
+      (->>
+        (:references aggregated-workspace)
+        (filter #(not= (:rootWorkspace %) (:targetWorkspace %)))
+        (map :source)
+        ))))
 
 (defn map-by
   "Returns a map of the elements of coll keyed by the result of
@@ -103,9 +104,9 @@
       {:new? false
        :model model
        :model-name->type-id (model-utils/type-ids-by-name model)
-       :key->component (->> (:components aggregated-workspace) (filter :open-api-path) (map #(-> [(:open-api-path %) %])) (into {}))
+       :key->component (->> (:components aggregated-workspace) (filter :open-api-path) (map-by :open-api-path))
 ;;       :id->component (reduce #(assoc %1 (:_id %2) %2) {} (:components aggregated-workspace))
-       :key->reference (->> (:references aggregated-workspace) (map #(-> [(select-keys % [:source :target :type]) %])) (into {}))
+       :key->reference (->> (:references aggregated-workspace) (map-by #(select-keys % [:source :target :type])))
        :components-referencing-other-workspaces (find-components-referencing-other-workspaces aggregated-workspace)
        :workspace workspace})))
 

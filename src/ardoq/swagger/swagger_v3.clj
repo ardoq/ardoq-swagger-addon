@@ -30,43 +30,54 @@
   :OpenAPI-Example "OpenAPI Example"
   :OpenAPI-Component "OpenAPI Component"
   :OpenAPI-Security-Requirement "OpenAPI Security Requirement"
-  :OpenAPI-External-Documentation "OpenAPI External Documentation"})
+  :OpenAPI-External-Documentation "OpenAPI External Documentation"
+  :Orphan "Orphan"})
 
 
-(defn- string-object
-  "Wraps a String in an Object that returns the given String when
-  .toString is called. Wrapping a String like this prevents clostache
-  seeing a String as a collection."
-  [s]
-  (when s
-    (reify Object
-      (toString [this] s))))
 
 (defn render-resource
   "Wrapping Strings in object to stop Mustache from iterating over the string instead og simply rendering the string once"
   [template params]
-  (tpl/render-resource template (clojure.walk/postwalk (fn [v] (if (string? v) (string-object v) v)) params)))
+  (tpl/render-resource template (into {} (map (fn [[k v]] [k [v]]) params))))
+
+
+(declare transform-schema-map transform-schema-list)
 
 
 (defn transform-schema-object [schema-key parent-key data schema-object-spec]
-  (if-let [ref (:$ref schema-object-spec)]
-    (-> data
-      (update-in [:references] conj {:source-key parent-key :target-path ref}))
-    (let [key (str parent-key "/" (name schema-key))]
+  (let [key (str parent-key "/" (name schema-key))]
+    (if-let [ref (:$ref schema-object-spec)]
+      (-> data
+        (update-in [:references] conj {:source-key parent-key :target-path ref}))
       (-> data
         (update-in [:swagger-object key] assoc :name (name schema-key))
-        (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
         (update-in [:swagger-object key] assoc :parent parent-key)
-        (update-in [:swagger-object key] assoc :description (render-resource "templates/schema-object.tpl" schema-object-spec))))))
+        (#(if (vector? schema-object-spec)
+          (-> %
+            (update-in [:swagger-object key] assoc :type :OpenAPI-Structure)
+            (transform-schema-list schema-object-spec key))
+          (-> %
+            (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
+            (update-in [:swagger-object key] assoc :description (render-resource "templates/schema-object.tpl" schema-object-spec))
+            (transform-schema-map (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key))))))))
 
 
-(defn transform-schemas [data spec parent-key]
-  (let [key (str parent-key "/schemas")]
-    (reduce
-      (fn [data [schema-key schema-object-spec]]
-        (transform-schema-object schema-key key data schema-object-spec))
-      data
-      (:schemas spec))))
+(defn transform-schema-map [data schema-specs parent-key]
+  (reduce
+    (fn [data [schema-key schema-object-spec]]
+      (transform-schema-object schema-key parent-key data schema-object-spec))
+    data
+    schema-specs))
+
+
+(defn transform-schema-list [data schema-list parent-key]
+  (reduce
+    (fn [data schema-object-spec]
+      (clojure.pprint/pprint schema-object-spec)
+      (let [key (or (:name schema-object-spec) (s/join ", " (:required schema-object-spec)) (:type schema-object-spec) "schema") ]
+        (transform-schema-object key parent-key data schema-object-spec)))
+    data
+    schema-list))
 
 
 (defn transform-parameter-object [parameter-name parent-key data parameter-object-spec]
@@ -137,7 +148,7 @@
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
-      (transform-schemas components-spec "#/components")
+      (transform-schema-map (:schemas components-spec) "#/components/schemas")
       (transform-parameter-objects components-spec "#/components/parameters")
       )))
 
@@ -200,21 +211,49 @@
                                   :_id)
             synced-ardoq-component
               (sync-component client ardoq-data parent-component-id [spec-key spec-data-item])]
-          (prn "Syncing " spec-key parent-component-id)
+          (prn "Syncing " spec-key (:_id synced-ardoq-component))
           (assoc ardoq-components-by-spec-path spec-key synced-ardoq-component)))
     {}
     (:swagger-object spec-data)))
 
 
-(defn clean-up-unused-components [client ardoq-data ardoq-sync-data]
+(defn find-and-categorise-orphan-components [client ardoq-data ardoq-sync-data]
   (let [ardoq-components (:key->component ardoq-data)
         orphan-keys (difference (set (keys ardoq-components)) (set (keys ardoq-sync-data)))
-        orphans (select-keys ardoq-components orphan-keys)]
+        orphan-components (vals (select-keys ardoq-components orphan-keys))
+        components-referencing-other-workspaces (:components-referencing-other-workspaces ardoq-data)]
 
-      #_(clojure.pprint/pprint (:key->reference ardoq-data))
-    )
+    (group-by
+      (fn [comp]
+        (if
+          (contains? components-referencing-other-workspaces (:_id comp))
+          :to-mark-as-orphan
+          :to-delete))
+      orphan-components)))
 
-  )
+
+(defn delete-components [client components]
+  (doall
+    (map
+      (fn [orphan-component]
+        (prn "deleting " (:name orphan-component) (:_id orphan-component))
+        (api-client/delete (api-client/map->Component orphan-component) client))
+      components)))
+
+
+(defn mark-as-orphans [client ardoq-data components]
+  (doall
+    (map
+      (fn [orphan-component]
+        (prn "changing type of " (:name orphan-component) (:_id orphan-component))
+        (let [orphan-type (name (get-in ardoq-data [:model-name->type-id (types :Orphan)]))
+              orphan-component (assoc orphan-component :description (render-resource "templates/orphan-object.tpl" orphan-component))
+              orphan-component (assoc orphan-component :parent nil)
+              orphan-component (assoc orphan-component :open-api-path nil)
+              orphan-component (assoc orphan-component :typeId orphan-type)]
+          (api-client/update (api-client/map->Component orphan-component) client)))
+      components)))
+
 
 (defn import-swagger3 [client spec wsname]
   (let [ardoq-data (or
@@ -222,13 +261,15 @@
                      (common/create-workspace-and-model client wsname spec :openapi-3.x))
         spec-data (transform-spec spec)
         ardoq-sync-data (sync-components client ardoq-data spec-data)
-        deleted-components (clean-up-unused-components client ardoq-data ardoq-sync-data)]
+        orphan-components (find-and-categorise-orphan-components client ardoq-data ardoq-sync-data)]
+
+    (delete-components client (:to-delete orphan-components))
+    (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components))
 
 
     (prn "synced")
-    #_(clojure.pprint/pprint ardoq-sync-data)
 
-      ))
+  ))
 
 
 

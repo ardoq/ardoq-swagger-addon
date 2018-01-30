@@ -134,7 +134,7 @@ components:
               type: integer
               format: int64
 
-    NewPet:
+    NewPet2:
       required:
         - name
       properties:
@@ -142,6 +142,7 @@ components:
           type: string
         tag:
           type: string
+
 
     Error:
       required:

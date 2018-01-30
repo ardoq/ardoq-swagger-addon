@@ -138,6 +138,7 @@ components:
     Pet:
       allOf:
         - $ref: '#/components/schemas/NewPet'
+        - $ref: '#/components/schemas/Error'
         - required:
           - id
           properties:
@@ -145,14 +146,14 @@ components:
               type: integer
               format: int64
 
-    NewPet:
+    NewPet3:
       required:
-        - name  
+        - name
       properties:
         name:
           type: string
         tag:
-          type: string    
+          type: string
 
     Error:
       required:

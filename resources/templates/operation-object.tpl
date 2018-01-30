@@ -2,27 +2,27 @@
 
 ####{{summary}}
 
-{{description}}
+{{#description}}{{.}}{{/description}}
 
 |Field Name|Value|
-{{#if tags}}
-|tags|{{tags}}|
-{{/if}}
+{{#tags}}
+|tags|{{.}}|
+{{/tags}}
 {{#externalDocs}}
-|externalDocs|{{externalDocs}}|
+|externalDocs|{{.}}|
 {{/externalDocs}}
 {{#operationId}}
-|operationId|{{operationId}}|
+|operationId|{{.}}|
 {{/operationId}}
 {{#consumes}}
-|consumes|{{consumes}}|
+|consumes|{{.}}|
 {{/consumes}}
 {{#produces}}
-|produces|{{produces}}|
+|produces|{{.}}|
 {{/produces}}
 {{#schemes}}
-|schemes|{{schemes}}|
+|schemes|{{.}}|
 {{/schemes}}
 {{#deprecated}}
-|deprecated|{{deprecated}}|
+|deprecated|{{.}}|
 {{/deprecated}}
