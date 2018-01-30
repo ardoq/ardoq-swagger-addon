@@ -1,28 +1,28 @@
 ### Operation Object
 
-####{{summary}}
+####{{summary.value}}
 
-{{#description}}{{.}}{{/description}}
+{{description.value}}
 
 |Field Name|Value|
 {{#tags}}
-|tags|{{.}}|
+|tags|{{value}}|
 {{/tags}}
 {{#externalDocs}}
-|externalDocs|{{.}}|
+|externalDocs|{{value}}|
 {{/externalDocs}}
 {{#operationId}}
-|operationId|{{.}}|
+|operationId|{{value}}|
 {{/operationId}}
 {{#consumes}}
-|consumes|{{.}}|
+|consumes|{{value}}|
 {{/consumes}}
 {{#produces}}
-|produces|{{.}}|
+|produces|{{value}}|
 {{/produces}}
 {{#schemes}}
-|schemes|{{.}}|
+|schemes|{{value}}|
 {{/schemes}}
 {{#deprecated}}
-|deprecated|{{.}}|
+|deprecated|{{value}}|
 {{/deprecated}}

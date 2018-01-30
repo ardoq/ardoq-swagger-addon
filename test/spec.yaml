@@ -146,14 +146,6 @@ components:
               type: integer
               format: int64
 
-    NewPet3:
-      required:
-        - name
-      properties:
-        name:
-          type: string
-        tag:
-          type: string
 
     Error:
       required:

@@ -38,7 +38,8 @@
 (defn render-resource
   "Wrapping Strings in object to stop Mustache from iterating over the string instead og simply rendering the string once"
   [template params]
-  (tpl/render-resource template (into {} (map (fn [[k v]] [k [v]]) params))))
+
+  (tpl/render-resource template (into {} (map (fn [[k v]] [k {:value (if (vector? v) (s/join ", " v) v)}]) params))))
 
 
 (declare transform-schema-map transform-schema-list)
@@ -237,7 +238,10 @@
     (map
       (fn [orphan-component]
         (prn "deleting " (:name orphan-component) (:_id orphan-component))
-        (api-client/delete (api-client/map->Component orphan-component) client))
+        (try
+          (api-client/delete (api-client/map->Component orphan-component) client)
+          ;; is it better to delete from bottom and up?
+          (catch Exception e (str "Exception deleting component. Probably because a parent was deleted before a child"))))
       components)))
 
 
@@ -246,12 +250,14 @@
     (map
       (fn [orphan-component]
         (prn "changing type of " (:name orphan-component) (:_id orphan-component))
-        (let [orphan-type (name (get-in ardoq-data [:model-name->type-id (types :Orphan)]))
-              orphan-component (assoc orphan-component :description (render-resource "templates/orphan-object.tpl" orphan-component))
-              orphan-component (assoc orphan-component :parent nil)
-              orphan-component (assoc orphan-component :open-api-path nil)
-              orphan-component (assoc orphan-component :typeId orphan-type)]
-          (api-client/update (api-client/map->Component orphan-component) client)))
+        (let [orphan-type (name (get-in ardoq-data [:model-name->type-id (types :Orphan)]))]
+          (-> orphan-component
+            (assoc :description (render-resource "templates/orphan-object.tpl" orphan-component))
+            (assoc :parent nil)
+            (assoc :open-api-path nil)
+            (assoc :typeId orphan-type)
+            (api-client/map->Component)
+            (api-client/update client))))
       components)))
 
 
