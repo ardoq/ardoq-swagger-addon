@@ -332,6 +332,7 @@
 
 (defn create-reference [client ardoq-data {source :source target :target}]
   (prn "Creating reference from" source "to" target)
+
   (-> {
         :source source
         :target target
@@ -339,14 +340,11 @@
         :rootWorkspace (get-in ardoq-data [:workspace :_id])
         :targetWorkspace (get-in ardoq-data [:workspace :_id])}
      (api-client/map->Reference)
-     (api-client/create client)
-     ))
+     (api-client/create client)))
 
 
 (defn delete-reference [client ardoq-data ref-key]
   (prn "Deleting reference from" (:source ref-key) "to" (:target ref-key))
-
-  (prn (get-in ardoq-data [:key->reference ref-key]))
 
   (-> (get-in ardoq-data [:key->reference ref-key])
     (api-client/map->Reference)
@@ -374,9 +372,6 @@
     (delete-components client (:to-delete orphan-components))
     (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components))
     (sync-references client ardoq-data ardoq-sync-components spec-data)
-
-    (prn (set (keys (:key->reference ardoq-data))))
-
 
     (prn "synced")
 
