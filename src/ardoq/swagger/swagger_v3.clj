@@ -228,24 +228,34 @@
       (transform-components-object spec))))
 
 
-(defn sync-component [client ardoq-data parent-component-id [spec-key spec-data-item]]
-  (if-let [existing-component (get-in ardoq-data [:key->component spec-key])]
-    (let [updated-component (-> existing-component
+
+(defn create-component [client ardoq-data parent-component-id [spec-key spec-data-item]]
+  (->
+    spec-data-item
+    (select-keys [:name :description])
+    (assoc :typeId (name (get-in ardoq-data [:model-name->type-id (types (:type spec-data-item))])))
+    (assoc :parent parent-component-id)
+    (assoc :open-api-path spec-key)
+    (assoc :rootWorkspace (get-in ardoq-data [:workspace :_id]))
+    (assoc :model (get-in ardoq-data [:model :_id]))
+    (api-client/map->Component)
+    (api-client/create  client)))
+
+
+(defn update-component [client existing-component parent-component-id [spec-key spec-data-item]]
+  (let [updated-component (-> existing-component
                               (merge (select-keys spec-data-item [:name :description]))
                               (assoc :parent parent-component-id)
                               (assoc :open-api-path spec-key))]
-      (if (= updated-component existing-component)
-        (api-client/map->Component existing-component)
-        (api-client/update (api-client/map->Component updated-component) client)))
-    (let [new-component (->
-                          spec-data-item
-                          (select-keys [:name :description])
-                          (assoc :typeId (name (get-in ardoq-data [:model-name->type-id (types (:type spec-data-item))])))
-                          (assoc :parent parent-component-id)
-                          (assoc :open-api-path spec-key)
-                          (assoc :rootWorkspace (get-in ardoq-data [:workspace :_id]))
-                          (assoc :model (get-in ardoq-data [:model :_id])))]
-      (api-client/create (api-client/map->Component new-component) client))))
+    (if (= updated-component existing-component)
+      (api-client/map->Component existing-component)
+      (api-client/update (api-client/map->Component updated-component) client))))
+
+
+(defn sync-component [client ardoq-data parent-component-id [spec-key spec-data-item]]
+  (if-let [existing-component (get-in ardoq-data [:key->component spec-key])]
+    (update-component client existing-component parent-component-id [spec-key spec-data-item])
+    (create-component client ardoq-data parent-component-id [spec-key spec-data-item])))
 
 
 (defn sync-components [client ardoq-data spec-data]
