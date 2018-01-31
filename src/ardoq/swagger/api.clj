@@ -1,7 +1,5 @@
 (ns ardoq.swagger.api
-  (:require [ardoq.swagger.swagger :as swagger]
-            [ardoq.swagger.swagger-v2 :as swaggerv2]
-            [ardoq.swagger.swagger-v3 :as swaggerv3]
+  (:require [ardoq.swagger.swagger-v3 :as swaggerv3]
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
@@ -45,28 +43,6 @@
       (parse-swagger body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
-(defn version1 [client spec url name headers ignore-validate]
-  (if ignore-validate
-    (do (socket-send "Ignoring validation - Importing Swagger 1")
-        (swagger/import-swagger client spec url name headers))
-    (let [{:keys [success message]} (validate/validate-swagger "schemav1.json" (generate-string spec))]
-      (if success
-        (do (socket-send "Valid Swagger - Importing Swagger 1")
-            (swagger/import-swagger client spec url name headers))
-        (do (socket-close)
-            (throw (ex-info  "InvalidSwagger" {:causes message})))))))
-
-(defn version2 [client spec wsname ignore-validate]
-  (if ignore-validate
-    (do (socket-send "Ignoring validation - Importing Swagger 2")
-        (swaggerv2/import-swagger2 client spec wsname))
-    (let [{:keys [success message]} (validate/validate-swagger "schemav2.json" (generate-string spec))]
-      (if success 
-        (do (socket-send "Valid Swagger - Importing Swagger 2")
-            (swaggerv2/import-swagger2 client spec wsname))
-        (do (socket-close)
-            (throw (ex-info "InvalidSwagger" {:causes message})))))))
-
 (defn version3 [client spec wsname ignore-validate]
   (swaggerv3/import-swagger3 client spec wsname))
 
@@ -83,9 +59,7 @@
                  (:title spec)
                  wsname)]
     (cond
-      openapi (version3 client spec wsname ignore-validate)
-      (= swagger "2.0") (version2 client spec wsname ignore-validate)
-      :else (version1 client spec url wsname headers ignore-validate))))
+      openapi (version3 client spec wsname ignore-validate))))
 
 (defn send-success-email! [wid org session client]
   (let [url (str (:url client) "/api/user/notify/email")]

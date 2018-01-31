@@ -12,13 +12,11 @@
    [superstring.core :as str]
    [ardoq.swagger
     [server :as server]
-    [swagger :as swagger]
     [api :as api]
     [client :as c]
     [validate :as validate]
     [common :as common]]
    [ardoq.swagger.swagger-v3 :as v3]
-   [ardoq.swagger.swagger-v2 :as v2]
    [ardoq.swagger.api :as v1]))
 
 (def system
@@ -62,11 +60,4 @@
 
     (v3/import-swagger3 client spec "swaggertest 4")))
 
-(defn validate-all []
-  (let [files (drop 1 (file-seq (io/file "")))]
-    (doseq [f files]
-      (doall
-       (v2/import-swagger2 (c/client {:url "http://localhost:8080"
-                                   :org "ardoq"
-                                   :token ""})
-                        (parse-string (slurp f) true) (.getName f))))))
+
