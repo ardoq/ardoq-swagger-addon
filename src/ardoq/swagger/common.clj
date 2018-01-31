@@ -106,7 +106,7 @@
        :model-name->type-id (model-utils/type-ids-by-name model)
        :key->component (->> (:components aggregated-workspace) (filter :open-api-path) (map-by :open-api-path))
 ;;       :id->component (reduce #(assoc %1 (:_id %2) %2) {} (:components aggregated-workspace))
-       :key->reference (->> (:references aggregated-workspace) (map-by #(select-keys % [:source :target :type])))
+       :key->reference (->> (:references aggregated-workspace) (map-by #(select-keys % [:source :target])))
        :components-referencing-other-workspaces (find-components-referencing-other-workspaces aggregated-workspace)
        :workspace workspace})))
 

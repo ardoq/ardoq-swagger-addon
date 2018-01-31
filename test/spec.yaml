@@ -138,13 +138,21 @@ components:
     Pet:
       allOf:
         - $ref: '#/components/schemas/NewPet'
-        - $ref: '#/components/schemas/Error'
         - required:
           - id
           properties:
             id:
               type: integer
               format: int64
+
+    NewPet:
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
 
 
     Error:

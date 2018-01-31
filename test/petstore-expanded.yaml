@@ -134,7 +134,7 @@ components:
               type: integer
               format: int64
 
-    NewPet2:
+    NewPet:
       required:
         - name
       properties:

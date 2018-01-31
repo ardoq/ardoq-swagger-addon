@@ -34,22 +34,57 @@
   :Orphan "Orphan"})
 
 
+(def table-row-partial "|{{label}}|{{value}}|")
 
-(defn render-resource
+(defn render-resource-strings
   "Wrapping Strings in object to stop Mustache from iterating over the string instead og simply rendering the string once"
-  [template params]
+  ([template params]
+    (render-resource-strings template params []))
+  ([template params field-names]
+    (let [fields (map (fn [[k v]] {:label (name k) :value (if (vector? v) (s/join ", " v) v)}) (select-keys params field-names))
+          params (merge params {:fields fields
+                                :hasFields (> (count fields) 0)})
+          partials {:table-row table-row-partial}]
+        (tpl/render-resource template params partials))))
 
-  (tpl/render-resource template (into {} (map (fn [[k v]] [k {:value (if (vector? v) (s/join ", " v) v)}]) params))))
-
+#_(tpl/render-resource template (into {} (map (fn [[k v]] [k {:value (if (vector? v) (s/join ", " v) v)}]) params)))
 
 (declare transform-schema-map transform-schema-list)
 
+(def schema-table-fields
+  [:format
+   :title
+   :default
+   :multipleOf
+   :maximum
+   :exclusiveMaximum
+   :minimum
+   :exclusiveMinimum
+   :maxLength
+   :minLength
+   :pattern
+   :maxItems
+   :minItems
+   :uniqueItems
+   :maxProperties
+   :minProperties
+   :required
+   :enum
+   :type
+   :discriminator
+   :readOnly
+   :xml
+   :externalDocs
+   :example])
 
 (defn transform-schema-object [schema-key parent-key data schema-object-spec]
   (let [key (str parent-key "/" (name schema-key))]
     (if-let [ref (:$ref schema-object-spec)]
       (-> data
-        (update-in [:references] conj {:source-key parent-key :target-path ref}))
+        (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref schema-object-spec)))
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
+        (update-in [:references] conj {:source-path key :target-path ref}))
       (-> data
         (update-in [:swagger-object key] assoc :name (name schema-key))
         (update-in [:swagger-object key] assoc :parent parent-key)
@@ -59,7 +94,7 @@
             (transform-schema-list schema-object-spec key))
           (-> %
             (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
-            (update-in [:swagger-object key] assoc :description (render-resource "templates/schema-object.tpl" schema-object-spec))
+            (update-in [:swagger-object key] assoc :description (render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
             (transform-schema-map (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key))))))))
 
 
@@ -81,16 +116,26 @@
     schema-list))
 
 
+(def paramter-table-fields
+  [:in
+   :required
+   :deprecated
+   :allowEmptyValue
+   :style
+   :explode
+   :allowReserved
+   :example])
+
 (defn transform-parameter-object [parameter-name parent-key data parameter-object-spec]
   (if-let [ref (:$ref parameter-object-spec)]
     (-> data
-      (update-in [:references] conj {:source-key parent-key :target-path ref}))
+      (update-in [:references] conj {:source-path parent-key :target-path ref}))
     (let [key (str parent-key "/" parameter-name)
           data (-> data
-                 (update-in [:swagger-object key] assoc :name (:name parameter-object-spec))
-                 (update-in [:swagger-object key] assoc :type :OpenAPI-Parameter)
-                 (update-in [:swagger-object key] assoc :parent parent-key)
-                 (update-in [:swagger-object key] assoc :description (render-resource "templates/parameter-object.tpl" parameter-object-spec)))]
+                   (update-in [:swagger-object key] assoc :name (:name parameter-object-spec))
+                   (update-in [:swagger-object key] assoc :type :OpenAPI-Parameter)
+                   (update-in [:swagger-object key] assoc :parent parent-key)
+                   (update-in [:swagger-object key] assoc :description (render-resource-strings "templates/parameter-object.tpl" parameter-object-spec paramter-table-fields)))]
 
       (if-let [schema-object-spec (:schema parameter-object-spec)]
         (transform-schema-object :schema key data (:schema parameter-object-spec))
@@ -113,7 +158,7 @@
       (update-in [:swagger-object key] assoc :name (name operation-object-key))
       (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)
       (update-in [:swagger-object key] assoc :parent parent-key)
-      (update-in [:swagger-object key] assoc :description (render-resource "templates/operation-object.tpl" operation-object-spec))
+      (update-in [:swagger-object key] assoc :description (render-resource-strings "templates/operation-object.tpl" operation-object-spec [:tags :operationId]))
       (transform-parameter-objects operation-object-spec key))))
 
 
@@ -131,13 +176,13 @@
                (update-in [:swagger-object key] assoc :name (subs (str path-object-key) 1))
                (update-in [:swagger-object key] assoc :type :OpenAPI-Path)
                (update-in [:swagger-object key] assoc :parent parent-key)
-               (update-in [:swagger-object key] assoc :description (render-resource "templates/path-object.tpl" path-object-spec))
+               (update-in [:swagger-object key] assoc :description (render-resource-strings "templates/path-object.tpl" path-object-spec))
                (transform-operation-objects path-object-spec key)
                (transform-parameter-objects path-object-spec key))]
     (name path-object-key)
     (if-let [ref (:$ref path-object-spec)]
       (-> data
-        (update-in [:references] conj {:source-key key :target-path ref}))
+        (update-in [:references] conj {:source-path key :target-path ref}))
       data)))
 
 (defn transform-paths-object [data spec]
@@ -167,9 +212,10 @@
     (assoc-in [:swagger-object "#/components/callbacks"] {:name "Callbacks" :type :OpenAPI-Structure :parent "#/components"})
     (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :OpenAPI-Structure})))
 
+
 (defn transform-spec [spec]
 ;;   {:key->swagger-object {{:name "n" :type "typename"} {:name "n" :description "descr"}}
-;;    :references [{:source-key {} :target-path "#/components/schema/someName"}]
+;;    :references [{:source-path {} :target-path "#/components/schema/someName"}]
 ;;    :spec-path->key {"#/components/schema/someName" {:name "n" :type "typename"}}}
 
   (let [data {:swagger-object (maps/ordered-map)
@@ -252,7 +298,7 @@
         (prn "changing type of " (:name orphan-component) (:_id orphan-component))
         (let [orphan-type (name (get-in ardoq-data [:model-name->type-id (types :Orphan)]))]
           (-> orphan-component
-            (assoc :description (render-resource "templates/orphan-object.tpl" orphan-component))
+            (assoc :description (render-resource-strings "templates/orphan-object.tpl" orphan-component))
             (assoc :parent nil)
             (assoc :open-api-path nil)
             (assoc :typeId orphan-type)
@@ -261,16 +307,65 @@
       components)))
 
 
+(defn map-to-ardoq-ids [ardoq-sync-components spec-data]
+  (->>
+    (:references spec-data)
+    (map
+      (fn [{source-path :source-path target-path :target-path }]
+        {:source (:_id (ardoq-sync-components source-path))
+         :target (:_id (ardoq-sync-components target-path))}))
+    (filter
+      (fn [{source :source target :target}]
+        (and source target)))
+    (into #{})))
+
+
+(defn create-reference [client ardoq-data {source :source target :target}]
+  (prn "Creating reference from" source "to" target)
+  (-> {
+        :source source
+        :target target
+        :type 0
+        :rootWorkspace (get-in ardoq-data [:workspace :_id])
+        :targetWorkspace (get-in ardoq-data [:workspace :_id])}
+     (api-client/map->Reference)
+     (api-client/create client)
+     ))
+
+
+(defn delete-reference [client ardoq-data ref-key]
+  (prn "Deleting reference from" (:source ref-key) "to" (:target ref-key))
+
+  (prn (get-in ardoq-data [:key->reference ref-key]))
+
+  (-> (get-in ardoq-data [:key->reference ref-key])
+    (api-client/map->Reference)
+    (api-client/delete client)))
+
+
+(defn sync-references [client ardoq-data ardoq-sync-components spec-data]
+  (let [spec-refs (map-to-ardoq-ids ardoq-sync-components spec-data)
+        current-refs (set (keys (:key->reference ardoq-data)))
+        new-refs (difference spec-refs current-refs)
+        superfluous-refs (difference current-refs spec-refs)]
+
+    (doall (map (partial create-reference client ardoq-data) new-refs))
+    (doall (map (partial delete-reference client ardoq-data) superfluous-refs))))
+
+
 (defn import-swagger3 [client spec wsname]
   (let [ardoq-data (or
                      (common/find-workspace-and-model client wsname :openapi-3.x)
                      (common/create-workspace-and-model client wsname spec :openapi-3.x))
         spec-data (transform-spec spec)
-        ardoq-sync-data (sync-components client ardoq-data spec-data)
-        orphan-components (find-and-categorise-orphan-components client ardoq-data ardoq-sync-data)]
+        ardoq-sync-components (sync-components client ardoq-data spec-data)
+        orphan-components (find-and-categorise-orphan-components client ardoq-data ardoq-sync-components)]
 
     (delete-components client (:to-delete orphan-components))
     (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components))
+    (sync-references client ardoq-data ardoq-sync-components spec-data)
+
+    (prn (set (keys (:key->reference ardoq-data))))
 
 
     (prn "synced")

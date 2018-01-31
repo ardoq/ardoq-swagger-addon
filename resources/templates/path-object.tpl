@@ -1,5 +1,5 @@
-###Path Object
 
-####{{summary.value}}
 
-{{description.value}}
+{{summary}}
+
+{{description}}
