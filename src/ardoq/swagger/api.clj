@@ -1,5 +1,5 @@
 (ns ardoq.swagger.api
-  (:require [ardoq.swagger.swagger-v3 :as swaggerv3]
+  (:require [ardoq.swagger.sync-swagger :as sync-swagger]
             [ardoq.swagger.client :as c]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
@@ -43,9 +43,6 @@
       (parse-swagger body true)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
-(defn version3 [client spec wsname ignore-validate]
-  (swaggerv3/import-swagger3 client spec wsname))
-
 (defn- resolve-spec [spec-text url headers]
   (if (not (str/blank? spec-text))
     (parse-swagger spec-text)
@@ -57,9 +54,12 @@
         {:keys [swagger openapi]} spec
         wsname (if (str/blank? wsname)
                  (:title spec)
-                 wsname)]
-    (cond
-      openapi (version3 client spec wsname ignore-validate))))
+                 wsname)
+        spec-version (cond
+                       openapi :openapi-3.x
+                       (= swagger "2.0") :swagger-2.x
+                       :else :swagger-1.x)]
+    (sync-swagger/sync-swagger client spec wsname spec-version)))
 
 (defn send-success-email! [wid org session client]
   (let [url (str (:url client) "/api/user/notify/email")]

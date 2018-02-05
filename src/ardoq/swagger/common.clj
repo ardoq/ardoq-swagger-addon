@@ -18,21 +18,32 @@
       (clojure.string/replace #"</*[a-z]+/*>" "")))
 
 
-(defn get-model-template [spec-version]
-  (let [resource (case spec-version
-                   :swagger-1.x "modelv1.json"
-                   :swagger-2.x "modelv2.json"
-                   :openapi-3.x "modelv3.json")]
+(def table-row-partial "|{{label}}|{{value}}|")
+
+(defn render-resource-strings
+  "Wrapping Strings in object to stop Mustache from iterating over the string instead og simply rendering the string once"
+  ([template params]
+   (render-resource-strings template params []))
+  ([template params field-names]
+   (let [fields (map (fn [[k v]] {:label (name k) :value (if (vector? v) (s/join ", " v) v)}) (select-keys params field-names))
+         params (merge params {:fields fields
+                               :hasFields (> (count fields) 0)})
+         partials {:table-row table-row-partial}]
+     (tpl/render-resource template params partials))))
+
+
+(defn get-model-template [transformer-definition]
+  (let [resource (:model-file transformer-definition)]
     (parse-string (slurp (io/resource resource)) true)))
 
-(defn create-model [client spec-version]
+(defn create-model [client transformer-definition]
   (->
-    (api/map->Model (get-model-template spec-version))
+    (api/map->Model (get-model-template transformer-definition))
     (api/create client)))
 
-(defn create-workspace-and-model [client wsname spec spec-version]
+(defn create-workspace-and-model [client wsname spec transformer-definition]
   ;; Creates a new workspace in the client.
-  (let [model (create-model client spec-version)
+  (let [model (create-model client transformer-definition)
         model-id (:_id model)
         description (tpl/render-resource "templates/infoTemplate.tpl" spec)
         workspace (->
@@ -47,8 +58,8 @@
      :key-reference {}
      :workspace workspace}))
 
-(defn ensure-model-has-all-types [model client spec-version]
-  (let [model-template (get-model-template spec-version)])
+(defn ensure-model-has-all-types [model client transformer-definition]
+  (let [model-template (get-model-template transformer-definition)])
   ;;TODO actually do something here
   model)
 
@@ -81,14 +92,14 @@
           (assoc! ret k x)))
       (transient {}) coll)))
 
-(defn find-workspace-and-model [client wsname spec-version]
+(defn find-workspace-and-model [client wsname transformer-definition]
   (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
     (let [aggregated-workspace (api/find-aggregated workspace client)
           model-id (:componentModel workspace)
           model (-> {:_id model-id}
                   (api/map->Model)
                   (api/find-by-id client)
-                  (ensure-model-has-all-types client spec-version))
+                  (ensure-model-has-all-types client transformer-definition))
           model-types-by-id (model-utils/to-component-type-map model)]
 
       {:new? false

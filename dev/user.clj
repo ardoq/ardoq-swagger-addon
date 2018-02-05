@@ -16,7 +16,7 @@
     [client :as c]
     [validate :as validate]
     [common :as common]]
-   [ardoq.swagger.swagger-v3 :as v3]
+   [ardoq.swagger.sync-swagger :as sync-swagger]
    [ardoq.swagger.api :as v1]))
 
 (def system
@@ -58,6 +58,6 @@
         spec-text (slurp "test/spec.yaml")
         spec (api/parse-swagger spec-text)]
 
-    (v3/import-swagger3 client spec "swaggertest 4")))
+    (sync-swagger/sync-swagger client spec "swaggertest 4" :openapi-3.x)))
 
 
