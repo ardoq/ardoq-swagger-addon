@@ -151,6 +151,12 @@
     (doall (map (partial create-reference client ardoq-data) new-refs))
     (doall (map (partial delete-reference client ardoq-data) superfluous-refs))))
 
+(defn update-workspace-description [client ardoq-data spec transformer-definition]
+  (let [description (apply (:workspace-description-fn transformer-definition) [spec])]
+    (-> ardoq-data
+        (:workspace)
+        (assoc :description description)
+        (api-client/update client))))
 
 (defn sync-swagger [client spec wsname spec-version]
   (let [transformer-definition (cond
@@ -163,6 +169,7 @@
         ardoq-sync-components (sync-components client ardoq-data spec-data transformer-definition)
         orphan-components (find-and-categorise-orphan-components client ardoq-data ardoq-sync-components)]
 
+    (update-workspace-description client ardoq-data spec transformer-definition)
     (delete-components client (:to-delete orphan-components))
     (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components) transformer-definition)
     (sync-references client ardoq-data ardoq-sync-components spec-data)

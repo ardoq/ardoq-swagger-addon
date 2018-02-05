@@ -11,7 +11,7 @@
             [clostache.parser :as tpl]
             [medley.core :refer [map-vals]]))
 
-(def model-file "modelv3.json")
+(def model-file "model-openapi-3.x.json")
 
 (def model-types {
             :OpenAPI-Structure "OpenAPI Structure"
@@ -200,6 +200,30 @@
       (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :OpenAPI-Structure})))
 
 
+(def info-object-fields
+  [:title
+   :version
+   :termsOfService
+   :contact.name
+   :contact.email
+   :contact.url
+   :license.name
+   :license.url])
+
+(def contact-object-fields
+  [:name :email :url])
+
+(def license-object-fields
+  [:name :url])
+
+(defn workspace-description [spec]
+  (let [info-spec (:info spec)
+        contact-object-md (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
+        info-spec (assoc info-spec :contact contact-object-md)
+        license-object-md (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
+        info-spec (assoc info-spec :license license-object-md)]
+    (common/render-resource-strings "templates/info-object.tpl" info-spec info-object-fields)))
+
 (defn transform-spec [spec]
   ;;   {:key->swagger-object {{:name "n" :type "typename"} {:name "n" :description "descr"}}
   ;;    :references [{:source-path {} :target-path "#/components/schema/someName"}]
@@ -217,4 +241,5 @@
 (def transformer-definition
   {:model-file model-file
    :model-types model-types
+   :workspace-description-fn workspace-description
    :transform-spec-fn transform-spec})

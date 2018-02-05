@@ -45,9 +45,8 @@
   ;; Creates a new workspace in the client.
   (let [model (create-model client transformer-definition)
         model-id (:_id model)
-        description (tpl/render-resource "templates/infoTemplate.tpl" spec)
         workspace (->
-                    (api/->Workspace wsname description model-id)
+                    (api/->Workspace wsname "" model-id)
                     (assoc
                       :views ["relationships" "tableview" "tagscape" "reader" "processflow"])
                     (api/create client))]
