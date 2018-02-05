@@ -185,6 +185,38 @@
         (transform-parameter-objects components-spec "#/components/parameters")
         )))
 
+(def server-variable-fields [:enum :default])
+
+(defn transform-server-variable [var-name var-spec]
+  (let [var-spec (assoc var-spec :variableName (name var-name))]
+    (common/render-resource-strings "templates/server-variable-object.tpl" var-spec server-variable-fields)))
+
+(defn transform-server-variables [variables-spec]
+  (reduce
+    (fn [acc [var-name var-spec]]
+      (let [variable-md (transform-server-variable var-name var-spec)]
+        (str acc variable-md)))
+    ""
+    variables-spec))
+
+(defn transform-server-object [data server-object-spec]
+  (let [key (:url server-object-spec)
+        parent-key "#/servers"
+        render-data {:description (:description server-object-spec)
+                     :variables (transform-server-variables (:variables server-object-spec))}]
+
+    (-> data
+        (update-in [:swagger-object key] assoc :name key)
+        (update-in [:swagger-object key] assoc :type :OpenAPI-Server)
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/server-object.tpl" render-data)))))
+
+(defn transform-servers-object [data spec]
+  (reduce
+    transform-server-object
+    data
+    (:servers spec)))
+
 (defn create-scaffolding [data]
   (-> data
       (assoc-in [:swagger-object "#/components"] {:name "Components" :type :OpenAPI-Structure})
@@ -197,7 +229,8 @@
       (assoc-in [:swagger-object "#/components/securitySchemes"] {:name "Security Schemes" :type :OpenAPI-Structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/links"] {:name "Links" :type :OpenAPI-Structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/callbacks"] {:name "Callbacks" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :OpenAPI-Structure})))
+      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :OpenAPI-Structure})
+      (assoc-in [:swagger-object "#/servers"] {:name "Servers" :type :OpenAPI-Structure})))
 
 
 (def info-object-fields
@@ -236,6 +269,7 @@
       data
       (create-scaffolding)
       (transform-paths-object spec)
+      (transform-servers-object spec)
       (transform-components-object spec))))
 
 (def transformer-definition

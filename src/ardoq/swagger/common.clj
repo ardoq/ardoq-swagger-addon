@@ -20,12 +20,18 @@
 
 (def table-row-partial "|{{label}}|{{value}}|")
 
+(defn table-cell-str [v]
+  (cond
+    (vector? v) (s/join ", " v)
+    (map? v) (s/join ", " v) ;;TODO: print map as yaml
+    :else v))
+
 (defn render-resource-strings
   "Wrapping Strings in object to stop Mustache from iterating over the string instead og simply rendering the string once"
   ([template params]
    (render-resource-strings template params []))
   ([template params field-names]
-   (let [fields (map (fn [[k v]] {:label (name k) :value (if (vector? v) (s/join ", " v) v)}) (select-keys params field-names))
+   (let [fields (map (fn [[k v]] {:label (name k) :value (table-cell-str v)}) (select-keys params field-names))
          params (merge params {:fields fields
                                :hasFields (> (count fields) 0)})
          partials {:table-row table-row-partial}]
