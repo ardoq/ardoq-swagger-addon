@@ -44,7 +44,7 @@
     param-spec))
 
 
-(declare transform-schema-map transform-schema-list transform-parameter-object transform-server-object)
+(declare transform-schema-list transform-parameter-object transform-server-object)
 
 (def schema-table-fields
   [:format
@@ -90,11 +90,8 @@
               (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
-                  (transform-schema-map (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key))))))))
+                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :OpenAPI-Schema))))))))
 
-
-(defn transform-schema-map [data schema-specs parent-key]
-  (transform-objects data transform-schema-object schema-specs parent-key :OpenAPI-Schema))
 
 (defn transform-schema-list [data schema-list parent-key]
   (reduce
@@ -202,10 +199,6 @@
           (transform-objects transform-link-object (:links response-object-spec) key :OpenAPI-Link)))))
 
 
-(defn transform-responses-map [data response-specs parent-key]
-  (transform-objects data transform-response-object response-specs parent-key :OpenAPI-Response))
-
-
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
   (let [key (str parent-key "/" (name operation-object-key))]
     (-> data
@@ -250,11 +243,13 @@
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
-        (transform-schema-map (:schemas components-spec) "#/components/schemas")
-        (transform-responses-map (:responses components-spec) "#/components/responses")
+        (transform-objects transform-schema-object (:schemas components-spec) "#/components/schemas" :OpenAPI-Schema)
+        (transform-objects transform-response-object (:responses components-spec) "#/components/responses" :OpenAPI-Response)
         (transform-objects transform-parameter-object (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
         (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :OpenAPI-Header)
+
         )))
+
 
 (def server-variable-fields [:enum :default])
 

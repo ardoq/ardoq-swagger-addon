@@ -43,7 +43,6 @@
 
 
 (defn sync-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
-  (prn "Syncing " spec-key )
   (if-let [existing-component (get-in ardoq-data [:key->component spec-key])]
     (update-component client existing-component parent-component-id [spec-key spec-data-item])
     (create-component client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition)))

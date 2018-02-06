@@ -31,7 +31,6 @@
   ([template params]
    (render-resource-strings template params []))
   ([template params field-names]
-   (prn "render" params field-names)
    (let [fields (map (fn [[k v]] {:label (name k) :value (table-cell-str v)}) (select-keys params field-names))
          params (merge params {:fields fields
                                :hasFields (> (count fields) 0)})
