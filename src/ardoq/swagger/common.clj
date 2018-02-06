@@ -18,7 +18,7 @@
       (clojure.string/replace #"</*[a-z]+/*>" "")))
 
 
-(def table-row-partial "|{{label}}|{{value}}|")
+(def table-row-partial "|{{{label}}}|{{{value}}}|")
 
 (defn table-cell-str [v]
   (cond

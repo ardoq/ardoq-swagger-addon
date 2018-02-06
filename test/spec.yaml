@@ -159,14 +159,35 @@ components:
         format: int64
 
   headers:
+    X-Rate-Limit-Limit:
+      description: The number of allowed requests in the current period
+      schema:
+        type: integer
+    X-Rate-Limit-Remaining:
+      description: The number of remaining requests in the current period
+      schema:
+        type: integer
+    X-Rate-Limit-Reset:
+      description: The number of seconds left in the current period
+      schema:
+        type: integer
 
   examples:
+    textExample:
+      summary: This is a text example
+      externalValue: 'http://foo.bar/examples/address-example.txt'
 
   requestBodies:
 
   securitySchemes:
 
   links:
+    address:
+      # the target link operationId
+      operationId: getUserAddress
+      parameters:
+        # get the `id` field from the request path parameter named `id`
+        userId: $request.path.id
 
   callbacks:
 
@@ -179,6 +200,13 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Pet'
+          examples:
+            foo:
+              summary: A foo example
+              value: {"foo": "bar"}
+            bar:
+              summary: A bar example
+              value: {"bar": "baz"}
       links:
         address:
           # the target link operationId

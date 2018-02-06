@@ -102,6 +102,19 @@
     schema-list))
 
 
+(defn transform-example-object [parameter-name parent-key data example-object-spec spec-type]
+  (if-let [ref (:$ref example-object-spec)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path ref}))
+    (let [key (str parent-key "/" parameter-name)
+          example-object-spec (assoc example-object-spec :hasValue (some? (:value example-object-spec)))
+          example-object-spec (assoc example-object-spec :hasExternalValue (some? (:externalValue example-object-spec)))]
+      (-> data
+          (update-in [:swagger-object key] assoc :name parameter-name)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/example-object.tpl" example-object-spec []))))))
+
 
 (def encoding-table-fields
   [:contentType
@@ -150,7 +163,8 @@
         (#(if-let [schema-object-spec (:schema media-type-object-spec)]
             (transform-schema-object :schema key % schema-object-spec :OpenAPI-Schema)
             %))
-        (transform-objects transform-encoding-object (:encoding media-type-object-spec) key :OpenAPI-Encoding))))
+        (transform-objects transform-encoding-object (:encoding media-type-object-spec) key :OpenAPI-Encoding)
+        (transform-objects transform-example-object (:examples media-type-object-spec) key :OpenAPI-Example))))
 
 
 (def parameter-table-fields
@@ -165,7 +179,6 @@
 
 
 (defn transform-parameter-object [parameter-name parent-key data parameter-object-spec spec-type]
-  (prn "transforming " parameter-name parent-key parameter-object-spec spec-type)
   (if-let [ref (:$ref parameter-object-spec)]
     (-> data
         (update-in [:references] conj {:source-path parent-key :target-path ref}))
@@ -176,6 +189,7 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/parameter-object.tpl" parameter-object-spec parameter-table-fields))
           (transform-objects transform-media-type-object (:content parameter-object-spec) key :OpenAPI-Media-Type)
+          (transform-objects transform-example-object (:examples parameter-object-spec) key :OpenAPI-Example)
           (#(if-let [schema-object-spec (:schema parameter-object-spec)]
               (transform-schema-object :schema key % (:schema parameter-object-spec) spec-type)
               %))))))
@@ -239,7 +253,6 @@
     (:paths spec)))
 
 
-
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
@@ -247,6 +260,8 @@
         (transform-objects transform-response-object (:responses components-spec) "#/components/responses" :OpenAPI-Response)
         (transform-objects transform-parameter-object (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
         (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :OpenAPI-Header)
+        (transform-objects transform-link-object (:links components-spec) "#/components/links" :OpenAPI-Link)
+        (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :OpenAPI-Example)
 
         )))
 
