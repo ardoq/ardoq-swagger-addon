@@ -22,6 +22,7 @@
             :OpenAPI-Callback "OpenAPI Callback"
             :OpenAPI-Header "OpenAPI Header"
             :OpenAPI-Response "OpenAPI Response"
+            :OpenAPI-Media-Type "OpenAPI Media Type"
             :OpenAPI-Request-body "OpenAPI Request Body"
             :OpenAPI-Schema "OpenAPI Schema"
             :OpenAPI-Parameter "OpenAPI Parameter"
@@ -33,18 +34,17 @@
             :Orphan "Orphan"})
 
 
-
-#_(tpl/render-resource template (into {} (map (fn [[k v]] [k {:value (if (vector? v) (s/join ", " v) v)}]) params)))
-
-(defn transform-map [transform-fn data spec-map parent-key]
+(defn transform-objects [data transform-object-fn param-spec parent-key spec-type]
   (reduce
-    (fn [data [spec-key spec-object]]
-      (apply transform-fn [spec-key parent-key data spec-object]))
+    (fn [data object-spec]
+      (if (map-entry? object-spec)
+        (apply transform-object-fn [(name (key object-spec)) parent-key data (val object-spec) spec-type])
+        (apply transform-object-fn [(or (:name object-spec) (name spec-type)) parent-key data object-spec spec-type])))
     data
-    spec-map))
+    param-spec))
 
 
-(declare transform-schema-map transform-schema-list transform-parameter-objects)
+(declare transform-schema-map transform-schema-list transform-parameter-object transform-server-object)
 
 (def schema-table-fields
   [:format
@@ -72,13 +72,13 @@
    :externalDocs
    :example])
 
-(defn transform-schema-object [schema-key parent-key data schema-object-spec]
+(defn transform-schema-object [schema-key parent-key data schema-object-spec spec-type]
   (let [key (str parent-key "/" (name schema-key))]
     (if-let [ref (:$ref schema-object-spec)]
       (-> data
           (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref schema-object-spec)))
           (update-in [:swagger-object key] assoc :parent parent-key)
-          (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
+          (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:references] conj {:source-path key :target-path ref}))
       (-> data
           (update-in [:swagger-object key] assoc :name (name schema-key))
@@ -94,36 +94,66 @@
 
 
 (defn transform-schema-map [data schema-specs parent-key]
-  (transform-map transform-schema-object data schema-specs parent-key))
-
-
-(defn transform-response-object [response-key parent-key data response-object-spec]
-  (let [key (str parent-key "/" (name response-key))]
-    (if-let [ref (:$ref response-object-spec)]
-      (-> data
-          (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref response-object-spec)))
-          (update-in [:swagger-object key] assoc :parent parent-key)
-          (update-in [:swagger-object key] assoc :type :OpenAPI-Response)
-          (update-in [:references] conj {:source-path key :target-path ref}))
-      (-> data
-          (update-in [:swagger-object key] assoc :name (name response-key))
-          (update-in [:swagger-object key] assoc :parent parent-key)
-          (update-in [:swagger-object key] assoc :type :OpenAPI-Response)
-          (update-in [:swagger-object key] assoc :description (:description response-object-spec))
-          (transform-parameter-objects (:headers response-object-spec) key :OpenAPI-Header)))))
-
-
-(defn transform-responses-map [data response-specs parent-key]
-  (transform-map transform-response-object data response-specs parent-key))
-
+  (transform-objects data transform-schema-object schema-specs parent-key :OpenAPI-Schema))
 
 (defn transform-schema-list [data schema-list parent-key]
   (reduce
     (fn [data schema-object-spec]
       (let [key (or (:name schema-object-spec) (s/join ", " (:required schema-object-spec)) (:type schema-object-spec) "schema") ]
-        (transform-schema-object key parent-key data schema-object-spec)))
+        (transform-schema-object key parent-key data schema-object-spec :OpenAPI-Schema)))
     data
     schema-list))
+
+
+
+(def encoding-table-fields
+  [:contentType
+   :style
+   :explode
+   :allowReserved])
+
+(defn transform-encoding-object [parameter-name parent-key data encoding-object-spec spec-type]
+  (let [key (str parent-key "/" parameter-name)]
+    (-> data
+        (update-in [:swagger-object key] assoc :name parameter-name)
+        (update-in [:swagger-object key] assoc :type spec-type)
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/encoding-object.tpl" encoding-object-spec encoding-table-fields))
+        (transform-objects transform-parameter-object (:headers encoding-object-spec) key :OpenAPI-Header))))
+
+(def link-table-fields
+  [:operationRef
+   :operationId
+   :requestBody])
+
+(defn transform-link-object [parameter-name parent-key data link-object-spec spec-type]
+  (if-let [ref (:$ref link-object-spec)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path ref}))
+    (let [key (str parent-key "/" parameter-name)
+          link-parameters (:parameters link-object-spec)
+          link-parameters-md (common/render-resource-strings "templates/link-parameters.tpl" link-parameters (keys link-parameters))
+          link-object-spec (assoc link-object-spec :linkParameters link-parameters-md)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name parameter-name)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/link-object.tpl" link-object-spec link-table-fields))
+          (#(if-let [server-object-spec (:server link-object-spec)]
+              (transform-server-object % server-object-spec)
+              %))))))
+
+(defn transform-media-type-object [parameter-name parent-key data media-type-object-spec spec-type]
+  (let [key (str parent-key "/" parameter-name)]
+    (-> data
+        (update-in [:swagger-object key] assoc :name parameter-name)
+        (update-in [:swagger-object key] assoc :type spec-type)
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/media-type-object.tpl" media-type-object-spec []))
+        (#(if-let [schema-object-spec (:schema media-type-object-spec)]
+            (transform-schema-object :schema key % schema-object-spec :OpenAPI-Schema)
+            %))
+        (transform-objects transform-encoding-object (:encoding media-type-object-spec) key :OpenAPI-Encoding))))
 
 
 (def parameter-table-fields
@@ -138,6 +168,7 @@
 
 
 (defn transform-parameter-object [parameter-name parent-key data parameter-object-spec spec-type]
+  (prn "transforming " parameter-name parent-key parameter-object-spec spec-type)
   (if-let [ref (:$ref parameter-object-spec)]
     (-> data
         (update-in [:references] conj {:source-path parent-key :target-path ref}))
@@ -147,19 +178,32 @@
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/parameter-object.tpl" parameter-object-spec parameter-table-fields))
+          (transform-objects transform-media-type-object (:content parameter-object-spec) key :OpenAPI-Media-Type)
           (#(if-let [schema-object-spec (:schema parameter-object-spec)]
-              (transform-schema-object :schema key % (:schema parameter-object-spec))
+              (transform-schema-object :schema key % (:schema parameter-object-spec) spec-type)
               %))))))
 
 
-(defn transform-parameter-objects [data param-spec parent-key spec-type]
-  (reduce
-    (fn [data parameter-object-spec]
-      (if (map-entry? parameter-object-spec)
-        (transform-parameter-object (name (key parameter-object-spec)) parent-key data (val parameter-object-spec) spec-type)
-        (transform-parameter-object (:name parameter-object-spec) parent-key data parameter-object-spec spec-type)))
-    data
-    param-spec))
+(defn transform-response-object [response-key parent-key data response-object-spec spec-type]
+  (let [key (str parent-key "/" (name response-key))]
+    (if-let [ref (:$ref response-object-spec)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref response-object-spec)))
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:references] conj {:source-path key :target-path ref}))
+      (-> data
+          (update-in [:swagger-object key] assoc :name (name response-key))
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :description (:description response-object-spec))
+          (transform-objects transform-parameter-object (:headers response-object-spec) key :OpenAPI-Header)
+          (transform-objects transform-media-type-object (:content response-object-spec) key :OpenAPI-Media-Type)
+          (transform-objects transform-link-object (:links response-object-spec) key :OpenAPI-Link)))))
+
+
+(defn transform-responses-map [data response-specs parent-key]
+  (transform-objects data transform-response-object response-specs parent-key :OpenAPI-Response))
 
 
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
@@ -169,7 +213,7 @@
         (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec [:tags :operationId]))
-        (transform-parameter-objects (:parameters operation-object-spec) key :OpenAPI-Parameter))))
+        (transform-objects transform-parameter-object (:parameters operation-object-spec) key :OpenAPI-Parameter))))
 
 
 (defn transform-operation-objects [data path-spec parent-key]
@@ -188,7 +232,7 @@
                  (update-in [:swagger-object key] assoc :parent parent-key)
                  (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
                  (transform-operation-objects path-object-spec key)
-                 (transform-parameter-objects (:parameters path-object-spec) key :OpenAPI-Parameter))]
+                 (transform-objects transform-parameter-object (:parameters path-object-spec) key :OpenAPI-Parameter))]
     (name path-object-key)
     (if-let [ref (:$ref path-object-spec)]
       (-> data
@@ -203,16 +247,13 @@
 
 
 
-
-
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
         (transform-schema-map (:schemas components-spec) "#/components/schemas")
         (transform-responses-map (:responses components-spec) "#/components/responses")
-        (transform-parameter-objects (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
-        (transform-parameter-objects (:headers components-spec) "#/components/headers" :OpenAPI-Header)
-
+        (transform-objects transform-parameter-object (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
+        (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :OpenAPI-Header)
         )))
 
 (def server-variable-fields [:enum :default])
@@ -222,6 +263,7 @@
     (common/render-resource-strings "templates/server-variable-object.tpl" var-spec server-variable-fields)))
 
 (defn transform-server-variables [variables-spec]
+  "appending markdown string descriptions"
   (reduce
     (fn [acc [var-name var-spec]]
       (let [variable-md (transform-server-variable var-name var-spec)]

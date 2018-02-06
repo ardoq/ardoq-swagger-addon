@@ -150,6 +150,21 @@ paths:
                 $ref: '#/components/schemas/Error'
 components:
   responses:
+    '200':
+      description: A list of pets.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Pet'
+      links:
+        address:
+          # the target link operationId
+          operationId: getUserAddress
+          parameters:
+            # get the `id` field from the request path parameter named `id`
+            userId: $request.path.id
     plain-ok:
       description: A simple string response
       content:
