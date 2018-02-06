@@ -44,7 +44,7 @@
     spec-map))
 
 
-(declare transform-schema-map transform-schema-list)
+(declare transform-schema-map transform-schema-list transform-parameter-objects)
 
 (def schema-table-fields
   [:format
@@ -110,7 +110,7 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :type :OpenAPI-Response)
           (update-in [:swagger-object key] assoc :description (:description response-object-spec))
-          ))))
+          (transform-parameter-objects (:headers response-object-spec) key :OpenAPI-Header)))))
 
 
 (defn transform-responses-map [data response-specs parent-key]
@@ -136,30 +136,30 @@
    :allowReserved
    :example])
 
-(defn transform-parameter-object [parameter-name parent-key data parameter-object-spec]
+
+(defn transform-parameter-object [parameter-name parent-key data parameter-object-spec spec-type]
   (if-let [ref (:$ref parameter-object-spec)]
     (-> data
         (update-in [:references] conj {:source-path parent-key :target-path ref}))
-    (let [key (str parent-key "/" parameter-name)
-          data (-> data
-                   (update-in [:swagger-object key] assoc :name (:name parameter-object-spec))
-                   (update-in [:swagger-object key] assoc :type :OpenAPI-Parameter)
-                   (update-in [:swagger-object key] assoc :parent parent-key)
-                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/parameter-object.tpl" parameter-object-spec parameter-table-fields)))]
+    (let [key (str parent-key "/" parameter-name)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name parameter-name)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/parameter-object.tpl" parameter-object-spec parameter-table-fields))
+          (#(if-let [schema-object-spec (:schema parameter-object-spec)]
+              (transform-schema-object :schema key % (:schema parameter-object-spec))
+              %))))))
 
-      (if-let [schema-object-spec (:schema parameter-object-spec)]
-        (transform-schema-object :schema key data (:schema parameter-object-spec))
-        data))))
 
-
-(defn transform-parameter-objects [data spec parent-key]
+(defn transform-parameter-objects [data param-spec parent-key spec-type]
   (reduce
     (fn [data parameter-object-spec]
       (if (map-entry? parameter-object-spec)
-        (transform-parameter-object (key parameter-object-spec) parent-key data (val parameter-object-spec))
-        (transform-parameter-object (:name parameter-object-spec) parent-key data parameter-object-spec)))
+        (transform-parameter-object (name (key parameter-object-spec)) parent-key data (val parameter-object-spec) spec-type)
+        (transform-parameter-object (:name parameter-object-spec) parent-key data parameter-object-spec spec-type)))
     data
-    (:parameters spec)))
+    param-spec))
 
 
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
@@ -169,7 +169,7 @@
         (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec [:tags :operationId]))
-        (transform-parameter-objects operation-object-spec key))))
+        (transform-parameter-objects (:parameters operation-object-spec) key :OpenAPI-Parameter))))
 
 
 (defn transform-operation-objects [data path-spec parent-key]
@@ -188,7 +188,7 @@
                  (update-in [:swagger-object key] assoc :parent parent-key)
                  (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
                  (transform-operation-objects path-object-spec key)
-                 (transform-parameter-objects path-object-spec key))]
+                 (transform-parameter-objects (:parameters path-object-spec) key :OpenAPI-Parameter))]
     (name path-object-key)
     (if-let [ref (:$ref path-object-spec)]
       (-> data
@@ -210,7 +210,8 @@
     (-> data
         (transform-schema-map (:schemas components-spec) "#/components/schemas")
         (transform-responses-map (:responses components-spec) "#/components/responses")
-        (transform-parameter-objects components-spec "#/components/parameters")
+        (transform-parameter-objects (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
+        (transform-parameter-objects (:headers components-spec) "#/components/headers" :OpenAPI-Header)
 
         )))
 
