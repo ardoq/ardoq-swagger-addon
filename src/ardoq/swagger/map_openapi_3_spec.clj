@@ -167,6 +167,22 @@
         (transform-objects transform-example-object (:examples media-type-object-spec) key :OpenAPI-Example))))
 
 
+(def request-body-fields
+  [:required])
+
+(defn transform-request-body-object [parameter-name parent-key data request-body-object-spec spec-type]
+  (if-let [ref (:$ref request-body-object-spec)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path ref}))
+    (let [key (str parent-key "/" parameter-name)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name parameter-name)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/request-body-object.tpl" request-body-object-spec request-body-fields))
+          (transform-objects transform-media-type-object (:content request-body-object-spec) key :OpenAPI-Media-Type)))))
+
+
 (def parameter-table-fields
   [:in
    :required
@@ -191,7 +207,7 @@
           (transform-objects transform-media-type-object (:content parameter-object-spec) key :OpenAPI-Media-Type)
           (transform-objects transform-example-object (:examples parameter-object-spec) key :OpenAPI-Example)
           (#(if-let [schema-object-spec (:schema parameter-object-spec)]
-              (transform-schema-object :schema key % (:schema parameter-object-spec) spec-type)
+              (transform-schema-object :schema key % schema-object-spec :OpenAPI-Schema)
               %))))))
 
 
@@ -213,14 +229,23 @@
           (transform-objects transform-link-object (:links response-object-spec) key :OpenAPI-Link)))))
 
 
+(def operation-fields
+  [:tags
+   :operationId
+   :deprecated])
+
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
   (let [key (str parent-key "/" (name operation-object-key))]
     (-> data
         (update-in [:swagger-object key] assoc :name (name operation-object-key))
         (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)
         (update-in [:swagger-object key] assoc :parent parent-key)
-        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec [:tags :operationId]))
-        (transform-objects transform-parameter-object (:parameters operation-object-spec) key :OpenAPI-Parameter))))
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec operation-fields))
+        (transform-objects transform-parameter-object (:parameters operation-object-spec) key :OpenAPI-Parameter)
+        (#(if-let [request-body-spec (:requestBody operation-object-spec)]
+            (transform-request-body-object :requestBody key % request-body-spec :OpenAPI-Request-body)
+            %))
+        (transform-objects transform-response-object (:responses operation-object-spec) key :OpenAPI-Response))))
 
 
 (defn transform-operation-objects [data path-spec parent-key]
@@ -262,7 +287,7 @@
         (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :OpenAPI-Header)
         (transform-objects transform-link-object (:links components-spec) "#/components/links" :OpenAPI-Link)
         (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :OpenAPI-Example)
-
+        (transform-objects transform-request-body-object (:requestBodies components-spec) "#/components/requestBodies" :OpenAPI-Request-body)
         )))
 
 
