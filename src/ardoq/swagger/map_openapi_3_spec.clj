@@ -36,6 +36,14 @@
 
 #_(tpl/render-resource template (into {} (map (fn [[k v]] [k {:value (if (vector? v) (s/join ", " v) v)}]) params)))
 
+(defn transform-map [transform-fn data spec-map parent-key]
+  (reduce
+    (fn [data [spec-key spec-object]]
+      (apply transform-fn [spec-key parent-key data spec-object]))
+    data
+    spec-map))
+
+
 (declare transform-schema-map transform-schema-list)
 
 (def schema-table-fields
@@ -86,17 +94,32 @@
 
 
 (defn transform-schema-map [data schema-specs parent-key]
-  (reduce
-    (fn [data [schema-key schema-object-spec]]
-      (transform-schema-object schema-key parent-key data schema-object-spec))
-    data
-    schema-specs))
+  (transform-map transform-schema-object data schema-specs parent-key))
+
+
+(defn transform-response-object [response-key parent-key data response-object-spec]
+  (let [key (str parent-key "/" (name response-key))]
+    (if-let [ref (:$ref response-object-spec)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref response-object-spec)))
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :type :OpenAPI-Response)
+          (update-in [:references] conj {:source-path key :target-path ref}))
+      (-> data
+          (update-in [:swagger-object key] assoc :name (name response-key))
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :type :OpenAPI-Response)
+          (update-in [:swagger-object key] assoc :description (:description response-object-spec))
+          ))))
+
+
+(defn transform-responses-map [data response-specs parent-key]
+  (transform-map transform-response-object data response-specs parent-key))
 
 
 (defn transform-schema-list [data schema-list parent-key]
   (reduce
     (fn [data schema-object-spec]
-      (clojure.pprint/pprint schema-object-spec)
       (let [key (or (:name schema-object-spec) (s/join ", " (:required schema-object-spec)) (:type schema-object-spec) "schema") ]
         (transform-schema-object key parent-key data schema-object-spec)))
     data
@@ -178,11 +201,17 @@
     data
     (:paths spec)))
 
+
+
+
+
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
         (transform-schema-map (:schemas components-spec) "#/components/schemas")
+        (transform-responses-map (:responses components-spec) "#/components/responses")
         (transform-parameter-objects components-spec "#/components/parameters")
+
         )))
 
 (def server-variable-fields [:enum :default])
@@ -251,6 +280,7 @@
 
 (defn workspace-description [spec]
   (let [info-spec (:info spec)
+        info-spec (assoc info-spec :importTime (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date)))
         contact-object-md (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
         info-spec (assoc info-spec :contact contact-object-md)
         license-object-md (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)

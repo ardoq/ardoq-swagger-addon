@@ -52,13 +52,13 @@
   ;;if spec is not null then use that as spec
   (let [spec (resolve-spec spec-text url headers)
         {:keys [swagger openapi]} spec
-        wsname (if (str/blank? wsname)
-                 (:title spec)
-                 wsname)
         spec-version (cond
                        openapi :openapi-3.x
                        (= swagger "2.0") :swagger-2.x
-                       :else :swagger-1.x)]
+                       :else :swagger-1.x)
+        wsname (cond (not (str/blank? wsname)) wsname
+                     (not (str/blank? (:title spec))) (:title spec)
+                     :default (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
     (sync-swagger/sync-swagger client spec wsname spec-version)))
 
 (defn send-success-email! [wid org session client]
@@ -96,7 +96,8 @@
          :headers {"Content-Type" "text/html"}
          :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
    (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier] :as params} :form-params session :session :as request}
-         (let [client (c/client {:url (:base-url config)
+         (let [url (or (:referer session) (:base-url config))
+               client (c/client {:url url
                                  :org org
                                  :token token})]
            (try
