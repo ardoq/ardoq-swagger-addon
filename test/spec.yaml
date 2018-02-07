@@ -184,6 +184,18 @@ components:
   requestBodies:
 
   securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: http://example.org/api/oauth/dialog
+          scopes:
+            write:pets: modify pets in your account
+            read:pets: read your pets
 
   links:
     address:
@@ -244,6 +256,9 @@ components:
         petstore_auth:
         - write:pets
         - read:pets
+        buggy_non_existent:
+        - write:Error
+        - read:not
       allOf:
         - $ref: '#/components/schemas/NewPet'
         - required:

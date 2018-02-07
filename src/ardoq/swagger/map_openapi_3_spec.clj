@@ -48,6 +48,12 @@
 
 (declare transform-schema-list transform-parameter-object transform-server-object)
 
+
+(defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec spec-type]
+  (let [security-scheme-key (str "#/components/securitySchemes/" security-requirement-key)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path security-scheme-key}))))
+
 (def schema-table-fields
   [:format
    :title
@@ -94,6 +100,7 @@
                 (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
+                  (transform-objects reference-security-schemes (:security schema-object-spec) key nil)
                   (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :OpenAPI-Schema)))))))))
 
 
@@ -104,6 +111,27 @@
         (transform-schema-object key parent-key data schema-object-spec :OpenAPI-Schema)))
     data
     schema-list))
+
+
+
+(def security-scheme-fields
+  [:type
+   :in
+   :scheme
+   :bearerFormat
+   :openIdConnectUrl])
+
+(defn transform-security-scheme-object [parameter-name parent-key data security-scheme-object-spec spec-type]
+  (if-let [ref (:$ref security-scheme-object-spec)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path ref}))
+    (let [key (str parent-key "/" parameter-name)]
+      (-> data
+          (update-in [:swagger-object key] assoc :name parameter-name)
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/security-scheme-object.tpl" security-scheme-object-spec security-scheme-fields))))))
+
 
 
 (defn transform-example-object [parameter-name parent-key data example-object-spec spec-type]
@@ -251,6 +279,7 @@
         (#(if-let [request-body-spec (:requestBody operation-object-spec)]
             (transform-request-body-object :requestBody key % request-body-spec :OpenAPI-Request-body)
             %))
+        (transform-objects reference-security-schemes (:security operation-object-spec) key nil)
         (transform-objects transform-response-object (:responses operation-object-spec) key :OpenAPI-Response))))
 
 
@@ -294,6 +323,7 @@
         (transform-objects transform-link-object (:links components-spec) "#/components/links" :OpenAPI-Link)
         (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :OpenAPI-Example)
         (transform-objects transform-request-body-object (:requestBodies components-spec) "#/components/requestBodies" :OpenAPI-Request-body)
+        (transform-objects transform-security-scheme-object (:securitySchemes components-spec) "#/components/securitySchemes" :OpenAPI-Security-Scheme)
         )))
 
 
