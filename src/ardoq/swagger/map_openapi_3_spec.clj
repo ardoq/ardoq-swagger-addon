@@ -56,7 +56,7 @@
 (defn render-XML-object [xml-object-spec]
   (common/render-resource-strings "templates/xml-object.tpl" xml-object-spec (keys xml-object-spec)))
 
-(declare transform-schema-list transform-parameter-object transform-server-object)
+(declare transform-schema-list transform-parameter-object transform-server-object transform-callback-object)
 
 
 (defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec spec-type]
@@ -307,22 +307,34 @@
             (transform-request-body-object :requestBody key % request-body-spec :OpenAPI-Request-body)
             %))
         (transform-objects reference-security-schemes (:security operation-object-spec) key nil)
+        (transform-objects transform-callback-object (:callbacks operation-object-spec) key :OpenAPI-Callback)
         (transform-objects transform-response-object (:responses operation-object-spec) key :OpenAPI-Response))))
 
 
 (defn transform-path-object [path-key parent-key data path-object-spec spec-type]
-  (let [key (str parent-key "/" (name path-key))
-        data (-> data
-                 (update-in [:swagger-object key] assoc :name (subs (str path-key) 1))
-                 (update-in [:swagger-object key] assoc :type :OpenAPI-Path)
-                 (update-in [:swagger-object key] assoc :parent parent-key)
-                 (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
-                 (transform-objects transform-operation-object (select-keys path-object-spec [:get :put :post :delete :options :head :patch :trace]) key :OpenAPI-Operation)
-                 (transform-objects transform-parameter-object (:parameters path-object-spec) key :OpenAPI-Parameter))]
-    (if-let [ref (:$ref path-object-spec)]
+  (let [key (str parent-key "/" (name path-key))]
+    (-> data
+        (update-in [:swagger-object key] assoc :name (subs (str path-key) 1))
+        (update-in [:swagger-object key] assoc :type :OpenAPI-Path)
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
+        (transform-objects transform-operation-object (select-keys path-object-spec [:get :put :post :delete :options :head :patch :trace]) key :OpenAPI-Operation)
+        (transform-objects transform-parameter-object (:parameters path-object-spec) key :OpenAPI-Parameter)
+        (#(if-let [ref (:$ref path-object-spec)]
+            (update-in % [:references] conj {:source-path key :target-path ref})
+            %)))))
+
+
+(defn transform-callback-object [callback-key parent-key data callback-object-spec spec-type]
+  (if-let [ref (:$ref callback-object-spec)]
+    (-> data
+        (update-in [:references] conj {:source-path parent-key :target-path ref}))
+    (let [key (str parent-key "/" (name callback-key))]
       (-> data
-          (update-in [:references] conj {:source-path key :target-path ref}))
-      data)))
+          (update-in [:swagger-object key] assoc :name (name callback-key))
+          (update-in [:swagger-object key] assoc :type spec-type)
+          (update-in [:swagger-object key] assoc :parent parent-key)
+          (transform-objects transform-path-object callback-object-spec key :OpenAPI-Path)))))
 
 
 (defn transform-components-object [data spec]
@@ -336,6 +348,7 @@
         (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :OpenAPI-Example)
         (transform-objects transform-request-body-object (:requestBodies components-spec) "#/components/requestBodies" :OpenAPI-Request-body)
         (transform-objects transform-security-scheme-object (:securitySchemes components-spec) "#/components/securitySchemes" :OpenAPI-Security-Scheme)
+        (transform-objects transform-callback-object (:callbacks components-spec) "#/components/callbacks" :OpenAPI-Callback)
         )))
 
 
