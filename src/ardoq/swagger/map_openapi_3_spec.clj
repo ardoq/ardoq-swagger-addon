@@ -60,7 +60,7 @@
 
 
 (defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec spec-type]
-  (let [security-scheme-key (str "#/components/securitySchemes/" security-requirement-key)]
+  (let [security-scheme-key (str "#/components/securitySchemes/" (name security-requirement-key))]
     (-> data
         (update-in [:references] conj {:source-path parent-key :target-path security-scheme-key}))))
 
