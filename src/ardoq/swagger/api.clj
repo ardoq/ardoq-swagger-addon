@@ -31,7 +31,7 @@
       (throw (IllegalArgumentException. "Invalid headers (must be valid JSON)")))))
 
 (defn parse-swagger [spec-text]
-  (if (str/starts-with? (clojure.string/trim spec-text) "{")
+  (if (str/starts-with? (str/trim spec-text) "{")
     (parse-string spec-text true)
     (yaml/parse-string spec-text)))
 

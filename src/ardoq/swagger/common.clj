@@ -11,11 +11,11 @@
 
 (defn replace-html-tags [schema]
   (-> schema
-      (clojure.string/replace #"\\n" "\n")
-      (clojure.string/replace #"</*b>" "**")
-      (clojure.string/replace #"<br/*>" "\n")
-      (clojure.string/replace #"<a href='(.+)'>(.+)</a>" "[$2]($1)")
-      (clojure.string/replace #"</*[a-z]+/*>" "")))
+      (s/replace #"\\n" "\n")
+      (s/replace #"</*b>" "**")
+      (s/replace #"<br/*>" "\n")
+      (s/replace #"<a href='(.+)'>(.+)</a>" "[$2]($1)")
+      (s/replace #"</*[a-z]+/*>" "")))
 
 
 (def table-row-partial "|{{{label}}}|{{{value}}}|")
