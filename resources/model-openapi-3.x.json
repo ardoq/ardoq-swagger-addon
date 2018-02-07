@@ -30,14 +30,202 @@
     "p1516195145888": {
       "description": "",
       "children": {
-        "p1516195190112": {
-          "id": "p1516195190112",
+        "p1516195366917": {
+          "children": {
+            "p1516289656058": {
+              "children": {
+                "p1518002544885": {
+                  "children": {},
+                  "color": "#4db7ad",
+                  "index": 1,
+                  "name": "OpenAPI OAuth Flow",
+                  "icon": "exchange",
+                  "level": 4,
+                  "returnsValue": false,
+                  "id": "p1518002544885",
+                  "standard": "custom"
+                }
+              },
+              "color": "#4db7ad",
+              "index": 1,
+              "name": "OpenAPI Security Scheme",
+              "icon": "key",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289656058",
+              "standard": "custom"
+            },
+            "p1516289682488": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 2,
+              "name": "OpenAPI Callback",
+              "icon": "phone",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289682488",
+              "standard": "custom"
+            },
+            "p1516289638368": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 3,
+              "name": "OpenAPI Header",
+              "icon": "wrench",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289638368",
+              "standard": "custom"
+            },
+            "p1516289581631": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 4,
+              "name": "OpenAPI Response",
+              "icon": "envelope",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289581631",
+              "standard": "custom"
+            },
+            "p1516289626375": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 5,
+              "name": "OpenAPI Request Body",
+              "icon": "file-o",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289626375",
+              "standard": "custom"
+            },
+            "p1516783769696": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 6,
+              "name": "OpenAPI Schema",
+              "icon": "film",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516783769696",
+              "standard": "custom"
+            },
+            "p1516289594382": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 7,
+              "name": "OpenAPI Parameter",
+              "icon": "puzzle-piece",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289594382",
+              "standard": "custom"
+            },
+            "p1516289673246": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 8,
+              "name": "OpenAPI Link",
+              "icon": "link",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289673246",
+              "standard": "custom"
+            },
+            "p1516289615722": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 9,
+              "name": "OpenAPI Example",
+              "icon": "bar-chart",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1516289615722",
+              "standard": "custom"
+            }
+          },
+          "color": "#4db7ad",
           "index": 1,
-          "name": "OpenAPI Server",
+          "name": "OpenAPI Component",
+          "icon": "archimate-component-icon",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195366917",
+          "standard": "custom"
+        },
+        "p1516967877188": {
+          "children": {},
+          "color": "#b81c1c",
+          "index": 2,
+          "name": "Orphan",
+          "icon": "trash",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516967877188",
+          "standard": "custom"
+        },
+        "p1518002796610": {
+          "id": "p1518002796610",
+          "index": 3,
+          "name": "OpenAPI Discriminator",
           "level": 2,
           "returnsValue": false,
           "children": {},
+          "color": "#4db7ad",
+          "standard": "custom"
+        },
+        "p1516195190112": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 4,
+          "name": "OpenAPI Server",
           "icon": "server",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195190112",
+          "standard": "custom"
+        },
+        "p1516195750425": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 5,
+          "name": "OpenAPI Security Requirement",
+          "icon": "key",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195750425",
+          "standard": "custom"
+        },
+        "p1518002758868": {
+          "id": "p1518002758868",
+          "index": 6,
+          "name": "OpenAPI XML",
+          "level": 2,
+          "returnsValue": false,
+          "children": {},
+          "color": "#4db7ad",
+          "standard": "custom"
+        },
+        "p1516195808068": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 7,
+          "name": "OpenAPI External Documentation",
+          "icon": "file-o",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1516195808068",
+          "standard": "custom"
+        },
+        "p1517911241114": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 8,
+          "name": "OpenAPI Media Type",
+          "icon": "film",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1517911241114",
           "standard": "custom"
         },
         "p1516195310662": {
@@ -48,159 +236,18 @@
               "name": "OpenAPI Operation",
               "level": 3,
               "returnsValue": false,
-              "children": {}
+              "children": {},
+              "color": "#4db7ad",
+              "standard": "custom"
             }
           },
-          "color": "#e67373",
-          "index": 2,
+          "color": "#4db7ad",
+          "index": 9,
           "name": "OpenAPI Path",
           "icon": "archimate-path-icon",
           "level": 2,
           "returnsValue": false,
           "id": "p1516195310662",
-          "standard": "custom"
-        },
-        "p1516195366917": {
-          "children": {
-            "p1516289656058": {
-              "id": "p1516289656058",
-              "index": 1,
-              "name": "OpenAPI Security Scheme",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "key",
-              "standard": "custom"
-            },
-            "p1516289682488": {
-              "id": "p1516289682488",
-              "index": 2,
-              "name": "OpenAPI Callback",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "phone",
-              "standard": "custom"
-            },
-            "p1516289638368": {
-              "id": "p1516289638368",
-              "index": 3,
-              "name": "OpenAPI Header",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "wrench",
-              "standard": "custom"
-            },
-            "p1516289581631": {
-              "id": "p1516289581631",
-              "index": 4,
-              "name": "OpenAPI Response",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "envelope",
-              "standard": "custom"
-            },
-            "p1516289626375": {
-              "id": "p1516289626375",
-              "index": 5,
-              "name": "OpenAPI Request Body",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "file-o",
-              "standard": "custom"
-            },
-            "p1516783769696": {
-              "id": "p1516783769696",
-              "index": 6,
-              "name": "OpenAPI Schema",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "film",
-              "standard": "custom"
-            },
-            "p1516289594382": {
-              "id": "p1516289594382",
-              "index": 7,
-              "name": "OpenAPI Parameter",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "puzzle-piece",
-              "standard": "custom"
-            },
-            "p1516289673246": {
-              "id": "p1516289673246",
-              "index": 8,
-              "name": "OpenAPI Link",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "link",
-              "standard": "custom"
-            },
-            "p1516289615722": {
-              "id": "p1516289615722",
-              "index": 9,
-              "name": "OpenAPI Example",
-              "level": 3,
-              "returnsValue": false,
-              "children": {},
-              "icon": "bar-chart",
-              "standard": "custom"
-            }
-          },
-          "color": "#3f51b6",
-          "index": 3,
-          "name": "OpenAPI Component",
-          "icon": "archimate-component-icon",
-          "level": 2,
-          "returnsValue": false,
-          "id": "p1516195366917",
-          "standard": "custom"
-        },
-        "p1516195750425": {
-          "id": "p1516195750425",
-          "index": 4,
-          "name": "OpenAPI Security Requirement",
-          "level": 2,
-          "returnsValue": false,
-          "children": {},
-          "standard": "custom",
-          "icon": "key"
-        },
-        "p1516195808068": {
-          "id": "p1516195808068",
-          "index": 5,
-          "name": "OpenAPI External Documentation",
-          "level": 2,
-          "returnsValue": false,
-          "children": {},
-          "icon": "file-o",
-          "standard": "custom"
-        },
-        "p1516967877188": {
-          "children": {},
-          "color": "#b81c1c",
-          "index": 6,
-          "name": "Orphan",
-          "icon": "trash",
-          "level": 2,
-          "returnsValue": false,
-          "id": "p1516967877188",
-          "standard": "custom"
-        },
-        "p1517911241114": {
-          "id": "p1517911241114",
-          "index": 7,
-          "name": "OpenAPI Media Type",
-          "level": 2,
-          "returnsValue": false,
-          "children": {},
-          "icon": "film",
           "standard": "custom"
         }
       },

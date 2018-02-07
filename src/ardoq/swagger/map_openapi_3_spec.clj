@@ -31,6 +31,9 @@
             :OpenAPI-Component "OpenAPI Component"
             :OpenAPI-Security-Requirement "OpenAPI Security Requirement"
             :OpenAPI-External-Documentation "OpenAPI External Documentation"
+            :OpenAPI-OAuth-Flow "OpenAPI OAuth Flow"
+            :OpenAPI-XML "OpenAPI XML"
+            :OpenAPI-Discriminator "OpenAPI Discriminator"
             :Orphan "Orphan"})
 
 
@@ -112,6 +115,22 @@
     data
     schema-list))
 
+(def oauth-flow-fields
+  [:authorizationUrl
+   :tokenUrl
+   :refreshUrl])
+
+(defn transform-oauth-flow-object [parameter-name parent-key data oauth-flow-object-spec spec-type]
+  (prn "oauth flow" parameter-name)
+  (let [key (str parent-key "/" parameter-name)
+        scopes-spec (:scopes oauth-flow-object-spec)
+        scopes-md (common/render-resource-strings "templates/oauth-scopes.tpl" scopes-spec (keys scopes-spec))
+        oauth-flow-object-spec (assoc oauth-flow-object-spec :scopesMd scopes-md)]
+    (-> data
+        (update-in [:swagger-object key] assoc :name parameter-name)
+        (update-in [:swagger-object key] assoc :type spec-type)
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/oauth-flow-object.tpl" oauth-flow-object-spec oauth-flow-fields)))))
 
 
 (def security-scheme-fields
@@ -130,7 +149,8 @@
           (update-in [:swagger-object key] assoc :name parameter-name)
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
-          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/security-scheme-object.tpl" security-scheme-object-spec security-scheme-fields))))))
+          (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/security-scheme-object.tpl" security-scheme-object-spec security-scheme-fields))
+          (transform-objects transform-oauth-flow-object (:flows security-scheme-object-spec) key :OpenAPI-OAuth-Flow)))))
 
 
 
