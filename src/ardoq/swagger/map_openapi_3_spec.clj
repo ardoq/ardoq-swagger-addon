@@ -208,7 +208,7 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/link-object.tpl" link-object-spec link-table-fields))
           (#(if-let [server-object-spec (:server link-object-spec)]
-              (transform-server-object % server-object-spec)
+              (transform-server-object :server key % server-object-spec :OpenAPI-Server)
               %))))))
 
 (defn transform-media-type-object [media-type-key parent-key data media-type-object-spec spec-type]
@@ -307,6 +307,7 @@
             (transform-request-body-object :requestBody key % request-body-spec :OpenAPI-Request-body)
             %))
         (transform-objects reference-security-schemes (:security operation-object-spec) key nil)
+        (transform-objects transform-server-object (:servers operation-object-spec) key :OpenAPI-Server)
         (transform-objects transform-callback-object (:callbacks operation-object-spec) key :OpenAPI-Callback)
         (transform-objects transform-response-object (:responses operation-object-spec) key :OpenAPI-Response))))
 
@@ -320,6 +321,7 @@
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
         (transform-objects transform-operation-object (select-keys path-object-spec [:get :put :post :delete :options :head :patch :trace]) key :OpenAPI-Operation)
         (transform-objects transform-parameter-object (:parameters path-object-spec) key :OpenAPI-Parameter)
+        (transform-objects transform-server-object (:servers path-object-spec) key :OpenAPI-Server)
         (#(if-let [ref (:$ref path-object-spec)]
             (update-in % [:references] conj {:source-path key :target-path ref})
             %)))))
@@ -368,24 +370,16 @@
     ""
     variables-spec))
 
-(defn transform-server-object [data server-object-spec]
-  (let [key (:url server-object-spec)
-        parent-key "#/servers"
+(defn transform-server-object [_ parent-key data server-object-spec spec-type]
+  (let [key (str parent-key "/" (:url server-object-spec))
         render-data {:description (:description server-object-spec)
                      :variables (transform-server-variables (:variables server-object-spec))}]
 
     (-> data
-        (update-in [:swagger-object key] assoc :name key)
-        (update-in [:swagger-object key] assoc :type :OpenAPI-Server)
+        (update-in [:swagger-object key] assoc :name (:url server-object-spec))
+        (update-in [:swagger-object key] assoc :type spec-type)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/server-object.tpl" render-data)))))
-
-
-(defn transform-servers-object [data spec]
-  (reduce
-    transform-server-object
-    data
-    (:servers spec)))
 
 (defn create-scaffolding [data]
   (-> data
@@ -441,7 +435,7 @@
       data
       (create-scaffolding)
       (transform-objects transform-path-object (:paths spec) "#/paths" :OpenAPI-Path)
-      (transform-servers-object spec)
+      (transform-objects transform-server-object (:servers spec) "#/servers" :OpenAPI-Server)
       (transform-components-object spec))))
 
 (def transformer-definition
