@@ -1,9 +1,9 @@
 
 {{#hasFields}}
-|Field Name|Field Value|
+#### Security Requirements
+|Name|Scope names|
 {{#fields}}
 {{>table-row}}
 {{/}}
 {{/}}
 
-{{{securityMd}}}

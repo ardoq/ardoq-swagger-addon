@@ -129,6 +129,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
+      security:
+        petstore_auth:
+        - write:pets
+        - read:pets
       description: deletes a single pet based on the ID supplied
       operationId: deletePet
       parameters:
@@ -236,6 +240,10 @@ components:
             type: integer
   schemas:
     Pet:
+      security:
+        petstore_auth:
+        - write:pets
+        - read:pets
       allOf:
         - $ref: '#/components/schemas/NewPet'
         - required:

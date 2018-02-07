@@ -43,6 +43,8 @@
     data
     param-spec))
 
+(defn render-security-requirements-object [security-requirements-object-spec]
+  (common/render-resource-strings "templates/security-requirements.tpl" security-requirements-object-spec (keys security-requirements-object-spec)))
 
 (declare transform-schema-list transform-parameter-object transform-server-object)
 
@@ -87,10 +89,12 @@
               (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Structure)
                   (transform-schema-list schema-object-spec key))
-              (-> %
+              (let [security-requirements (:security schema-object-spec)
+                    schema-object-spec (assoc schema-object-spec :securityMd (render-security-requirements-object security-requirements))]
+                (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
-                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :OpenAPI-Schema))))))))
+                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :OpenAPI-Schema)))))))))
 
 
 (defn transform-schema-list [data schema-list parent-key]
@@ -235,7 +239,9 @@
    :deprecated])
 
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
-  (let [key (str parent-key "/" (name operation-object-key))]
+  (let [key (str parent-key "/" (name operation-object-key))
+        security-requirements (:security operation-object-spec)
+        operation-object-spec (assoc operation-object-spec :securityMd (render-security-requirements-object security-requirements))]
     (-> data
         (update-in [:swagger-object key] assoc :name (name operation-object-key))
         (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)

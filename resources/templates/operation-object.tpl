@@ -1,6 +1,6 @@
-{{summary}}
+{{{summary}}}
 
-{{description}}
+{{{description}}}
 
 {{#hasFields}}
 |Field Name|Field Value|
@@ -9,3 +9,4 @@
 {{/}}
 {{/}}
 
+{{{securityMd}}}
