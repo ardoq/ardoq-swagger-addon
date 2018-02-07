@@ -11,6 +11,9 @@ info:
   license:
     name: MIT
     url: http://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
+  externalDocs:
+    description: Find more info here
+    url: https://example.com
 servers:
 - url: http://petstore.swagger.io/api
 - url: https://{username}.gigantic-server.com:{port}/{basePath}
@@ -252,6 +255,9 @@ components:
             type: integer
   schemas:
     Pet:
+      externalDocs:
+        description: Find more info here
+        url: https://example.com
       security:
         petstore_auth:
         - write:pets
@@ -280,6 +286,9 @@ components:
     NewPet:
       required:
         - name
+      xml:
+        name: aliens
+        wrapped: true
       properties:
         name:
           type: string

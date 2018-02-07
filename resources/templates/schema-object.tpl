@@ -6,4 +6,14 @@
 {{/}}
 {{/}}
 
+{{{XMLMD}}}
+
 {{{securityMd}}}
+
+{{#hasExternalDocs}}
+#### External Documentation
+
+{{{externalDocs.documentation}}}
+
+[{{{externalDocs.url}}}]({{{externalDocs.url}}})
+{{/}}

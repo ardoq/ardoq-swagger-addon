@@ -49,6 +49,9 @@
 (defn render-security-requirements-object [security-requirements-object-spec]
   (common/render-resource-strings "templates/security-requirements.tpl" security-requirements-object-spec (keys security-requirements-object-spec)))
 
+(defn render-XML-object [xml-object-spec]
+  (common/render-resource-strings "templates/xml-object.tpl" xml-object-spec (keys xml-object-spec)))
+
 (declare transform-schema-list transform-parameter-object transform-server-object)
 
 
@@ -79,8 +82,6 @@
    :type
    :discriminator
    :readOnly
-   :xml
-   :externalDocs
    :example])
 
 (defn transform-schema-object [schema-key parent-key data schema-object-spec spec-type]
@@ -98,8 +99,9 @@
               (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Structure)
                   (transform-schema-list schema-object-spec key))
-              (let [security-requirements (:security schema-object-spec)
-                    schema-object-spec (assoc schema-object-spec :securityMd (render-security-requirements-object security-requirements))]
+              (let [schema-object-spec (assoc schema-object-spec :securityMd (render-security-requirements-object (:security schema-object-spec)))
+                    schema-object-spec (assoc schema-object-spec :XMLMD (render-XML-object (:xml schema-object-spec)))
+                    schema-object-spec (assoc schema-object-spec :hasExternalDocs (some? (:externalDocs schema-object-spec)))]
                 (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
@@ -289,7 +291,8 @@
 (defn transform-operation-object [parent-key data [operation-object-key operation-object-spec]]
   (let [key (str parent-key "/" (name operation-object-key))
         security-requirements (:security operation-object-spec)
-        operation-object-spec (assoc operation-object-spec :securityMd (render-security-requirements-object security-requirements))]
+        operation-object-spec (assoc operation-object-spec :securityMd (render-security-requirements-object security-requirements))
+        operation-object-spec (assoc operation-object-spec :hasExternalDocs (some? (:externalDocs operation-object-spec)))]
     (-> data
         (update-in [:swagger-object key] assoc :name (name operation-object-key))
         (update-in [:swagger-object key] assoc :type :OpenAPI-Operation)
@@ -418,7 +421,8 @@
         contact-object-md (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
         info-spec (assoc info-spec :contact contact-object-md)
         license-object-md (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
-        info-spec (assoc info-spec :license license-object-md)]
+        info-spec (assoc info-spec :license license-object-md)
+        info-spec (assoc info-spec :hasExternalDocs (some? (:externalDocs info-spec)))]
     (common/render-resource-strings "templates/info-object.tpl" info-spec info-object-fields)))
 
 (defn transform-spec [spec]
