@@ -13,6 +13,7 @@
    [ardoq.swagger
     [server :as server]
     [api :as api]
+    [util :as util]
     [client :as c]
     [validate :as validate]
     [common :as common]]
@@ -56,8 +57,8 @@
                           :org "piedpiper"
                           :token "42f5d07007594f61bb7b66548c182b16"})
         spec-text (slurp "test/spec.yaml")
-        spec (api/parse-swagger spec-text)]
+        spec (util/parse-swagger spec-text)]
 
-    (sync-swagger/sync-swagger client spec "swaggertest 4" :openapi-3.x)))
+    (sync-swagger/sync-swagger client spec "swaggertest 5" :openapi-3.x)))
 
 

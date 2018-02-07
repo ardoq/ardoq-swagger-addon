@@ -1,6 +1,7 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.sync-swagger :as sync-swagger]
             [ardoq.swagger.client :as c]
+            [ardoq.swagger.util :refer [parse-swagger]]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
             [org.httpkit.server :as srv]
@@ -29,11 +30,6 @@
       (json/read-str headers))
     (catch Exception e
       (throw (IllegalArgumentException. "Invalid headers (must be valid JSON)")))))
-
-(defn parse-swagger [spec-text]
-  (if (str/starts-with? (str/trim spec-text) "{")
-    (parse-string spec-text true)
-    (yaml/parse-string spec-text)))
 
 (defn get-resource-listing [url headers]
   (println "Importing swagger doc from " url ". Custom headers" headers)
