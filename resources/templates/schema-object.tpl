@@ -10,6 +10,12 @@
 
 {{{securityMd}}}
 
+{{#hasDiscriminator}}
+#### Discriminator `{{{discriminator.propertyName}}}`
+
+{{{discriminatorMappingMd}}}
+{{/}}
+
 {{#hasExternalDocs}}
 #### External Documentation
 

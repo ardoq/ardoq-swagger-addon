@@ -49,6 +49,10 @@
 (defn render-security-requirements-object [security-requirements-object-spec]
   (common/render-resource-strings "templates/security-requirements.tpl" security-requirements-object-spec (keys security-requirements-object-spec)))
 
+
+(defn render-discriminator-mapping [discriminator-mapping-spec]
+  (common/render-resource-strings "templates/discriminator-mapping.tpl" discriminator-mapping-spec (keys discriminator-mapping-spec)))
+
 (defn render-XML-object [xml-object-spec]
   (common/render-resource-strings "templates/xml-object.tpl" xml-object-spec (keys xml-object-spec)))
 
@@ -80,7 +84,6 @@
    :required
    :enum
    :type
-   :discriminator
    :readOnly
    :example])
 
@@ -101,6 +104,8 @@
                   (transform-schema-list schema-object-spec key))
               (let [schema-object-spec (assoc schema-object-spec :securityMd (render-security-requirements-object (:security schema-object-spec)))
                     schema-object-spec (assoc schema-object-spec :XMLMD (render-XML-object (:xml schema-object-spec)))
+                    schema-object-spec (assoc schema-object-spec :hasDiscriminator (some? (:discriminator schema-object-spec)))
+                    schema-object-spec (assoc schema-object-spec :discriminatorMappingMd (render-discriminator-mapping (get-in schema-object-spec [:discriminator :mapping])))
                     schema-object-spec (assoc schema-object-spec :hasExternalDocs (some? (:externalDocs schema-object-spec)))]
                 (-> %
                   (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
