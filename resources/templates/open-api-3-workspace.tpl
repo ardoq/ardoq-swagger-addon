@@ -13,9 +13,9 @@ Automatically imported {{importTime}}
 {{/}}
 {{/}}
 
-{{contact}}
+{{contactMd}}
 
-{{license}}
+{{licenseMd}}
 
 {{#hasExternalDocs}}
 #### External Documentation

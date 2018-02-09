@@ -4,7 +4,7 @@
             [ardoq.swagger.model-utils :as model-utils]
             [ardoq.swagger.socket :refer [socket-send]]
             [ardoq.swagger.map-openapi-3-spec :as map-openapi-3-spec]
-            [ardoq.swagger.map-openapi-3-spec :as map-swagger-2-spec]
+            [ardoq.swagger.map-swagger-2-spec :as map-swagger-2-spec]
             [cheshire.core :refer [generate-string parse-string]]
             [org.httpkit.server :as srv]
             [flatland.ordered.map :as maps]

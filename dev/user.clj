@@ -52,13 +52,26 @@
 
 
 
-(defn oa3 []
+(defn o []
   (let [client (c/client {:url "http://piedpiper.localhost:8080"
                           :org "piedpiper"
                           :token "42f5d07007594f61bb7b66548c182b16"})
         spec-text (slurp "test/spec.yaml")
         spec (util/parse-swagger spec-text)]
 
-    (sync-swagger/sync-swagger client spec "swaggertest 5" :openapi-3.x)))
+    (sync-swagger/sync-swagger client spec "OpenAPI spec.yaml" :openapi-3.x)))
+
+
+(defn sw []
+  (try
+    (let [client (c/client {:url "http://piedpiper.localhost:8080"
+                            :org "piedpiper"
+                            :token "42f5d07007594f61bb7b66548c182b16"})
+          spec-text (slurp "dev-resources/dnbswag.yaml")
+          spec (util/parse-swagger spec-text)]
+
+     (sync-swagger/sync-swagger client spec "swagger 2 test" :swagger-2.x))
+    (catch Exception e (.printStackTrace e)))
+  )
 
 

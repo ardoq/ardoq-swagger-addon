@@ -1,0 +1,259 @@
+{
+  "description": "Swagger 2.x model",
+  "category": "Technology",
+  "referenceTypes": {
+    "0": {
+      "name": "Swagger $ref",
+      "id": 0,
+      "line": "solid",
+      "color": "darkblue",
+      "lineEnding": "both",
+      "returnsValue": true,
+      "charLine": "=",
+      "svgStyle": "stroke: darkblue;"
+    },
+    "2": {
+      "name": "Implicit",
+      "id": 2,
+      "line": "dashed",
+      "color": "red",
+      "lineBeginning": "none",
+      "lineEnding": "bothFilled",
+      "returnsValue": false,
+      "svgStyle": "stroke: red;stroke-dasharray:10,5"
+    }
+  },
+  "flexible": true,
+  "name": "Swagger 2.x model",
+  "useAsTemplate": false,
+  "root": {
+    "p1416195145888": {
+      "description": "",
+      "children": {
+        "p1416967877188": {
+          "children": {},
+          "color": "#b81c1c",
+          "index": 2,
+          "name": "Orphan",
+          "icon": "trash",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416967877188",
+          "standard": "custom"
+        },
+        "p1418002796610": {
+          "id": "p1418002796610",
+          "index": 3,
+          "name": "Swagger Discriminator",
+          "level": 2,
+          "returnsValue": false,
+          "children": {},
+          "color": "#4db7ad",
+          "standard": "custom"
+        },
+        "p1416195190112": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 4,
+          "name": "Swagger Server",
+          "icon": "server",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416195190112",
+          "standard": "custom"
+        },
+        "p1416195750425": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 5,
+          "name": "Swagger Security Requirement",
+          "icon": "key",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416195750425",
+          "standard": "custom"
+        },
+        "p1418002758868": {
+          "id": "p1418002758868",
+          "index": 6,
+          "name": "Swagger XML",
+          "level": 2,
+          "returnsValue": false,
+          "children": {},
+          "color": "#4db7ad",
+          "standard": "custom"
+        },
+        "p1416195808068": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 7,
+          "name": "Swagger External Documentation",
+          "icon": "file-o",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416195808068",
+          "standard": "custom"
+        },
+        "p1417911241114": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 8,
+          "name": "Swagger Media Type",
+          "icon": "film",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1417911241114",
+          "standard": "custom"
+        },
+        "p1416195310662": {
+          "children": {
+            "p1416289562456": {
+              "id": "p1416289562456",
+              "index": 1,
+              "name": "Swagger Operation",
+              "level": 3,
+              "returnsValue": false,
+              "children": {},
+              "color": "#4db7ad",
+              "standard": "custom"
+            }
+          },
+          "color": "#4db7ad",
+          "index": 9,
+          "name": "Swagger Path",
+          "icon": "archimate-path-icon",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416195310662",
+          "standard": "custom"
+        },
+        "p1416289656058": {
+          "children": {
+            "p1418002544885": {
+              "children": {},
+              "color": "#4db7ad",
+              "index": 1,
+              "name": "Swagger OAuth Flow",
+              "icon": "exchange",
+              "level": 3,
+              "returnsValue": false,
+              "id": "p1418002544885",
+              "standard": "custom"
+            }
+          },
+          "color": "#4db7ad",
+          "index": 10,
+          "name": "Swagger Security Scheme",
+          "icon": "key",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289656058",
+          "standard": "custom"
+        },
+        "p1416289682488": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 11,
+          "name": "Swagger Callback",
+          "icon": "phone",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289682488",
+          "standard": "custom"
+        },
+        "p1416289638368": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 12,
+          "name": "Swagger Header",
+          "icon": "wrench",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289638368",
+          "standard": "custom"
+        },
+        "p1416289581631": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 13,
+          "name": "Swagger Response",
+          "icon": "envelope",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289581631",
+          "standard": "custom"
+        },
+        "p1416289626375": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 14,
+          "name": "Swagger Request Body",
+          "icon": "file-o",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289626375",
+          "standard": "custom"
+        },
+        "p1416783769696": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 15,
+          "name": "Swagger Schema",
+          "icon": "film",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416783769696",
+          "standard": "custom"
+        },
+        "p1416289594382": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 16,
+          "name": "Swagger Parameter",
+          "icon": "puzzle-piece",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289594382",
+          "standard": "custom"
+        },
+        "p1416289673246": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 17,
+          "name": "Swagger Link",
+          "icon": "link",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289673246",
+          "standard": "custom"
+        },
+        "p1416289615722": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 18,
+          "name": "Swagger Example",
+          "icon": "bar-chart",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289615722",
+          "standard": "custom"
+        }
+      },
+      "color": "",
+      "index": 1,
+      "canLinkTo": [
+        "p1416195145888",
+        "p1416195151446"
+      ],
+      "name": "Swagger Structure",
+      "icon": "folder-open",
+      "defaults": {
+        "description": ""
+      },
+      "level": 1,
+      "returnsValue": false,
+      "id": "p1416195145888",
+      "standard": "custom"
+    }
+  }
+}

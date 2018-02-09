@@ -1,6 +1,7 @@
 (ns ardoq.swagger.map-openapi-3-spec
   (:require [ardoq.swagger.client :as api-client]
             [ardoq.swagger.common :as common]
+            [ardoq.swagger.map-common :refer :all]
             [ardoq.swagger.model-utils :as model-utils]
             [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
@@ -14,37 +15,28 @@
 (def model-file "model-openapi-3.x.json")
 
 (def model-types {
-            :OpenAPI-Structure "OpenAPI Structure"
-            :OpenAPI-Server "OpenAPI Server"
-            :OpenAPI-Operation "OpenAPI Operation"
-            :OpenAPI-Path "OpenAPI Path"
-            :OpenAPI-Security-Scheme "OpenAPI Security Scheme"
-            :OpenAPI-Callback "OpenAPI Callback"
-            :OpenAPI-Header "OpenAPI Header"
-            :OpenAPI-Response "OpenAPI Response"
-            :OpenAPI-Media-Type "OpenAPI Media Type"
-            :OpenAPI-Request-body "OpenAPI Request Body"
-            :OpenAPI-Schema "OpenAPI Schema"
-            :OpenAPI-Parameter "OpenAPI Parameter"
-            :OpenAPI-Link "OpenAPI Link"
-            :OpenAPI-Example "OpenAPI Example"
-            :OpenAPI-Component "OpenAPI Component"
-            :OpenAPI-Security-Requirement "OpenAPI Security Requirement"
-            :OpenAPI-External-Documentation "OpenAPI External Documentation"
-            :OpenAPI-OAuth-Flow "OpenAPI OAuth Flow"
-            :OpenAPI-XML "OpenAPI XML"
-            :OpenAPI-Discriminator "OpenAPI Discriminator"
-            :Orphan "Orphan"})
+            :spec-structure "OpenAPI Structure"
+            :spec-server "OpenAPI Server"
+            :spec-operation "OpenAPI Operation"
+            :spec-path "OpenAPI Path"
+            :spec-security-scheme "OpenAPI Security Scheme"
+            :spec-callback "OpenAPI Callback"
+            :spec-header "OpenAPI Header"
+            :spec-response "OpenAPI Response"
+            :spec-media-type "OpenAPI Media Type"
+            :spec-request-body "OpenAPI Request Body"
+            :spec-schema "OpenAPI Schema"
+            :spec-parameter "OpenAPI Parameter"
+            :spec-link "OpenAPI Link"
+            :spec-example "OpenAPI Example"
+            :spec-component "OpenAPI Component"
+            :spec-security-requirement "OpenAPI Security Requirement"
+            :spec-external-documentation "OpenAPI External Documentation"
+            :spec-oauth-flow "OpenAPI OAuth Flow"
+            :spec-xml "OpenAPI XML"
+            :spec-discriminator "OpenAPI Discriminator"
+            :orphan "Orphan"})
 
-
-(defn transform-objects [data transform-object-fn param-spec parent-key spec-type]
-  (reduce
-    (fn [data object-spec]
-      (if (map-entry? object-spec)
-        (apply transform-object-fn [(key object-spec) parent-key data (val object-spec) spec-type])
-        (apply transform-object-fn [(or (:name object-spec) (name spec-type)) parent-key data object-spec spec-type])))
-    data
-    param-spec))
 
 (defn render-security-requirements-object [security-requirements-object-spec]
   (common/render-resource-strings "templates/security-requirements.tpl" security-requirements-object-spec (keys security-requirements-object-spec)))
@@ -100,7 +92,7 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (#(if (vector? schema-object-spec)
               (-> %
-                  (update-in [:swagger-object key] assoc :type :OpenAPI-Structure)
+                  (update-in [:swagger-object key] assoc :type :spec-structure)
                   (transform-schema-list schema-object-spec key))
               (let [schema-object-spec (assoc schema-object-spec :securityMd (render-security-requirements-object (:security schema-object-spec)))
                     schema-object-spec (assoc schema-object-spec :XMLMD (render-XML-object (:xml schema-object-spec)))
@@ -108,17 +100,17 @@
                     schema-object-spec (assoc schema-object-spec :discriminatorMappingMd (render-discriminator-mapping (get-in schema-object-spec [:discriminator :mapping])))
                     schema-object-spec (assoc schema-object-spec :hasExternalDocs (some? (:externalDocs schema-object-spec)))]
                 (-> %
-                  (update-in [:swagger-object key] assoc :type :OpenAPI-Schema)
+                  (update-in [:swagger-object key] assoc :type :spec-schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
                   (transform-objects reference-security-schemes (:security schema-object-spec) key nil)
-                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :OpenAPI-Schema)))))))))
+                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :spec-schema)))))))))
 
 
 (defn transform-schema-list [data schema-list parent-key]
   (reduce
     (fn [data schema-object-spec]
       (let [key (or (:name schema-object-spec) (s/join ", " (:required schema-object-spec)) (:type schema-object-spec) "schema") ]
-        (transform-schema-object key parent-key data schema-object-spec :OpenAPI-Schema)))
+        (transform-schema-object key parent-key data schema-object-spec :spec-schema)))
     data
     schema-list))
 
@@ -156,7 +148,7 @@
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/security-scheme-object.tpl" security-scheme-object-spec security-scheme-fields))
-          (transform-objects transform-oauth-flow-object (:flows security-scheme-object-spec) key :OpenAPI-OAuth-Flow)))))
+          (transform-objects transform-oauth-flow-object (:flows security-scheme-object-spec) key :spec-oauth-flow)))))
 
 
 
@@ -187,7 +179,7 @@
         (update-in [:swagger-object key] assoc :type spec-type)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/encoding-object.tpl" encoding-object-spec encoding-table-fields))
-        (transform-objects transform-parameter-object (:headers encoding-object-spec) key :OpenAPI-Header))))
+        (transform-objects transform-parameter-object (:headers encoding-object-spec) key :spec-header))))
 
 (def link-table-fields
   [:operationRef
@@ -208,7 +200,7 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/link-object.tpl" link-object-spec link-table-fields))
           (#(if-let [server-object-spec (:server link-object-spec)]
-              (transform-server-object :server key % server-object-spec :OpenAPI-Server)
+              (transform-server-object :server key % server-object-spec :spec-server)
               %))))))
 
 (defn transform-media-type-object [media-type-key parent-key data media-type-object-spec spec-type]
@@ -219,10 +211,10 @@
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/media-type-object.tpl" media-type-object-spec []))
         (#(if-let [schema-object-spec (:schema media-type-object-spec)]
-            (transform-schema-object :schema key % schema-object-spec :OpenAPI-Schema)
+            (transform-schema-object :schema key % schema-object-spec :spec-schema)
             %))
         (transform-objects transform-encoding-object (:encoding media-type-object-spec) key :OpenAPI-Encoding)
-        (transform-objects transform-example-object (:examples media-type-object-spec) key :OpenAPI-Example))))
+        (transform-objects transform-example-object (:examples media-type-object-spec) key :spec-example))))
 
 
 (def request-body-fields
@@ -238,7 +230,7 @@
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/request-body-object.tpl" request-body-object-spec request-body-fields))
-          (transform-objects transform-media-type-object (:content request-body-object-spec) key :OpenAPI-Media-Type)))))
+          (transform-objects transform-media-type-object (:content request-body-object-spec) key :spec-media-type)))))
 
 
 (def parameter-table-fields
@@ -262,10 +254,10 @@
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/parameter-object.tpl" parameter-object-spec parameter-table-fields))
-          (transform-objects transform-media-type-object (:content parameter-object-spec) key :OpenAPI-Media-Type)
-          (transform-objects transform-example-object (:examples parameter-object-spec) key :OpenAPI-Example)
+          (transform-objects transform-media-type-object (:content parameter-object-spec) key :spec-media-type)
+          (transform-objects transform-example-object (:examples parameter-object-spec) key :spec-example)
           (#(if-let [schema-object-spec (:schema parameter-object-spec)]
-              (transform-schema-object :schema key % schema-object-spec :OpenAPI-Schema)
+              (transform-schema-object :schema key % schema-object-spec :spec-schema)
               %))))))
 
 
@@ -282,9 +274,9 @@
           (update-in [:swagger-object key] assoc :parent parent-key)
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :description (:description response-object-spec))
-          (transform-objects transform-parameter-object (:headers response-object-spec) key :OpenAPI-Header)
-          (transform-objects transform-media-type-object (:content response-object-spec) key :OpenAPI-Media-Type)
-          (transform-objects transform-link-object (:links response-object-spec) key :OpenAPI-Link)))))
+          (transform-objects transform-parameter-object (:headers response-object-spec) key :spec-header)
+          (transform-objects transform-media-type-object (:content response-object-spec) key :spec-media-type)
+          (transform-objects transform-link-object (:links response-object-spec) key :spec-link)))))
 
 
 (def operation-fields
@@ -302,26 +294,26 @@
         (update-in [:swagger-object key] assoc :type spec-type)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec operation-fields))
-        (transform-objects transform-parameter-object (:parameters operation-object-spec) key :OpenAPI-Parameter)
+        (transform-objects transform-parameter-object (:parameters operation-object-spec) key :spec-parameter)
         (#(if-let [request-body-spec (:requestBody operation-object-spec)]
-            (transform-request-body-object :requestBody key % request-body-spec :OpenAPI-Request-body)
+            (transform-request-body-object :requestBody key % request-body-spec :spec-request-body)
             %))
         (transform-objects reference-security-schemes (:security operation-object-spec) key nil)
-        (transform-objects transform-server-object (:servers operation-object-spec) key :OpenAPI-Server)
-        (transform-objects transform-callback-object (:callbacks operation-object-spec) key :OpenAPI-Callback)
-        (transform-objects transform-response-object (:responses operation-object-spec) key :OpenAPI-Response))))
+        (transform-objects transform-server-object (:servers operation-object-spec) key :spec-server)
+        (transform-objects transform-callback-object (:callbacks operation-object-spec) key :spec-callback)
+        (transform-objects transform-response-object (:responses operation-object-spec) key :spec-response))))
 
 
 (defn transform-path-object [path-key parent-key data path-object-spec spec-type]
   (let [key (str parent-key "/" (name path-key))]
     (-> data
         (update-in [:swagger-object key] assoc :name (subs (str path-key) 1))
-        (update-in [:swagger-object key] assoc :type :OpenAPI-Path)
+        (update-in [:swagger-object key] assoc :type :spec-path)
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/path-object.tpl" path-object-spec))
-        (transform-objects transform-operation-object (select-keys path-object-spec [:get :put :post :delete :options :head :patch :trace]) key :OpenAPI-Operation)
-        (transform-objects transform-parameter-object (:parameters path-object-spec) key :OpenAPI-Parameter)
-        (transform-objects transform-server-object (:servers path-object-spec) key :OpenAPI-Server)
+        (transform-objects transform-operation-object (select-keys path-object-spec [:get :put :post :delete :options :head :patch :trace]) key :spec-operation)
+        (transform-objects transform-parameter-object (:parameters path-object-spec) key :spec-parameter)
+        (transform-objects transform-server-object (:servers path-object-spec) key :spec-server)
         (#(if-let [ref (:$ref path-object-spec)]
             (update-in % [:references] conj {:source-path key :target-path ref})
             %)))))
@@ -336,21 +328,21 @@
           (update-in [:swagger-object key] assoc :name (name callback-key))
           (update-in [:swagger-object key] assoc :type spec-type)
           (update-in [:swagger-object key] assoc :parent parent-key)
-          (transform-objects transform-path-object callback-object-spec key :OpenAPI-Path)))))
+          (transform-objects transform-path-object callback-object-spec key :spec-path)))))
 
 
 (defn transform-components-object [data spec]
   (let [components-spec (:components spec)]
     (-> data
-        (transform-objects transform-schema-object (:schemas components-spec) "#/components/schemas" :OpenAPI-Schema)
-        (transform-objects transform-response-object (:responses components-spec) "#/components/responses" :OpenAPI-Response)
-        (transform-objects transform-parameter-object (:parameters components-spec) "#/components/parameters" :OpenAPI-Parameter)
-        (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :OpenAPI-Header)
-        (transform-objects transform-link-object (:links components-spec) "#/components/links" :OpenAPI-Link)
-        (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :OpenAPI-Example)
-        (transform-objects transform-request-body-object (:requestBodies components-spec) "#/components/requestBodies" :OpenAPI-Request-body)
-        (transform-objects transform-security-scheme-object (:securitySchemes components-spec) "#/components/securitySchemes" :OpenAPI-Security-Scheme)
-        (transform-objects transform-callback-object (:callbacks components-spec) "#/components/callbacks" :OpenAPI-Callback)
+        (transform-objects transform-schema-object (:schemas components-spec) "#/components/schemas" :spec-schema)
+        (transform-objects transform-response-object (:responses components-spec) "#/components/responses" :spec-response)
+        (transform-objects transform-parameter-object (:parameters components-spec) "#/components/parameters" :spec-parameter)
+        (transform-objects transform-parameter-object (:headers components-spec) "#/components/headers" :spec-header)
+        (transform-objects transform-link-object (:links components-spec) "#/components/links" :spec-link)
+        (transform-objects transform-example-object (:examples components-spec) "#/components/examples" :spec-example)
+        (transform-objects transform-request-body-object (:requestBodies components-spec) "#/components/requestBodies" :spec-request-body)
+        (transform-objects transform-security-scheme-object (:securitySchemes components-spec) "#/components/securitySchemes" :spec-security-scheme)
+        (transform-objects transform-callback-object (:callbacks components-spec) "#/components/callbacks" :spec-callback)
         )))
 
 
@@ -383,29 +375,24 @@
 
 (defn create-scaffolding [data]
   (-> data
-      (assoc-in [:swagger-object "#/components"] {:name "Components" :type :OpenAPI-Structure})
-      (assoc-in [:swagger-object "#/components/schemas"] {:name "Schemas" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/responses"] {:name "Responses" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/parameters"] {:name "Parameters" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/examples"] {:name "Examples" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/requestBodies"] {:name "Request Bodies" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/headers"] {:name "Headers" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/securitySchemes"] {:name "Security Schemes" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/links"] {:name "Links" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/components/callbacks"] {:name "Callbacks" :type :OpenAPI-Structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :OpenAPI-Structure})
-      (assoc-in [:swagger-object "#/servers"] {:name "Servers" :type :OpenAPI-Structure})))
+      (assoc-in [:swagger-object "#/components"] {:name "Components" :type :spec-structure})
+      (assoc-in [:swagger-object "#/components/schemas"] {:name "Schemas" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/responses"] {:name "Responses" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/parameters"] {:name "Parameters" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/examples"] {:name "Examples" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/requestBodies"] {:name "Request Bodies" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/headers"] {:name "Headers" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/securitySchemes"] {:name "Security Schemes" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/links"] {:name "Links" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/components/callbacks"] {:name "Callbacks" :type :spec-structure :parent "#/components"})
+      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :spec-structure})
+      (assoc-in [:swagger-object "#/servers"] {:name "Servers" :type :spec-structure})))
 
 
-(def info-object-fields
+(def info-fields
   [:title
    :version
-   :termsOfService
-   :contact.name
-   :contact.email
-   :contact.url
-   :license.name
-   :license.url])
+   :termsOfService])
 
 (def contact-object-fields
   [:name :email :url])
@@ -415,13 +402,15 @@
 
 (defn workspace-description [spec]
   (let [info-spec (:info spec)
-        info-spec (assoc info-spec :importTime (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date)))
-        contact-object-md (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
-        info-spec (assoc info-spec :contact contact-object-md)
-        license-object-md (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
-        info-spec (assoc info-spec :license license-object-md)
-        info-spec (assoc info-spec :hasExternalDocs (some? (:externalDocs info-spec)))]
-    (common/render-resource-strings "templates/info-object.tpl" info-spec info-object-fields)))
+        ws-spec (-> {:importTime      (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))
+                     :contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
+                     :licenseMd       (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
+                     :hasExternalDocs (some? (:externalDocs info-spec))
+                     :externalDocs    (:externalDocs info-spec)}
+                    (merge (select-keys info-spec [:title :summary :description ]))
+                    (merge (select-keys info-spec info-fields)))]
+    (common/render-resource-strings "templates/open-api-3-workspace.tpl" ws-spec info-fields)))
+
 
 (defn transform-spec [spec]
   ;;   {:key->swagger-object {{:name "n" :type "typename"} {:name "n" :description "descr"}}
@@ -434,8 +423,8 @@
     (->
       data
       (create-scaffolding)
-      (transform-objects transform-path-object (:paths spec) "#/paths" :OpenAPI-Path)
-      (transform-objects transform-server-object (:servers spec) "#/servers" :OpenAPI-Server)
+      (transform-objects transform-path-object (:paths spec) "#/paths" :spec-path)
+      (transform-objects transform-server-object (:servers spec) "#/servers" :spec-server)
       (transform-components-object spec))))
 
 (def transformer-definition
