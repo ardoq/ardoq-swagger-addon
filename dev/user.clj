@@ -70,7 +70,7 @@
           spec-text (slurp "dev-resources/dnbswag.yaml")
           spec (util/parse-swagger spec-text)]
 
-     (sync-swagger/sync-swagger client spec "swagger 2 test" :swagger-2.x))
+     (sync-swagger/sync-swagger client spec "swagger 2 test 2" :swagger-2.x))
     (catch Exception e (.printStackTrace e)))
   )
 

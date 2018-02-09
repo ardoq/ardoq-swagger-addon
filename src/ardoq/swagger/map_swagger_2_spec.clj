@@ -82,10 +82,7 @@
   (let [key (str parent-key "/" (name schema-key))]
     (if-let [ref (:$ref schema-object-spec)]
       (-> data
-          (update-in [:swagger-object key] assoc :name (str "$ref: " (:$ref schema-object-spec)))
-          (update-in [:swagger-object key] assoc :parent parent-key)
-          (update-in [:swagger-object key] assoc :type spec-type)
-          (update-in [:references] conj {:source-path key :target-path ref}))
+          (update-in [:references] conj {:source-path parent-key :target-path ref}))
       (-> data
           (update-in [:swagger-object key] assoc :name (name schema-key))
           (update-in [:swagger-object key] assoc :parent parent-key)
@@ -217,7 +214,6 @@
    :deprecated])
 
 (defn transform-operation-object [operation-key parent-key data operation-object-spec spec-type]
-  (clojure.pprint/pprint operation-object-spec)
   (let [key (str parent-key "/" (name operation-key))
         security-requirements (:security operation-object-spec)
         operation-object-spec (assoc operation-object-spec :securityMd (render-security-requirements-object security-requirements))
@@ -273,7 +269,7 @@
         ws-spec (-> {:importTime      (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))
                      :contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
                      :licenseMd       (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
-                     :securityReqsMd  (render-security-requirements-object (:security spec))
+                     :securityReqsMd  (render-security-requirements-object (into {} (:security spec)))
                      :hasExternalDocs (some? (:externalDocs info-spec))
                      :externalDocs    (:externalDocs info-spec)}
                     (merge (select-keys info-spec [:title :summary :description ]))

@@ -237,6 +237,17 @@
           "returnsValue": false,
           "id": "p1416289615722",
           "standard": "custom"
+        },
+        "p1416289615721": {
+          "children": {},
+          "color": "#4db7ad",
+          "index": 18,
+          "name": "Swagger Items",
+          "icon": "",
+          "level": 2,
+          "returnsValue": false,
+          "id": "p1416289615722",
+          "standard": "custom"
         }
       },
       "color": "",
