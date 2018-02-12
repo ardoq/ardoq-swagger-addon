@@ -46,7 +46,7 @@
 (defn render-XML-object [xml-object-spec]
   (common/render-resource-strings "templates/xml-object.tpl" xml-object-spec (keys xml-object-spec)))
 
-(defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec spec-type]
+(defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec _]
   (let [security-scheme-key (str "#/securityDefinitions" (name security-requirement-key))]
     (-> data
         (update-in [:references] conj {:source-path parent-key :target-path security-scheme-key}))))
@@ -214,7 +214,7 @@
 
 (defn transform-operation-object [operation-key parent-key data operation-object-spec spec-type]
   (let [key (str parent-key "/" (name operation-key))
-        security-requirements (:security operation-object-spec)
+        security-requirements (into {} (:security operation-object-spec))
         operation-object-spec (assoc operation-object-spec :securityMd (render-security-requirements-object security-requirements))
         operation-object-spec (assoc operation-object-spec :hasExternalDocs (some? (:externalDocs operation-object-spec)))]
     (-> data
@@ -223,7 +223,7 @@
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/operation-object.tpl" operation-object-spec operation-fields))
         (transform-objects transform-parameter-object (:parameters operation-object-spec) key :spec-parameter)
-        (transform-objects reference-security-schemes (:security operation-object-spec) key nil)
+        (transform-objects reference-security-schemes (:security operation-object-spec) key :_)
         (transform-objects transform-response-object (:responses operation-object-spec) key :spec-response))))
 
 

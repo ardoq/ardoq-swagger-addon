@@ -176,8 +176,7 @@
     (sync-references client ardoq-data ardoq-sync-components spec-data)
 
     (socket-send "Done syncing specification")
-
-  ))
+    (get-in ardoq-data [:workspace :_id])))
 
 
 
