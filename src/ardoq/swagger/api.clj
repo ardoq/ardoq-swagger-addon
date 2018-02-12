@@ -120,13 +120,19 @@
                (.printStackTrace e)
                (when notifier
                  (send-failure-email! session client (str "An unexpected error occured!")))
-               (if (= 404 (-> e ex-data :status))
-                 {:status 404
-                  :headers {"Content-Type" "application/json"}
-                  :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
-                 {:status 422
-                  :headers {"Content-Type" "application/json"}
-                  :body (json/write-str {:error (-> e ex-data :causes)})}))
+               (cond
+                 (-> e ex-data :mapping-key)
+                   {:status 404
+                    :headers {"Content-Type" "application/json"}
+                    :body (json/write-str {:error (str "Failed parsing document under " (-> e ex-data :mapping-key))})}
+                 (= 404 (-> e ex-data :status))
+                   {:status 404
+                    :headers {"Content-Type" "application/json"}
+                    :body (json/write-str {:error (str (-> e ex-data :trace-redirects first) " returned 404")})}
+                 :else
+                   {:status 422
+                    :headers {"Content-Type" "application/json"}
+                    :body (json/write-str {:error (-> e ex-data :causes)})}))
              (catch Exception e
                (.printStackTrace e)
                (when notifier
