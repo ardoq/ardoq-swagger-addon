@@ -17,6 +17,7 @@
 
 
 (defn create-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
+  (socket-send (str "Creating ardoq component for " spec-key))
   (let [type-key (:type spec-data-item)
         ardoq-type-name (get-in transformer-definition [:model-types type-key])
         ardoq-type-id (name (get-in ardoq-data [:model-name->type-id ardoq-type-name]))]
@@ -33,6 +34,7 @@
 
 
 (defn update-component [client existing-component parent-component-id [spec-key spec-data-item]]
+  (socket-send (str "Updating ardoq component for " spec-key))
   (let [updated-component (-> existing-component
                               (merge (select-keys spec-data-item [:name :description]))
                               (assoc :parent parent-component-id)
@@ -58,7 +60,6 @@
                                   :_id)
             synced-ardoq-component
               (sync-component client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition)]
-          (prn "Synced " spec-key (:_id synced-ardoq-component))
           (assoc ardoq-components-by-spec-path spec-key synced-ardoq-component)))
     {}
     (:swagger-object spec-data)))
@@ -83,7 +84,7 @@
   (doall
     (map
       (fn [orphan-component]
-        (prn "deleting " (:name orphan-component) (:_id orphan-component))
+        (socket-send (str "Deleting Ardoq component " (:name orphan-component)))
         (try
           (api-client/delete (api-client/map->Component orphan-component) client)
           ;; is it better to delete from bottom and up?
@@ -95,7 +96,7 @@
   (doall
     (map
       (fn [orphan-component]
-        (prn "changing type of " (:name orphan-component) (:_id orphan-component))
+        (socket-send (str "Marking component " (:name orphan-component) " as orphan"))
         (let [orphan-type-name (get-in transformer-definition [:model-types :Orphan])
               orphan-type-id (name (get-in ardoq-data [:model-name->type-id orphan-type-name]))]
           (-> orphan-component
@@ -122,7 +123,7 @@
 
 
 (defn create-reference [client ardoq-data {source :source target :target}]
-  (prn "Creating reference from" source "to" target)
+  (socket-send (str "Creating reference from" source "to" target))
 
   (-> {
         :source source
@@ -135,7 +136,7 @@
 
 
 (defn delete-reference [client ardoq-data ref-key]
-  (prn "Deleting reference from" (:source ref-key) "to" (:target ref-key))
+  (socket-send (str "Deleting reference from" (:source ref-key) "to" (:target ref-key)))
 
   (-> (get-in ardoq-data [:key->reference ref-key])
     (api-client/map->Reference)
@@ -174,7 +175,7 @@
     (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components) transformer-definition)
     (sync-references client ardoq-data ardoq-sync-components spec-data)
 
-    (prn "synced")
+    (socket-send "Done syncing specification")
 
   ))
 

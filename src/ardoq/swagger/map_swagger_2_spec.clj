@@ -30,7 +30,6 @@
                   :spec-link "Swagger Link"
                   :spec-example "Swagger Example"
                   :spec-items "Swagger Items"
-                  :spec-component "Swagger Component"
                   :spec-security-requirement "Swagger Security Requirement"
                   :spec-external-documentation "Swagger External Documentation"
                   :spec-oauth-flow "Swagger OAuth Flow"

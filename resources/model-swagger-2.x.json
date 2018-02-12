@@ -241,12 +241,12 @@
         "p1416289615721": {
           "children": {},
           "color": "#4db7ad",
-          "index": 18,
+          "index": 19,
           "name": "Swagger Items",
-          "icon": "",
+          "icon": "bar-chart",
           "level": 2,
           "returnsValue": false,
-          "id": "p1416289615722",
+          "id": "p1416289615721",
           "standard": "custom"
         }
       },
