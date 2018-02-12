@@ -18,12 +18,12 @@
 
     <div class="jumbotron">
       <div class="container">
-        <img src="/public/img/swaggerLogo360.png"
-             style="width:100px; float:right;"></img>
+        <img src="/public/img/OpenAPI-logo.png" style="width:100px; float:right; padding: 5px;"></img>
+        <img src="/public/img/swaggerLogo360.png" style="width:100px; float:right; padding: 5px;"></img>
 
-        <h2>Swagger (Open API)</h2>
+        <h2>Open API / Swagger</h2>
 
-        <p>This add-on let's you import Swagger API (Open API) documentation</br>
+        <p>Import your Open API or Swagger API specifications</br>
       </div>
     </div>
 
@@ -43,7 +43,7 @@
           <div class="col-sm-10">
             <input type="url" class="form-control" id="url"
                    name="url"
-                   placeholder="http://petstore.swagger.wordnik.com/api/api-docs"
+                   placeholder="https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/examples/v3.0/petstore.yaml"
                    required>
           </div>
         </div>
@@ -51,7 +51,7 @@
 
       <div id="fillerDiv">
         <div class="form-group">
-          <label for="headers" class="col-sm-2 control-label">Swagger spec</label>
+          <label for="headers" class="col-sm-2 control-label">Specification</label>
           
           <div class="col-sm-10">
             <textarea id="swag" class="form-control" rows="3"
@@ -67,7 +67,7 @@
 
         <div class="col-sm-10">
           <input type="text" class="form-control" id="wsname"
-                 placeholder="Leave empty to use name from Swagger - Using an existing name will overwrite that workspace"
+                 placeholder="Leave empty to use name from the specification - Using an existing name will synchronise with that workspace"
                  name="wsname">
         </div>
       </div>
@@ -79,7 +79,7 @@
           <div class="col-sm-10">
             <textarea id="headers" class="form-control" rows="3"
                       name="headers" placeholder='{"Authorization": "Basic ZWJheHQ6c25hDnUzMTQyCg==",
-                      "x-custom-header": "Swagger-addon"}'></textarea>
+                      "x-custom-header": "OpenAPI-addon"}'></textarea>
             
             <!--   <input type="text" class="form-control"  -->
             <!--          placeholder="Petstore api documentation" -->
@@ -88,13 +88,13 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <!--<div class="form-group">
         <div class="col-sm-offset-2 col-sm-10 checkbox" id="Notify">
           <label>
             <input name="notifier" type="checkbox"> E-mail notifcation upon completion? (Useful for large documents)
           </label>
         </div>
-      </div>
+      </div>-->
 
       {{#org-set}}
       <input type="hidden" name="org" value="{{org}}">

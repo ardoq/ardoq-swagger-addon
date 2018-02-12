@@ -32,11 +32,11 @@
       (throw (IllegalArgumentException. "Invalid headers (must be valid JSON)")))))
 
 (defn get-resource-listing [url headers]
-  (println "Importing swagger doc from " url ". Custom headers" headers)
+  (println "Importing specification from " url ". Custom headers" headers)
   (let [{:keys [status body] :as resp} (http/get (str (io/as-url url)) {:headers headers :insecure? true})]
-    (println "\nResponse from " url "\n")
+    (println "Response" status "from" url)
     (if (= 200 status)
-      (parse-swagger body true)
+      (parse-swagger body)
       (throw (IllegalArgumentException. (str "Unexpected response " status " from " url))))))
 
 (defn- resolve-spec [spec-text url headers]
@@ -92,8 +92,8 @@
          :headers {"Content-Type" "text/html"}
          :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
    (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier] :as params} :form-params session :session :as request}
-         (let [url (or (:referer session) (:base-url config))
-               client (c/client {:url url
+         (let [ardoq-url (or (:referer session) (:base-url config))
+               client (c/client {:url ardoq-url
                                  :org org
                                  :token token})]
            (try
