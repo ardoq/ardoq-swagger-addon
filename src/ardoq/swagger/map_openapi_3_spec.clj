@@ -48,7 +48,7 @@
 (defn render-XML-object [xml-object-spec]
   (common/render-resource-strings "templates/xml-object.tpl" xml-object-spec (keys xml-object-spec)))
 
-(declare transform-schema-list transform-parameter-object transform-server-object transform-callback-object)
+(declare transform-schema-list transform-schemas transform-parameter-object transform-server-object transform-callback-object)
 
 
 (defn reference-security-schemes [security-requirement-key parent-key data schema-object-spec spec-type]
@@ -103,7 +103,16 @@
                   (update-in [:swagger-object key] assoc :type :spec-schema)
                   (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/schema-object.tpl" schema-object-spec schema-table-fields))
                   (transform-objects reference-security-schemes (:security schema-object-spec) key nil)
-                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :properties :additionalProperties]) key :spec-schema)))))))))
+                  (transform-objects transform-schema-object (select-keys schema-object-spec [:items :allOf :oneOf :anyOf :not :additionalProperties]) key :spec-schema)
+                  (transform-objects transform-schemas (select-keys schema-object-spec [:properties]) key :spec-structure)))))))))
+
+(defn transform-schemas [schema-collection-key parent-key data schema-collection spec-type]
+  (let [key (str parent-key "/" (name schema-collection-key))]
+    (-> data
+        (update-in [:swagger-object key] assoc :name (name schema-collection-key))
+        (update-in [:swagger-object key] assoc :parent parent-key)
+        (update-in [:swagger-object key] assoc :type spec-type)
+        (transform-objects transform-schema-object schema-collection key :spec-schema))))
 
 
 (defn transform-schema-list [data schema-list parent-key]

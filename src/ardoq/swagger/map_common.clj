@@ -5,6 +5,7 @@
 
 (defn log-wrap [f]
   (fn [& args]
+    (prn (str "Mapping " (str (second args) "/" (name (first args))) "to Ardoq component"))
     (socket-send (str "Mapping " (str (second args) "/" (name (first args))) "to Ardoq component"))
     (apply f args)))
 
