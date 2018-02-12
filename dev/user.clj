@@ -75,3 +75,15 @@
   )
 
 
+(defn p []
+  (try
+    (let [client (c/client {:url "http://piedpiper.localhost:8080"
+                            :org "piedpiper"
+                            :token "42f5d07007594f61bb7b66548c182b16"})
+          spec-text (slurp "http://petstore.swagger.io/v2/swagger.json")
+          spec (util/parse-swagger spec-text)]
+
+      (sync-swagger/sync-swagger client spec "petstore.json" :swagger-2.x))
+    (catch Exception e (.printStackTrace e)))
+  )
+

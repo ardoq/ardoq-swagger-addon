@@ -78,6 +78,7 @@
    :example])
 
 (defn transform-schema-object [schema-key parent-key data schema-object-spec spec-type]
+  (prn schema-key parent-key schema-object-spec spec-type)
   (let [key (str parent-key "/" (name schema-key))]
     (if-let [ref (:$ref schema-object-spec)]
       (-> data
