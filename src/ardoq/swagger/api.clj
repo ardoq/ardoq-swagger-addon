@@ -86,22 +86,26 @@
              headers :headers
              {:strs [org token]} :query-params :as request}         
         {:status 200
-         :body (tpl/render-resource "form.html" {:org-set (boolean org) :org org 
-                                          :token-set (boolean token)
-                                          :token token})
+         :body (tpl/render-resource "form.html" {:org-set (boolean org)
+                                                 :org org
+                                                 :token-set (boolean token)
+                                                 :token token})
          :headers {"Content-Type" "text/html"}
-         :session (assoc session :referer (if (get headers "referer") (str "http://" (first (rest (rest (.split (get headers "referer") "/"))))) ""))})
-   (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier] :as params} :form-params session :session :as request}
-         (let [ardoq-url (or (:referer session) (:base-url config))
+         :session (-> session
+                      (assoc :referer-host (some->> (get headers "referer") (re-find #"^https?://[^/]+")))
+                      (assoc :x-forwarded-host (some->> (get headers "X-Forwarded-Host") (re-find #"^https?://[^/]+"))))})
+   (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier ardoq-base-url] :as params} :form-params session :session :as request}
+         (let [ardoq-url (or ardoq-base-url (:x-forwarded-host session) (:referer-host session) (:base-url config))
                client (c/client {:url ardoq-url
                                  :org org
                                  :token token})]
+           (prn ardoq-base-url (:x-forwarded-host session) (:referer-host session) (:base-url config))
            (try
              (let [wid (get-spec client url wsname (read-headers headers) swag ignorer)]
                (socket-close)
                (when notifier
                  (send-success-email! wid org session client))
-               (str (:referer session) "/app/view/workspace/" wid "?org=" org))
+               (str ardoq-url "/app/view/workspace/" wid))
              (catch com.fasterxml.jackson.core.JsonParseException e
                (.printStackTrace e)
                (when notifier
