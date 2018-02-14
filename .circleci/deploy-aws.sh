@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 STACK=swagger
 VERSION=`grep "ENV VERSION" Dockerfile| awk '{gsub(/"/, "", $3); print $3}'`
