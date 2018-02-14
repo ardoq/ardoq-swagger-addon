@@ -1,5 +1,5 @@
 (ns ardoq.swagger.common
-  (:require [ardoq.swagger.client :as api]
+  (:require [ardoq.client :as api]
             [ardoq.swagger.model-utils :as model-utils]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
@@ -63,10 +63,15 @@
      :key-reference {}
      :workspace workspace}))
 
+
 (defn ensure-model-has-all-types [model client transformer-definition]
-  (let [model-template (get-model-template transformer-definition)])
-  ;;TODO actually do something here
-  model)
+  (let [model-template (get-model-template transformer-definition)]
+;;        name->model-type (model-utils/type-ids-by-name model)
+;;        name->template-type (model-utils/type-ids-by-name model-template)]
+
+
+    model)
+  )
 
 
 (defn find-existing-resource 

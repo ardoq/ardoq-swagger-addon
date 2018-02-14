@@ -1,6 +1,6 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.sync-swagger :as sync-swagger]
-            [ardoq.swagger.client :as c]
+            [ardoq.client :as c]
             [ardoq.swagger.util :refer [parse-swagger]]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
@@ -44,7 +44,7 @@
     (parse-swagger spec-text)
     (get-resource-listing url headers)))
 
-(defn get-spec [client url wsname headers spec-text ignore-validate]
+(defn get-spec [client url wsname headers spec-text]
   ;;if spec is not null then use that as spec
   (let [spec (resolve-spec spec-text url headers)
         {:keys [swagger openapi]} spec
@@ -80,11 +80,11 @@
 (defn swagger-api [{:keys [config] :as system}]
   (routes
    (route/resources "/public")
-   (GET "/socket" {} 
+   (GET "/socket" {}
         (partial handler system))
    (GET "/" {session :session
              headers :headers
-             {:strs [org token]} :query-params :as request}         
+             {:strs [org token]} :query-params :as request}
         {:status 200
          :body (tpl/render-resource "form.html" {:org-set (boolean org)
                                                  :org org
@@ -94,18 +94,17 @@
          :session (-> session
                       (assoc :referer-host (some->> (get headers "referer") (re-find #"^https?://[^/]+")))
                       (assoc :x-forwarded-host (some->> (get headers "X-Forwarded-Host") (re-find #"^https?://[^/]+"))))})
-   (POST "/import" {{:strs [url token org wsname headers swag ignorer notifier ardoq-base-url] :as params} :form-params session :session :as request}
-         (let [ardoq-url (or ardoq-base-url (:x-forwarded-host session) (:referer-host session) (:base-url config))
-               client (c/client {:url ardoq-url
+   (POST "/import" {{:strs [url token org wsname headers swag notifier] :as params} :form-params session :session :as request}
+         (let [client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
-           (prn ardoq-base-url (:x-forwarded-host session) (:referer-host session) (:base-url config))
+           (prn "importing" url org wsname client)
            (try
-             (let [wid (get-spec client url wsname (read-headers headers) swag ignorer)]
+             (let [wid (get-spec client url wsname (read-headers headers) swag)]
                (socket-close)
                (when notifier
                  (send-success-email! wid org session client))
-               (str ardoq-url "/app/view/workspace/" wid))
+               (str (:url client) "/app/view/workspace/" wid))
              (catch com.fasterxml.jackson.core.JsonParseException e
                (.printStackTrace e)
                (when notifier

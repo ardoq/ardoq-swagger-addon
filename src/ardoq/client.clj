@@ -1,4 +1,4 @@
-(ns ardoq.swagger.client
+(ns ardoq.client
   (:require [clj-http.client :as http]
             [clojure.data.json :as json]))
 
@@ -33,12 +33,15 @@
 
 (defn client [{:keys [url token org]}]
   (let [default-options {:timeout 2000
+                         :redirect-strategy :none
                          :query-params {:org org}}
         client {:url url
                 :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
                                                                       "Content-Type" "application/json"
-                                                                      "User-Agent" "ardoq-clojure-client"}})}]
-    client))
+                                                                      "User-Agent" "ardoq-clojure-client"}})}
+        switch-org-response (http/get (str url "/api/switchOrg") (:options client))
+        org-base-url (re-find #"^https?://[^/]+" (get-in switch-org-response [:headers "Location"]))]
+    (assoc client :url org-base-url)))
 
 (defn ok? [status]
   (and (< status 300)

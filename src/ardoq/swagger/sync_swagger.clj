@@ -1,5 +1,5 @@
 (ns ardoq.swagger.sync-swagger
-  (:require [ardoq.swagger.client :as api-client]
+  (:require [ardoq.client :as api-client]
             [ardoq.swagger.common :as common]
             [ardoq.swagger.model-utils :as model-utils]
             [ardoq.swagger.socket :refer [socket-send]]

@@ -10,11 +10,11 @@
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
    [cheshire.core :refer [parse-string]]
    [superstring.core :as str]
+   [ardoq.client :as c]
    [ardoq.swagger
     [server :as server]
     [api :as api]
     [util :as util]
-    [client :as c]
     [validate :as validate]
     [common :as common]]
    [ardoq.swagger.sync-swagger :as sync-swagger]
@@ -53,18 +53,19 @@
 
 
 (defn o []
-  (let [client (c/client {:url "http://piedpiper.localhost:8080"
+  (let [client (c/client {:url "http://localhost:8080"
                           :org "piedpiper"
                           :token "42f5d07007594f61bb7b66548c182b16"})
         spec-text (slurp "test/spec.yaml")
         spec (util/parse-swagger spec-text)]
 
+    (prn "importing" client)
     (sync-swagger/sync-swagger client spec "OpenAPI spec.yaml" :openapi-3.x)))
 
 
 (defn sw []
   (try
-    (let [client (c/client {:url "http://piedpiper.localhost:8080"
+    (let [client (c/client {:url "http://localhost:8080"
                             :org "piedpiper"
                             :token "42f5d07007594f61bb7b66548c182b16"})
           spec-text (slurp "dev-resources/dnbswag.yaml")
@@ -77,7 +78,7 @@
 
 (defn p []
   (try
-    (let [client (c/client {:url "http://piedpiper.localhost:8080"
+    (let [client (c/client {:url "http://localhost:8080"
                             :org "piedpiper"
                             :token "42f5d07007594f61bb7b66548c182b16"})
           spec-text (slurp "http://petstore.swagger.io/v2/swagger.json")

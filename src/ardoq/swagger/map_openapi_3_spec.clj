@@ -1,6 +1,5 @@
 (ns ardoq.swagger.map-openapi-3-spec
-  (:require [ardoq.swagger.client :as api-client]
-            [ardoq.swagger.common :as common]
+  (:require [ardoq.swagger.common :as common]
             [ardoq.swagger.map-common :refer :all]
             [ardoq.swagger.model-utils :as model-utils]
             [ardoq.swagger.socket :refer [socket-send]]
