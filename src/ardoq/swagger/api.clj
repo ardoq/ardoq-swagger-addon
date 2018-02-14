@@ -1,6 +1,7 @@
 (ns ardoq.swagger.api
   (:require [ardoq.swagger.sync-swagger :as sync-swagger]
             [ardoq.client :as c]
+            [ardoq.version :as version]
             [ardoq.swagger.util :refer [parse-swagger]]
             [ardoq.swagger.validate :as validate]
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
@@ -82,6 +83,10 @@
    (route/resources "/public")
    (GET "/socket" {}
         (partial handler system))
+   (GET "/status" {} {
+                      :status 200
+                      :body version/string
+                      })
    (GET "/" {session :session
              headers :headers
              {:strs [org token]} :query-params :as request}
