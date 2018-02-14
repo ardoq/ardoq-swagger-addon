@@ -69,6 +69,8 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/workspace
+      - run:
+          command: ls -A
       - deploy:
           command: .circleci/deploy-aws.sh
 
