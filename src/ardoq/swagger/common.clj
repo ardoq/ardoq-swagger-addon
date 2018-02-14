@@ -97,6 +97,11 @@
           (assoc! ret k x)))
       (transient {}) coll)))
 
+(defn- find-fields [client model-id]
+  (seq (filter
+         #(= model-id (:model %))
+         (api/find-all (api/map->Field {}) client))))
+
 (defn find-workspace-and-model [client wsname transformer-definition]
   (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
     (let [aggregated-workspace (api/find-aggregated workspace client)
@@ -109,6 +114,7 @@
 
       {:new? false
        :model model
+       :fields (find-fields client model-id)
        :model-name->type-id (model-utils/type-ids-by-name model)
        :key->component (->> (:components aggregated-workspace) (filter :open-api-path) (map-by :open-api-path))
 ;;       :id->component (reduce #(assoc %1 (:_id %2) %2) {} (:components aggregated-workspace))

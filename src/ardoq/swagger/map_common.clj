@@ -5,13 +5,18 @@
 
 (defn wrap [f]
   (fn [& args]
-    (let [spec-key (str (second args) "/" (name (first args)))]
+    (let [[spec-key parent-key data spec spec-type] args]
       (try
-        (prn (str "Mapping " spec-key "to Ardoq component"))
-        (socket-send (str "Mapping " spec-key "to Ardoq component"))
+        (socket-send (str "Mapping " spec-key " to Ardoq component"))
+        (prn (str "Mapping " spec-key " to Ardoq component"))
+
         (apply f args)
+
         (catch Exception e
-          (throw (ex-info "Mapping Exception" {:mapping-key spec-key})))))))
+          (socket-send (str "Error mapping " spec-key))
+          (prn (str "Error mapping " spec-key))
+          (clojure.pprint/pprint spec))))))
+
 
 (defn transform-objects [data transform-object-fn param-spec parent-key spec-type]
   (reduce
