@@ -1,13 +1,19 @@
-(defproject ardoq-swagger "0.1.0-SNAPSHOT"
+(defproject ardoq-swagger-addon "1.0.0"
   :description "Swagger add-on for Ardoq"
   :url "http://ardoq.com"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :profiles {:dev {:dependencies [[org.clojure/tools.namespace "0.2.10"]]
-                   :source-paths ["dev"]}
+                   :source-paths ["dev"]
+                   :plugins        [[test2junit "1.1.2"
+                                     :exclusions [org.clojure/clojure]]
+                                    [jonase/eastwood "0.2.5"
+                                     :exclusions [org.clojure/clojure]]]}
+
              :uberjar {:aot [ardoq.swagger.server]
                        :main ardoq.swagger.server}}
-  :plugins [[lein-ancient "0.6.15"]]
+  :plugins [[lein-ancient "0.6.15"]
+            [com.ebaxt.lein-ver "1.2.0"]]
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [compojure "1.6.0"]
                  [clj-http "3.7.0" :exclusions [com.fasterxml.jackson.core/jackson-databind]]

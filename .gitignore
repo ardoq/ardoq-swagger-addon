@@ -5,6 +5,7 @@ pom.xml.asc
 /classes/
 /target/
 /checkouts/
+test2junit
 .lein-deps-sum
 .lein-repl-history
 .lein-plugins/

@@ -1,0 +1,90 @@
+version: 2
+
+set-env-vars: &set-env-vars
+  name: Set environment variables
+  command: |
+    echo 'export STACK=$(cat VERSION)' >> $BASH_ENV
+    echo 'export REPO=$IMAGE\:$VERSION' >> $BASH_ENV
+    echo 'export REPO_LATEST=$IMAGE\:latest' >> $BASH_ENV
+    echo 'export REPO_TESTTAG=$IMAGE\:test' >> $BASH_ENV
+
+jobs:
+  test:
+    docker:
+      - image: circleci/clojure:lein-2.7.1
+    parallelism: 1
+    steps:
+         - checkout
+         - restore_cache:
+               keys:
+                 - ardoq-api-v1-{{ checksum "project.clj" }}
+                 - ardoq-api-v1-
+         - run: lein deps
+         - save_cache:
+               key: ardoq-api-v1-{{ checksum "project.clj" }}
+               paths:
+                   - ~/.m2
+         - run:
+            name: Run tests
+            command: .circleci/maybe-run.sh '.circleci/test.sh'
+         - store_test_results:
+             path: target/test2junit
+
+  uberjar:
+    docker:
+      - image: circleci/clojure:lein-2.7.1
+    working_directory: ~/workspace
+    steps:
+        - checkout
+        - attach_workspace:
+            at: ~/workspace
+        - run:
+            name: Create uberjar
+            command: lein uberjar
+        - persist_to_workspace:
+              paths: target
+              root: .
+
+  deploy-docker:
+    docker:
+      - image: ardoq/ci-docker:0.1
+    working_directory: ~/workspace
+    steps:
+      - setup_remote_docker
+      - checkout
+      - attach_workspace:
+          at: ~/workspace
+      - run:
+          command: ls -A
+      - run:
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                 .circleci/deploy-docker.sh
+            fi
+
+  deploy-aws:
+    docker:
+      - image: garland/aws-cli-docker:0.2
+    working_directory: ~/workspace
+    steps:
+      - attach_workspace:
+          at: ~/workspace
+      - deploy:
+          command: .circleci/deploy-aws.sh
+
+workflows:
+    version: 2
+    build-test-and-deploy:
+      jobs:
+        - test
+        - uberjar
+        - deploy-docker:
+            requires:
+              - test
+              - uberjar
+        - deploy-aws:
+            requires:
+              - deploy-docker
+
+
+
