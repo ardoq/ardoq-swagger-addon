@@ -57,10 +57,8 @@ jobs:
   deploy-aws:
     docker:
       - image: garland/aws-cli-docker:0.2
-    working_directory: ~/workspace
     steps:
-      - attach_workspace:
-          at: ~/workspace
+      - checkout
       - run:
           command: ls -la
       - run:
