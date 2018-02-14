@@ -1,13 +1,5 @@
 version: 2
 
-set-env-vars: &set-env-vars
-  name: Set environment variables
-  command: |
-    echo 'export STACK=$(cat VERSION)' >> $BASH_ENV
-    echo 'export REPO=$IMAGE\:$VERSION' >> $BASH_ENV
-    echo 'export REPO_LATEST=$IMAGE\:latest' >> $BASH_ENV
-    echo 'export REPO_TESTTAG=$IMAGE\:test' >> $BASH_ENV
-
 jobs:
   test:
     docker:
@@ -70,9 +62,12 @@ jobs:
       - attach_workspace:
           at: ~/workspace
       - run:
-          command: ls -A
-      - deploy:
-          command: .circleci/deploy-aws.sh
+          command: ls -la
+      - run:
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                 .circleci/deploy-aws.sh
+            fi
 
 workflows:
     version: 2
