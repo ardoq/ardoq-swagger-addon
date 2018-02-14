@@ -6,6 +6,7 @@ pom.xml.asc
 /target/
 /checkouts/
 test2junit
+Dockerfile.old
 .lein-deps-sum
 .lein-repl-history
 .lein-plugins/
