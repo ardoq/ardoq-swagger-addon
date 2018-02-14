@@ -1,4 +1,4 @@
-(defproject ardoq-swagger-addon "1.0.5"
+(defproject ardoq-swagger-addon "1.0.6"
   :description "Swagger add-on for Ardoq"
   :url "http://ardoq.com"
   :license {:name "Eclipse Public License"
