@@ -7,6 +7,7 @@
             [ardoq.swagger.socket :refer [handler socket-send socket-close]]
             [org.httpkit.server :as srv]
             [clojure.data.json :as json]
+            [clojure.walk :refer [keywordize-keys]]
             [compojure.core :refer [routes POST GET]]
             [superstring.core :as str]
             [clojure.java.io :as io]
@@ -45,16 +46,16 @@
     (parse-swagger spec-text)
     (get-resource-listing url headers)))
 
-(defn get-spec [client url wsname headers spec-text]
+(defn synchronize-specification [client url wsname headers spec-text]
   ;;if spec is not null then use that as spec
   (let [spec (resolve-spec spec-text url headers)
-        {:keys [swagger openapi]} spec
+        spec-title (get-in spec [:info :title])
         spec-version (cond
-                       openapi :openapi-3.x
-                       (= swagger "2.0") :swagger-2.x
+                       (:openapi spec) :openapi-3.x
+                       (= (:swagger spec) "2.0") :swagger-2.x
                        :else :swagger-1.x)
         wsname (cond (not (str/blank? wsname)) wsname
-                     (not (str/blank? (:title spec))) (:title spec)
+                     (not (str/blank? spec-title)) spec-title
                      :default (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
     (sync-swagger/sync-swagger client spec wsname spec-version)))
 
@@ -83,8 +84,7 @@
    (route/resources "/public")
    (GET "/socket" {}
         (partial handler system))
-   (GET "/status" {} {
-                      :status 200
+   (GET "/status" {} {:status 200
                       :body version/string
                       })
    (GET "/" {session :session
@@ -99,13 +99,19 @@
          :session (-> session
                       (assoc :referer-host (some->> (get headers "referer") (re-find #"^https?://[^/]+")))
                       (assoc :x-forwarded-host (some->> (get headers "X-Forwarded-Host") (re-find #"^https?://[^/]+"))))})
-   (POST "/import" {{:strs [url token org wsname headers swag notifier] :as params} :form-params session :session :as request}
-         (let [client (c/client {:url (:base-url config)
+   (POST "/import" {params :form-params
+                    multipart-params :multipart-params
+                    session :session
+                    :as request}
+     (let [merged-params (merge params multipart-params)
+           {:strs [url org token swag wsname headers notifier]} merged-params
+           client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
            (prn "importing" url org wsname client)
            (try
-             (let [wid (get-spec client url wsname (read-headers headers) swag)]
+             (let [sync-status (synchronize-specification client url wsname (read-headers headers) swag)
+                   wid (:workspace-id sync-status)]
                (socket-close)
                (when notifier
                  (send-success-email! wid org session client))

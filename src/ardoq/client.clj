@@ -1,6 +1,7 @@
 (ns ardoq.client
   (:require [clj-http.client :as http]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [clojure.walk :refer [keywordize-keys]]))
 
 
 (defprotocol ArdoqResource
@@ -40,8 +41,11 @@
                                                                       "Content-Type" "application/json"
                                                                       "User-Agent" "ardoq-clojure-client"}})}
         switch-org-response (http/get (str url "/api/switchOrg") (:options client))
-        org-base-url (re-find #"^https?://[^/]+" (get-in switch-org-response [:headers "Location"]))]
-    (assoc client :url org-base-url)))
+        org-base-url (re-find #"^https?://[^/]+" (get-in switch-org-response [:headers "Location"]))
+        user-response (http/get (str org-base-url "/api/user/current_user") (:options client))]
+    (-> client
+        (assoc :user (-> user-response :body json/read-str keywordize-keys))
+        (assoc :url org-base-url))))
 
 (defn ok? [status]
   (and (< status 300)
@@ -76,6 +80,17 @@
     (if (ok? status) 
       (filter #(= (:rootWorkspace %) root-id) 
               (map (partial coerce-response resource) (json/read-json body true)))
+      (throw (ex-info "client-exception" {:status status :body body})))))
+
+(defn find-components-by-name [client workspace-id name]
+  (let [url (str (:url client) "/api/component/fieldsearch")
+        options (->
+                  (:options client)
+                  (assoc-in [:query-params :name] name)
+                  (assoc-in [:query-params :workspace] workspace-id))
+        {:keys [status body]} (http/get url options)]
+    (if (ok? status)
+      (map (partial coerce-response (#(map->Component {}))) (json/read-json body true))
       (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn find-all [resource client]

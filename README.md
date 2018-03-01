@@ -23,14 +23,13 @@ This should then create or update a workspace from the specification provided.
 An example curl command with an url
 
 ```
-curl -X POST --form "url=<spec_url>&swag=&wsname=&headers=&org=<org_name>&token=<token>" http://swagger.addon.ardoq.com/import
-curl 'https://swagger.addon.ardoq.com/import' -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' -H 'accept: */*' --data 'url=<spec_url>&swag=&wsname=sWAGGER&headers=&org=<org>&token=<token>'
+curl -F"url=<URL to your specification>" -F"org=<my-org>" -F"token=<my-token>" https://swagger.addon.ardoq.com/import
 ```
 
-An example of a curl with a specification
+An example of a curl with a specification. _note the_ `<` in `swag=<` _in front of the file name_. This `<` needs to be there, and will add the content of the file to the request!
 
 ```
-curl -X POST --form "url=&swag=<swag specification>&wsname=&headers=&org=<org_name>&token=<token>" http://swagger.addon.ardoq.com/import
+curl -F"swag=<{my-specification.yaml}" -F"org={my-org}" -F"token={my-token}" https://swagger.addon.ardoq.com/import
 ```
 
 ## Running the addon in Docker

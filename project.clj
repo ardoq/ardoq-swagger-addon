@@ -17,6 +17,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [compojure "1.6.0"]
                  [clj-http "3.7.0" :exclusions [com.fasterxml.jackson.core/jackson-databind]]
+                 [javax.servlet/servlet-api "2.5"]
                  [ring/ring-core "1.6.3"]
                  [http-kit "2.2.0"]
                  [de.ubercode.clostache/clostache "1.4.0"]

@@ -97,7 +97,7 @@
     (map
       (fn [orphan-component]
         (socket-send (str "Marking component " (:name orphan-component) " as orphan"))
-        (let [orphan-type-name (get-in transformer-definition [:model-types :Orphan])
+        (let [orphan-type-name (get-in transformer-definition [:model-types :orphan])
               orphan-type-id (name (get-in ardoq-data [:model-name->type-id orphan-type-name]))]
           (-> orphan-component
             (assoc :description (common/render-resource-strings "templates/orphan-object.tpl" orphan-component))
@@ -125,20 +125,21 @@
 (defn create-reference [client ardoq-data {source :source target :target}]
   (socket-send (str "Creating reference from" source "to" target))
 
-  (-> {
-        :source source
-        :target target
-        :type 0
-        :rootWorkspace (get-in ardoq-data [:workspace :_id])
-        :targetWorkspace (get-in ardoq-data [:workspace :_id])}
-     (api-client/map->Reference)
-     (api-client/create client)))
+  (->
+    {:source source
+     :target target
+     :type 0
+     :rootWorkspace (get-in ardoq-data [:workspace :_id])
+     :targetWorkspace (get-in ardoq-data [:workspace :_id])}
+    (api-client/map->Reference)
+    (api-client/create client)))
 
 
 (defn delete-reference [client ardoq-data ref-key]
   (socket-send (str "Deleting reference from" (:source ref-key) "to" (:target ref-key)))
 
-  (-> (get-in ardoq-data [:key->reference ref-key])
+  (->
+    (get-in ardoq-data [:key->reference ref-key])
     (api-client/map->Reference)
     (api-client/delete client)))
 
@@ -176,7 +177,14 @@
     (sync-references client ardoq-data ardoq-sync-components spec-data)
 
     (socket-send "Done syncing specification")
-    (get-in ardoq-data [:workspace :_id])))
+    (clojure.pprint/pprint (get ardoq-sync-components "#/"))
+
+    {:workspace-id (get-in ardoq-data [:workspace :_id])
+     :root-component (get ardoq-sync-components "#/")
+     }))
 
 
+(defn ensure-entry-in-overview-ws [overview-ws-id entry-name entry-type-name reference-type-name]
 
+
+  )

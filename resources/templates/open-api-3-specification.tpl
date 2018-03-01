@@ -1,7 +1,5 @@
 ##{{title}}
 
-Automatically imported {{importTime}}
-
 {{summary}}
 
 {{description}}

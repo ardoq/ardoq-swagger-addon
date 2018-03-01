@@ -53,14 +53,17 @@
 
 
 (defn o []
-  (let [client (c/client {:url "http://localhost:8080"
-                          :org "piedpiper"
-                          :token "42f5d07007594f61bb7b66548c182b16"})
-        spec-text (slurp "test/spec.yaml")
-        spec (util/parse-swagger spec-text)]
+  (try
+    (let [client (c/client {:url   "http://localhost:8080"
+                            :org   "piedpiper"
+                            :token "42f5d07007594f61bb7b66548c182b16"})
+          spec-text (slurp "test/spec.yaml")
+          spec (util/parse-swagger spec-text)]
 
-    (prn "importing" client)
-    (sync-swagger/sync-swagger client spec "OpenAPI spec.yaml" :openapi-3.x)))
+      (prn "importing" client)
+      (sync-swagger/sync-swagger client spec "OpenAPI spec.yaml 2e" :openapi-3.x))
+    (catch Exception e (.printStackTrace e))))
+
 
 
 (defn sw []
@@ -71,7 +74,7 @@
           spec-text (slurp "dev-resources/dnbswag.yaml")
           spec (util/parse-swagger spec-text)]
 
-     (sync-swagger/sync-swagger client spec "swagger 2 test 2" :swagger-2.x))
+     (sync-swagger/sync-swagger client spec "swagger 2 test 3" :swagger-2.x))
     (catch Exception e (.printStackTrace e)))
   )
 
@@ -83,8 +86,10 @@
                             :token "42f5d07007594f61bb7b66548c182b16"})
           spec-text (slurp "http://petstore.swagger.io/v2/swagger.json")
           spec (util/parse-swagger spec-text)]
+      #_(clojure.pprint/pprint spec)
+      (prn
+        (c/find-components-by-name client "5a97fa7bd6018000060a8468" "Swagger Petstore"))
 
-      (sync-swagger/sync-swagger client spec "petstore.json" :swagger-2.x))
-    (catch Exception e (.printStackTrace e)))
-  )
+      #_(sync-swagger/sync-swagger client spec "petstore.json" :swagger-2.x))
+    (catch Exception e (.printStackTrace e))))
 

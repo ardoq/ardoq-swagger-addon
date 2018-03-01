@@ -14,6 +14,7 @@
 (def model-file "model-openapi-3.x.json")
 
 (def model-types {
+            :open-api-specification "OpenAPI Specification"
             :spec-structure "OpenAPI Structure"
             :spec-server "OpenAPI Server"
             :spec-operation "OpenAPI Operation"
@@ -381,9 +382,9 @@
         (update-in [:swagger-object key] assoc :parent parent-key)
         (update-in [:swagger-object key] assoc :description (common/render-resource-strings "templates/server-object.tpl" render-data)))))
 
-(defn create-scaffolding [data]
+(defn create-scaffolding [data spec]
   (-> data
-      (assoc-in [:swagger-object "#/components"] {:name "Components" :type :spec-structure})
+      (assoc-in [:swagger-object "#/components"] {:name "Components" :type :spec-structure :parent "#/"})
       (assoc-in [:swagger-object "#/components/schemas"] {:name "Schemas" :type :spec-structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/responses"] {:name "Responses" :type :spec-structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/parameters"] {:name "Parameters" :type :spec-structure :parent "#/components"})
@@ -393,8 +394,8 @@
       (assoc-in [:swagger-object "#/components/securitySchemes"] {:name "Security Schemes" :type :spec-structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/links"] {:name "Links" :type :spec-structure :parent "#/components"})
       (assoc-in [:swagger-object "#/components/callbacks"] {:name "Callbacks" :type :spec-structure :parent "#/components"})
-      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :spec-structure})
-      (assoc-in [:swagger-object "#/servers"] {:name "Servers" :type :spec-structure})))
+      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/servers"] {:name "Servers" :type :spec-structure :parent "#/"})))
 
 
 (def info-fields
@@ -409,28 +410,34 @@
   [:name :url])
 
 (defn workspace-description [spec]
+  (common/render-resource-strings "templates/workspace.tpl" {:importTime (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))} []))
+
+(defn create-root-element [data spec]
   (let [info-spec (:info spec)
-        ws-spec (-> {:importTime      (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))
-                     :contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
+        root-spec (-> {:contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
                      :licenseMd       (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
                      :hasExternalDocs (some? (:externalDocs info-spec))
                      :externalDocs    (:externalDocs info-spec)}
                     (merge (select-keys info-spec [:title :summary :description ]))
                     (merge (select-keys info-spec info-fields)))]
-    (common/render-resource-strings "templates/open-api-3-workspace.tpl" ws-spec info-fields)))
-
+    (-> data
+        (update-in [:swagger-object "#/"] assoc :type :open-api-specification)
+        (update-in [:swagger-object "#/"] assoc :name (get-in spec [:info :title] ))
+        (update-in [:swagger-object "#/"] assoc :description (common/render-resource-strings "templates/open-api-3-specification.tpl" root-spec info-fields)))))
 
 (defn transform-spec [spec]
   ;;   {:key->swagger-object {{:name "n" :type "typename"} {:name "n" :description "descr"}}
   ;;    :references [{:source-path {} :target-path "#/components/schema/someName"}]
   ;;    :spec-path->key {"#/components/schema/someName" {:name "n" :type "typename"}}}
 
-  (let [data {:swagger-object (maps/ordered-map)
+  (let [data {:title (get-in spec [:info :title])
+              :swagger-object (maps/ordered-map)
               :references []
               :spec-path-to-key-map {}}]
     (->
       data
-      (create-scaffolding)
+      (create-root-element spec)
+      (create-scaffolding spec)
       (transform-objects transform-path-object (:paths spec) "#/paths" :spec-path)
       (transform-objects transform-server-object (:servers spec) "#/servers" :spec-server)
       (transform-components-object spec))))

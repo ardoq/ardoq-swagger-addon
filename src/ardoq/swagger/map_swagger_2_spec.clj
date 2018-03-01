@@ -14,6 +14,7 @@
 (def model-file "model-swagger-2.x.json")
 
 (def model-types {
+                  :swagger-specification "Swagger Specification"
                   :spec-structure "Swagger Structure"
                   :spec-server "Swagger Server"
                   :spec-operation "Swagger Operation"
@@ -249,14 +250,14 @@
 
 
 
-(defn create-scaffolding [data]
+(defn create-scaffolding [data spec]
   (-> data
-      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :spec-structure})
-      (assoc-in [:swagger-object "#/definitions"] {:name "Definitions" :type :spec-structure})
-      (assoc-in [:swagger-object "#/parameters"] {:name "Parameters" :type :spec-structure})
-      (assoc-in [:swagger-object "#/responses"] {:name "Responses" :type :spec-structure})
-      (assoc-in [:swagger-object "#/securityDefinitions"] {:name "SecurityDefinitions" :type :spec-structure})
-      (assoc-in [:swagger-object "#/security"] {:name "Security" :type :spec-structure})))
+      (assoc-in [:swagger-object "#/paths"] {:name "Paths" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/definitions"] {:name "Definitions" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/parameters"] {:name "Parameters" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/responses"] {:name "Responses" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/securityDefinitions"] {:name "SecurityDefinitions" :type :spec-structure :parent "#/"})
+      (assoc-in [:swagger-object "#/security"] {:name "Security" :type :spec-structure :parent "#/"})))
 
 
 (def info-fields
@@ -271,29 +272,35 @@
   [:name :url])
 
 (defn workspace-description [spec]
+  (common/render-resource-strings "templates/workspace.tpl" {:importTime (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))} []))
+
+(defn create-root-element [data spec]
   (let [info-spec (:info spec)
-        ws-spec (-> {:importTime      (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))
-                     :contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
+        root-spec (-> {:contactMd       (common/render-resource-strings "templates/contact-object.tpl" (:contact info-spec) contact-object-fields)
                      :licenseMd       (common/render-resource-strings "templates/license-object.tpl" (:license info-spec) license-object-fields)
                      :securityReqsMd  (render-security-requirements-object (into {} (:security spec)))
                      :hasExternalDocs (some? (:externalDocs info-spec))
                      :externalDocs    (:externalDocs info-spec)}
                     (merge (select-keys info-spec [:title :summary :description ]))
                     (merge (select-keys info-spec info-fields)))]
-    (common/render-resource-strings "templates/swagger-workspace.tpl" ws-spec info-fields)))
-
+    (-> data
+        (update-in [:swagger-object "#/"] assoc :type :swagger-specification)
+        (update-in [:swagger-object "#/"] assoc :name (get-in spec [:info :title] ))
+        (update-in [:swagger-object "#/"] assoc :description (common/render-resource-strings "templates/swagger-specification.tpl" root-spec info-fields)))))
 
 (defn transform-spec [spec]
   ;;   {:key->swagger-object {{:name "n" :type "typename"} {:name "n" :description "descr"}}
   ;;    :references [{:source-path {} :target-path "#/components/schema/someName"}]
   ;;    :spec-path->key {"#/components/schema/someName" {:name "n" :type "typename"}}}
 
-  (let [data {:swagger-object (maps/ordered-map)
+  (let [data {:title (get-in spec [:info :title])
+              :swagger-object (maps/ordered-map)
               :references []
               :spec-path-to-key-map {}}]
     (->
       data
-      (create-scaffolding)
+      (create-root-element spec)
+      (create-scaffolding spec)
       (transform-objects transform-path-object (:paths spec) "#/paths" :spec-path)
       (transform-objects transform-schema-object (:definitions spec) "#/definitions" :spec-schema)
       (transform-objects transform-parameter-object (:parameters spec) "#/parameters" :spec-parameter)

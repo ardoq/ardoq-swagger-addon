@@ -2,6 +2,7 @@
   (:require [ardoq.swagger.api :refer [swagger-api]]
             [org.httpkit.server :as srv]
             [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.multipart-params :refer [wrap-multipart-params]]
             [ring.middleware.session :refer [wrap-session]])
   (:gen-class :main true))
 
@@ -9,7 +10,8 @@
   (-> system
       swagger-api
       (wrap-session {:cookie-name "reffie"})
-      wrap-params))
+      wrap-params
+      wrap-multipart-params))
 
 
 (defn start-server [system]
