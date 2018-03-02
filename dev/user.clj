@@ -16,7 +16,9 @@
     [api :as api]
     [util :as util]
     [validate :as validate]
-    [common :as common]]
+    [common :as common]
+    [sync-overview-workspace :as sync-overview-workspace]]
+
    [ardoq.swagger.sync-swagger :as sync-swagger]
    [ardoq.swagger.api :as v1]))
 
@@ -87,9 +89,23 @@
           spec-text (slurp "http://petstore.swagger.io/v2/swagger.json")
           spec (util/parse-swagger spec-text)]
       #_(clojure.pprint/pprint spec)
-      (prn
+      (clojure.pprint/pprint
         (c/find-components-by-name client "5a97fa7bd6018000060a8468" "Swagger Petstore"))
 
       #_(sync-swagger/sync-swagger client spec "petstore.json" :swagger-2.x))
     (catch Exception e (.printStackTrace e))))
 
+
+(defn e []
+  (try
+    (let [client (c/client {:url "http://localhost:8080"
+                            :org "piedpiper"
+                            :token "42f5d07007594f61bb7b66548c182b16"})]
+      (clojure.pprint/pprint
+        (sync-overview-workspace/ensure-entry-in-overview-ws client {:name "Swagger spec"}
+                                                             {:overview-workspace "App Portfolio"
+                                                              :overview-component-type "Application"
+                                                              :overvice-reference-type "Exists"}))
+
+      )
+    (catch Exception e (.printStackTrace e))))

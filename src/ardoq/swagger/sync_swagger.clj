@@ -5,6 +5,7 @@
             [ardoq.swagger.socket :refer [socket-send]]
             [ardoq.swagger.map-openapi-3-spec :as map-openapi-3-spec]
             [ardoq.swagger.map-swagger-2-spec :as map-swagger-2-spec]
+            [ardoq.swagger.sync-overview-workspace :as sync-overview-workspace]
             [cheshire.core :refer [generate-string parse-string]]
             [org.httpkit.server :as srv]
             [flatland.ordered.map :as maps]
@@ -16,38 +17,11 @@
 
 
 
-(defn create-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
-  (socket-send (str "Creating ardoq component for " spec-key))
-  (let [type-key (:type spec-data-item)
-        ardoq-type-name (get-in transformer-definition [:model-types type-key])
-        ardoq-type-id (name (get-in ardoq-data [:model-name->type-id ardoq-type-name]))]
-    (->
-      spec-data-item
-      (select-keys [:name :description])
-      (assoc :typeId ardoq-type-id)
-      (assoc :parent parent-component-id)
-      (assoc :open-api-path spec-key)
-      (assoc :rootWorkspace (get-in ardoq-data [:workspace :_id]))
-      (assoc :model (get-in ardoq-data [:model :_id]))
-      (api-client/map->Component)
-      (api-client/create  client))))
-
-
-(defn update-component [client existing-component parent-component-id [spec-key spec-data-item]]
-  (socket-send (str "Updating ardoq component for " spec-key))
-  (let [updated-component (-> existing-component
-                              (merge (select-keys spec-data-item [:name :description]))
-                              (assoc :parent parent-component-id)
-                              (assoc :open-api-path spec-key))]
-    (if (= updated-component existing-component)
-      (api-client/map->Component existing-component)
-      (api-client/update (api-client/map->Component updated-component) client))))
-
 
 (defn sync-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
   (if-let [existing-component (get-in ardoq-data [:key->component spec-key])]
-    (update-component client existing-component parent-component-id [spec-key spec-data-item])
-    (create-component client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition)))
+    (common/update-component client existing-component parent-component-id [spec-key spec-data-item])
+    (common/create-component client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition)))
 
 
 (defn sync-components [client ardoq-data spec-data transformer-definition]
@@ -122,36 +96,18 @@
     (into #{})))
 
 
-(defn create-reference [client ardoq-data {source :source target :target}]
-  (socket-send (str "Creating reference from" source "to" target))
-
-  (->
-    {:source source
-     :target target
-     :type 0
-     :rootWorkspace (get-in ardoq-data [:workspace :_id])
-     :targetWorkspace (get-in ardoq-data [:workspace :_id])}
-    (api-client/map->Reference)
-    (api-client/create client)))
-
-
-(defn delete-reference [client ardoq-data ref-key]
-  (socket-send (str "Deleting reference from" (:source ref-key) "to" (:target ref-key)))
-
-  (->
-    (get-in ardoq-data [:key->reference ref-key])
-    (api-client/map->Reference)
-    (api-client/delete client)))
-
-
-(defn sync-references [client ardoq-data ardoq-sync-components spec-data]
+(defn sync-references [client ardoq-data ardoq-sync-components spec-data transformer-definition]
   (let [spec-refs (map-to-ardoq-ids ardoq-sync-components spec-data)
         current-refs (set (keys (:key->reference ardoq-data)))
         new-refs (difference spec-refs current-refs)
-        superfluous-refs (difference current-refs spec-refs)]
+        superfluous-refs (difference current-refs spec-refs)
+        workspace-id (get-in ardoq-data [:workspace :_id])
+        reference-type-name (:spec-reference-type-name transformer-definition)
+        reference-type-id (model-utils/reference-type-id-from-name (:model ardoq-data) reference-type-name)]
 
-    (doall (map (partial create-reference client ardoq-data) new-refs))
-    (doall (map (partial delete-reference client ardoq-data) superfluous-refs))))
+    (doall (map (partial common/create-reference client workspace-id reference-type-id) new-refs))
+    (doall (map (partial common/delete-reference client ardoq-data) superfluous-refs))))
+
 
 (defn update-workspace-description [client ardoq-data spec transformer-definition]
   (let [description (apply (:workspace-description-fn transformer-definition) [spec])]
@@ -160,7 +116,9 @@
         (assoc :description description)
         (api-client/update client))))
 
-(defn sync-swagger [client spec wsname spec-version]
+
+
+(defn sync-swagger [client spec wsname spec-version overview]
   (let [transformer-definition (cond
                       (= :openapi-3.x spec-version) map-openapi-3-spec/transformer-definition
                       (= :swagger-2.x spec-version) map-swagger-2-spec/transformer-definition)
@@ -174,17 +132,13 @@
     (update-workspace-description client ardoq-data spec transformer-definition)
     (delete-components client (:to-delete orphan-components))
     (mark-as-orphans client ardoq-data (:to-mark-as-orphan orphan-components) transformer-definition)
-    (sync-references client ardoq-data ardoq-sync-components spec-data)
-
+    (sync-references client ardoq-data ardoq-sync-components spec-data transformer-definition)
     (socket-send "Done syncing specification")
-    (clojure.pprint/pprint (get ardoq-sync-components "#/"))
+
+    (let [spec-root-component (get ardoq-sync-components "#/")]
+      (sync-overview-workspace/ensure-entry-in-overview-ws client spec-root-component overview))
 
     {:workspace-id (get-in ardoq-data [:workspace :_id])
-     :root-component (get ardoq-sync-components "#/")
-     }))
+     :root-component (get ardoq-sync-components "#/")}))
 
 
-(defn ensure-entry-in-overview-ws [overview-ws-id entry-name entry-type-name reference-type-name]
-
-
-  )

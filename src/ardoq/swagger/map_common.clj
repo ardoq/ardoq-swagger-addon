@@ -8,7 +8,6 @@
     (let [[spec-key parent-key data spec spec-type] args]
       (try
         (socket-send (str "Mapping " spec-key " to Ardoq component"))
-        (prn (str "Mapping " spec-key " to Ardoq component"))
 
         (apply f args)
 

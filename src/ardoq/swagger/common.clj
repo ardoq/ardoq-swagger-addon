@@ -1,6 +1,7 @@
 (ns ardoq.swagger.common
-  (:require [ardoq.client :as api]
+  (:require [ardoq.client :as api-client]
             [ardoq.swagger.model-utils :as model-utils]
+            [ardoq.swagger.socket :refer [socket-send]]
             [cheshire.core :refer [generate-string parse-string]]
             [clojure.java.io :as io]
             [clojure.string :as s]
@@ -44,18 +45,18 @@
 
 (defn create-model [client transformer-definition]
   (->
-    (api/map->Model (get-model-template transformer-definition))
-    (api/create client)))
+    (api-client/map->Model (get-model-template transformer-definition))
+    (api-client/create client)))
 
 (defn create-workspace-and-model [client wsname spec transformer-definition]
   ;; Creates a new workspace in the client.
   (let [model (create-model client transformer-definition)
         model-id (:_id model)
         workspace (->
-                    (api/->Workspace wsname "" model-id)
+                    (api-client/->Workspace wsname "" model-id)
                     (assoc
                       :views ["relationships" "tableview" "tagscape" "reader" "processflow"])
-                    (api/create client))]
+                    (api-client/create client))]
     {:new? true
      :model model
      :model-name->type-id (model-utils/type-ids-by-name model)
@@ -73,12 +74,60 @@
     model)
   )
 
+(defn create-reference [client workspace-id type-id {source :source target :target}]
+  (socket-send (str "Creating reference from" source "to" target))
+  (->
+    {:source          source
+     :target          target
+     :type            type-id
+     :rootWorkspace   workspace-id
+     :targetWorkspace workspace-id}
+    (api-client/map->Reference)
+    (api-client/create client)))
+
+
+(defn delete-reference [client ardoq-data ref-key]
+  (socket-send (str "Deleting reference from" (:source ref-key) "to" (:target ref-key)))
+
+  (->
+    (get-in ardoq-data [:key->reference ref-key])
+    (api-client/map->Reference)
+    (api-client/delete client)))
+
+
+(defn create-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
+  (socket-send (str "Creating ardoq component for " spec-key))
+  (let [type-key (:type spec-data-item)
+        ardoq-type-name (get-in transformer-definition [:model-types type-key])
+        ardoq-type-id (name (get-in ardoq-data [:model-name->type-id ardoq-type-name]))]
+    (->
+      spec-data-item
+      (select-keys [:name :description])
+      (assoc :typeId ardoq-type-id)
+      (assoc :parent parent-component-id)
+      (assoc :open-api-path spec-key)
+      (assoc :rootWorkspace (get-in ardoq-data [:workspace :_id]))
+      (assoc :model (get-in ardoq-data [:model :_id]))
+      (api-client/map->Component)
+      (api-client/create  client))))
+
+
+(defn update-component [client existing-component parent-component-id [spec-key spec-data-item]]
+  (socket-send (str "Updating ardoq component for " spec-key))
+  (let [updated-component (-> existing-component
+                              (merge (select-keys spec-data-item [:name :description]))
+                              (assoc :parent parent-component-id)
+                              (assoc :open-api-path spec-key))]
+    (if (= updated-component existing-component)
+      (api-client/map->Component existing-component)
+      (api-client/update (api-client/map->Component updated-component) client))))
+
 
 (defn find-existing-resource 
   ([client name type]
-   (first (filter #(= name (:name %)) (api/find-all (type) client))))
+   (first (filter #(= name (:name %)) (api-client/find-all (type) client))))
   ([client name type root-id]
-   (first (filter #(= name (:name %)) (api/find-in-workspace (type) client root-id)))))
+   (first (filter #(= name (:name %)) (api-client/find-in-workspace (type) client root-id)))))
 
 
 (defn find-components-referencing-other-workspaces [aggregated-workspace]
@@ -105,15 +154,15 @@
 (defn- find-fields [client model-id]
   (seq (filter
          #(= model-id (:model %))
-         (api/find-all (api/map->Field {}) client))))
+         (api-client/find-all (api-client/map->Field {}) client))))
 
 (defn find-workspace-and-model [client wsname transformer-definition]
-  (when-let [workspace (find-existing-resource client wsname #(api/map->Workspace {}))]
-    (let [aggregated-workspace (api/find-aggregated workspace client)
+  (when-let [workspace (find-existing-resource client wsname #(api-client/map->Workspace {}))]
+    (let [aggregated-workspace (api-client/find-aggregated workspace client)
           model-id (:componentModel workspace)
           model (-> {:_id model-id}
-                  (api/map->Model)
-                  (api/find-by-id client)
+                  (api-client/map->Model)
+                  (api-client/find-by-id client)
                   (ensure-model-has-all-types client transformer-definition))
           model-types-by-id (model-utils/to-component-type-map model)]
 
@@ -130,18 +179,18 @@
 
 (defn- field-exists? [client field-name {:keys [_id] :as model}]
   (seq (filter
-        (fn [{:keys [name model]}]
+         (fn [{:keys [name model]}]
           (and (= name field-name)
                (= model (str _id))))
-        (api/find-all (api/map->Field {}) client))))
+         (api-client/find-all (api-client/map->Field {}) client))))
 
 (defn find-or-create-fields [client {model-id :_id :as model}]
   (when-not (field-exists? client "method" model)
-    (-> (api/->Field "method" "method" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation")])
-        (api/create client)))
+    (-> (api-client/->Field "method" "method" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation")])
+        (api-client/create client)))
   (when-not (field-exists? client "produces" model)
-    (-> (api/->Field "produces" "produces" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
-        (api/create client)))
+    (-> (api-client/->Field "produces" "produces" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
+        (api-client/create client)))
   (when-not (field-exists? client "consumes" model)
-    (-> (api/->Field "consumes" "consumes" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
-        (api/create client))))
+    (-> (api-client/->Field "consumes" "consumes" "Text" (str model-id) [(model-utils/type-id-by-name model "Operation") (model-utils/type-id-by-name model "Resource")])
+        (api-client/create client))))

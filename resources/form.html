@@ -16,6 +16,7 @@
 
   <body style="width:90%; padding:20px;">
 
+
     <div class="jumbotron">
       <div class="container">
         <img src="/public/img/OpenAPI-logo.png" style="width:100px; float:right; padding: 5px;"></img>
@@ -29,13 +30,27 @@
 
     <form action="/import" method="POST" class="form-horizontal" id="swagger">
 
-      <div class="form-group" id="selector">
+      <div class="form-group">
+        <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
+
+        <div class="col-sm-10">
+          <input type="text" class="form-control" id="wsname"
+                 placeholder="Leave empty to use name from the specification - Using an existing name will synchronise with that workspace"
+                 name="wsname">
+        </div>
+      </div>
+
+      <div class="form-group">
         <div class="col-sm-offset-2 col-sm-10">
-          <a class="btn btn-primary disabled" id="Boxer">
-            Paste spec
+          <a class="btn btn-info" id="use-url">
+            Use URL to specification
+          </a>
+          <a class="btn btn-default" id="paste-spec">
+            Paste specification
           </a>
         </div>
       </div>
+
       <div id="urldiv">
         <div class="form-group">
           <label for="url" class="col-sm-2 control-label">URL:</label>
@@ -62,15 +77,6 @@
         </div>        
       </div>
 
-      <div class="form-group">
-        <label for="wsname" class="col-sm-2 control-label">Workspace name</label>
-
-        <div class="col-sm-10">
-          <input type="text" class="form-control" id="wsname"
-                 placeholder="Leave empty to use name from the specification - Using an existing name will synchronise with that workspace"
-                 name="wsname">
-        </div>
-      </div>
       <div id="Head">
         <div class="form-group">
           <label for="headers" class="col-sm-2 control-label">Optional
@@ -95,6 +101,36 @@
           </label>
         </div>
       </div>-->
+      <div>
+        <div class="form-group">
+          <div class="col-sm-offset-2 col-sm-10 checkbox" id="overview-copy">
+            <label>
+              <input id="overview-copy-checkbox" type="checkbox"> Copy the top level spec element into an existing workspace
+            </label>
+          </div>
+        </div>
+
+        <div id="overview-sub-form" style="background-color:lightgray; padding: 10px; margin-bottom: 10px">
+          <div class="form-group">
+            <label for="overview-ws" class="col-sm-2 control-label">Overview Workspace Name</label>
+            <div class="col-sm-10">
+              <input id="overview-ws" name="overview-ws" placeholder="Name of existing workspace where a copy of the top level specification will be copied" class="form-control" type="text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="overview-comp-type" class="col-sm-2 control-label">Overview Component Type</label>
+            <div class="col-sm-10">
+              <input id="overview-comp-type" name="overview-comp-type" placeholder="Name of component type in the overview workspace" class="form-control" type="text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="overview-ref-type" class="col-sm-2 control-label">Overview Reference Type</label>
+            <div class="col-sm-10">
+              <input id="overview-ref-type" name="overview-ref-type" placeholder="(Optional) Name of Reference Type from Overview to import " class="form-control" type="text" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {{#org-set}}
       <input type="hidden" name="org" value="{{org}}">
@@ -102,11 +138,11 @@
 
       {{^org-set}}
       <div class="form-group">
-        <label for="org" class="col-sm-2 control-label">Organization label:</label>
+        <label for="org" class="col-sm-2 control-label">Organization key</label>
 
         <div class="col-sm-10">
           <input type="text" class="form-control" id="org"
-                 placeholder="Workspace name" name="org">
+                 placeholder="Organization key" name="org">
         </div>
       </div>
       {{/org-set}}

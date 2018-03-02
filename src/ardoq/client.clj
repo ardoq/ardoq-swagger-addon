@@ -83,7 +83,7 @@
       (throw (ex-info "client-exception" {:status status :body body})))))
 
 (defn find-components-by-name [client workspace-id name]
-  (let [url (str (:url client) "/api/component/fieldsearch")
+  (let [url (str (:url client) "/api/component/search")
         options (->
                   (:options client)
                   (assoc-in [:query-params :name] name)

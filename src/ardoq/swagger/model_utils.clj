@@ -29,3 +29,5 @@
     (map (fn [[k v]] [(:name v) k]))
     (into {})))
 
+(defn reference-type-id-from-name [model reference-type-name]
+  (:id (first (filter #(= (:name %) reference-type-name) (vals (:referenceTypes model))))))

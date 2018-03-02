@@ -46,7 +46,7 @@
     (parse-swagger spec-text)
     (get-resource-listing url headers)))
 
-(defn synchronize-specification [client url wsname headers spec-text]
+(defn synchronize-specification [client url wsname headers spec-text overview]
   ;;if spec is not null then use that as spec
   (let [spec (resolve-spec spec-text url headers)
         spec-title (get-in spec [:info :title])
@@ -57,7 +57,7 @@
         wsname (cond (not (str/blank? wsname)) wsname
                      (not (str/blank? spec-title)) spec-title
                      :default (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
-    (sync-swagger/sync-swagger client spec wsname spec-version)))
+    (sync-swagger/sync-swagger client spec wsname spec-version overview)))
 
 (defn send-success-email! [wid org session client]
   (let [url (str (:url client) "/api/user/notify/email")]
@@ -104,13 +104,15 @@
                     session :session
                     :as request}
      (let [merged-params (merge params multipart-params)
-           {:strs [url org token swag wsname headers notifier]} merged-params
+           {:strs [url org token swag wsname headers notifier overview-ws overview-comp-type overview-ref-type]} merged-params
            client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
            (prn "importing" url org wsname client)
            (try
-             (let [sync-status (synchronize-specification client url wsname (read-headers headers) swag)
+             (let [sync-status (synchronize-specification client url wsname (read-headers headers) swag {:overview-workspace overview-ws
+                                                                                                         :overview-component-type overview-comp-type
+                                                                                                         :overvice-reference-type overview-ref-type})
                    wid (:workspace-id sync-status)]
                (socket-close)
                (when notifier

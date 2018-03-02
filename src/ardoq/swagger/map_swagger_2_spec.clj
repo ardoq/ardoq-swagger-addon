@@ -311,4 +311,5 @@
   {:model-file model-file
    :model-types model-types
    :workspace-description-fn workspace-description
+   :spec-reference-type-name "Swagger $ref"
    :transform-spec-fn transform-spec})

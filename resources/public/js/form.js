@@ -1,20 +1,25 @@
 window.onload = form;
 
 function form() {
-  var vers = true;
   var imp = "/import";
   $("#fillerDiv").hide();
-  $("#selector").click(function(){
-    if(!vers) {
+  $("#overview-sub-form").hide();
+
+  $("#use-url").click(function () {
+      $("#paste-spec").addClass('btn-default').removeClass('btn-info');
+      $("#use-url").addClass('btn-info').removeClass('btn-default');
       $("#fillerDiv").hide();
       $("#urldiv").show();
       $("#Head").show();
       $("#url").prop('required', true);
       $("#swag").prop('required', false);
       $("#swag").val("");
-      $("#Boxer").addClass("disabled")
-      vers = true;
-    } else {
+  });
+
+  $("#paste-spec").click(function () {
+      $("#use-url").addClass('btn-default').removeClass('btn-info');
+      $("#paste-spec").addClass('btn-info').removeClass('btn-default');
+      $("#Boxer").text('Use URL to specification')
       $("#fillerDiv").show();
       $("#urldiv").hide();
       $("#Head").hide();
@@ -22,9 +27,11 @@ function form() {
       $("#swag").prop('required', true);
       $("#url").val("");
       $("#headers").val("");
-      $("#Boxer").removeClass("disabled");
-      vers = false;
-    }
+  });
+
+  $("#overview-copy-checkbox").change(function(){
+  console.log("checkbox change")
+    $("#overview-sub-form").toggle();
   });
   $("#clear-form").click(function() {
     $("form").find("input#url, input#wsname, textarea").val("");
