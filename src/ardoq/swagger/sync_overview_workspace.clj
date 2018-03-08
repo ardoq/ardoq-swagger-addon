@@ -50,10 +50,10 @@
 
 (defn ensure-entry-in-overview-ws [client spec-root-component overview]
   (if-let [workspace (common/find-existing-resource client (:overview-workspace overview) #(api-client/map->Workspace {}))]
+    (prn "Populating Overview workspace" overview)
     (if-let [existing-component (->> (:name spec-root-component)
                                   (api-client/find-components-by-name client (:_id workspace))
                                   (filter #(= (:type %) (:overview-component-type overview)))
                                   first)]
       (update-overview-component client spec-root-component existing-component)
-      (create-overview-component client spec-root-component workspace (:overview-component-type overview) (:overview-reference-type overview)))
-    (prn "Workspace " (:overview-workspace overview) "not found")))
+      (create-overview-component client spec-root-component workspace (:overview-component-type overview) (:overview-reference-type overview)))))
