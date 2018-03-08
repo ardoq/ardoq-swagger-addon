@@ -1,7 +1,7 @@
 FROM ardoq/leiningen:3.3-8u74-2.6.1
 MAINTAINER Kristian Helgesen "kristian@ardoq.com"
 
-ENV VERSION 1.0.8
+ENV VERSION 1.0.9
 ENV LEIN_ROOT disable
 ENV API_BASE_URL https://app.ardoq.com
 
