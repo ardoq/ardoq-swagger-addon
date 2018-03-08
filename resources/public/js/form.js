@@ -53,6 +53,7 @@ function form() {
     $.ajax({
       type: "POST",  
       url: imp,
+      timeout: 600000,
       data: $("form#swagger").serialize(),
       success: function(data) {
         window.top.location.href = data;
