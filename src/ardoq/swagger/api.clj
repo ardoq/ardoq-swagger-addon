@@ -114,11 +114,11 @@
            client (c/client {:url (:base-url config)
                                  :org org
                                  :token token})]
-           (prn "importing" url org wsname client)
+           (prn "importing" url org wsname client overview-ws overview-comp-type overview-ref-type)
            (try
              (let [sync-status (synchronize-specification client url wsname (read-headers headers) swag {:overview-workspace overview-ws
                                                                                                          :overview-component-type overview-comp-type
-                                                                                                         :overvice-reference-type overview-ref-type})
+                                                                                                         :overview-reference-type overview-ref-type})
                    wid (:workspace-id sync-status)]
                (socket-close)
                (when notifier

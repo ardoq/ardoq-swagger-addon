@@ -32,7 +32,7 @@
                         (assoc :lock (get-in client [:user :_id]))
                         (api-client/map->Component)
                         (api-client/create client))
-            reference-type-id (first (filter #(= % reference-type-name) (:referenceTypes model)))]
+            reference-type-id (:id (second (first (filter (fn [[k v]] (= (:name v) reference-type-name)) (:referenceTypes model)))))]
         (common/create-reference
             client
             (:_id workspace)
