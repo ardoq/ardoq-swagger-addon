@@ -50,13 +50,19 @@
   ;;if spec is not null then use that as spec
   (let [spec (resolve-spec spec-text url headers)
         spec-title (get-in spec [:info :title])
+        spec-info-version (get-in spec [:info :version])
         spec-version (cond
                        (:openapi spec) :openapi-3.x
                        (= (:swagger spec) "2.0") :swagger-2.x
                        :else :swagger-1.x)
-        wsname (cond (not (str/blank? wsname)) wsname
-                     (not (str/blank? spec-title)) spec-title
-                     :default (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
+        wsname (cond (not (str/blank? wsname))
+                        wsname
+                     (and (not (str/blank? spec-title)) (not (str/blank? spec-info-version)))
+                        (str spec-title " - " spec-info-version)
+                     (not (str/blank? spec-title))
+                        spec-title
+                     :default
+                        (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
     (sync-swagger/sync-swagger client spec wsname spec-version overview)))
 
 (defn send-success-email! [wid org session client]
