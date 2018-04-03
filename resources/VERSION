@@ -1,8 +1,8 @@
 {
  :major 1
  :minor 0
- :patch 9
+ :patch 10
  :pre-release nil
  :build nil
- :sha "8a627bbe1b9adabffd39556dbc5dcf844bc45065"
+ :sha "2af6f72626ec73fff1a13170e068227c52cab885"
 }
