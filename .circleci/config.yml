@@ -1,4 +1,18 @@
-version: 2
+version: 2.1
+
+orbs:
+  ardoq: ardoq/orby@0.2
+
+filter-master: &filter-master
+  branches:
+    only:
+      - master
+
+filter-test-internal-env: &filter-test-internal-env
+  branches:
+    only:
+      - test
+      - /internal-env-.*/
 
 jobs:
   test:
@@ -78,6 +92,20 @@ workflows:
         - deploy-aws:
             requires:
               - deploy-docker
-
-
-
+        - ardoq/update-helm-app-version:
+            name: update-helm-master
+            requires: [deploy-docker]
+            filters: *filter-master
+            helm-chart-branch: master
+            required-release-tag: '[ci deploy]'
+            ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
+            project: 'ardoq-swagger-addon'
+            appversion: $(grep \"version\" package.json | cut -c 15- | rev | cut -c 3- | rev)-${CIRCLE_SHA1:0:7}
+        - ardoq/update-helm-app-version:
+            name: update-helm-test
+            requires: [deploy-docker]
+            filters: *filter-test-internal-env
+            helm-chart-branch: ${CIRCLE_BRANCH}
+            ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
+            project: 'ardoq-swagger-addon'
+            appversion: $(grep \"version\" package.json | cut -c 15- | rev | cut -c 3- | rev)-${CIRCLE_SHA1:0:7}
