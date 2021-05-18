@@ -98,7 +98,7 @@ workflows:
             filters: *filter-master
             helm-chart-branch: master
             ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
-            project: 'ardoq-swagger-addon'
+            project: "ardoq-swagger"
             appversion: $(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')
         - ardoq/update-helm-app-version:
             name: update-helm-test
@@ -106,5 +106,5 @@ workflows:
             filters: *filter-test-internal-env
             helm-chart-branch: ${CIRCLE_BRANCH}
             ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
-            project: 'ardoq-swagger-addon'
+            project: "ardoq-swagger"
             appversion: $(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')-${CIRCLE_SHA1:0:7}
