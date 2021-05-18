@@ -49,10 +49,7 @@ jobs:
       - run:
           command: ls -A
       - run:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                 .circleci/deploy-docker.sh
-            fi
+          command: .circleci/deploy-docker.sh
 
   deploy-aws:
     docker:
@@ -74,9 +71,10 @@ workflows:
         - test
         - uberjar
         - deploy-docker:
-            requires:
-              - test
-              - uberjar
+            requires: [test, uberjar]
+            filters:
+              branches:
+                only: [master, test, /internal-env-.*/]
         - deploy-aws:
             requires:
               - deploy-docker
