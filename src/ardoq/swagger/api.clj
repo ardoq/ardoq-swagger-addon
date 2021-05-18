@@ -88,12 +88,12 @@
 (defn swagger-api [{:keys [config] :as system}]
   (routes
    (route/resources "/public")
-   (GET "/socket" {}
+   (GET "/swagger/socket" {}
         (partial handler system))
-   (GET "/status" {} {:status 200
+   (GET "/swagger/status" {} {:status 200
                       :body version/string
                       })
-   (GET "/" {session :session
+   (GET "/swagger/" {session :session
              headers :headers
              {:strs [org token]} :query-params :as request}
         {:status 200
@@ -105,7 +105,7 @@
          :session (-> session
                       (assoc :referer-host (some->> (get headers "referer") (re-find #"^https?://[^/]+")))
                       (assoc :x-forwarded-host (some->> (get headers "X-Forwarded-Host") (re-find #"^https?://[^/]+"))))})
-   (POST "/import" {params :form-params
+   (POST "/swagger/import" {params :form-params
                     multipart-params :multipart-params
                     session :session
                     :as request}
