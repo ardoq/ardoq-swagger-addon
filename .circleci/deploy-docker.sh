@@ -1,6 +1,13 @@
 #!/bin/sh
 REPOSITORY="ardoq/ardoq-swagger-addon"
-DOCKER_TAG=$(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')
+
+if [ "${CIRCLE_BRANCH}" == "master" ]; then
+    DOCKER_TAG=$(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')
+elif  [ "${CIRCLE_BRANCH}" == "test" ] \
+     || [ "${CIRCLE_BRANCH:0:12}" = "internal-env" ]
+then
+    DOCKER_TAG=$(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')-${CIRCLE_SHA1:0:7}
+fi
 
 RESPONSE=$(curl --write-out %{http_code} --silent --output /dev/null -H "Authorization: Basic $DOCKER_AUTH" \
                 "https://index.docker.io/v1/repositories/$REPOSITORY/tags/$DOCKER_TAG")
