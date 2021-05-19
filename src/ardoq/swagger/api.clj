@@ -100,12 +100,13 @@
          :headers {"Content-Type" "text/html"}})
    (POST "/import" {params :form-params
                     multipart-params :multipart-params
-                    ring-session :ring-session
+                    cookies :cookies
                     :as request}
      (let [merged-params (merge params multipart-params)
+           ring-session-value (get-in cookies ["ring-session" :value])
            {:strs [url org swag wsname headers notifier overview-ws overview-comp-type overview-ref-type]} merged-params
            client (c/client {:url (:base-url config)
-                             :ring-session ring-session
+                             :ring-session ring-session-value
                              :org org})]
            (prn "importing" url org wsname client overview-ws overview-comp-type overview-ref-type)
            (try
