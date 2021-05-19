@@ -1,20 +1,9 @@
 (ns ardoq.swagger.sync-overview-workspace
   (:require [ardoq.client :as api-client]
             [ardoq.swagger.common :as common]
-            [ardoq.swagger.model-utils :as model-utils]
-            [ardoq.swagger.socket :refer [socket-send]]
-            [cheshire.core :refer [generate-string parse-string]]
-            [org.httpkit.server :as srv]
-            [flatland.ordered.map :as maps]
-            [clojure.java.io :as io]
-            [clojure.string :as s]
-            [clojure.set :refer [difference]]
-            [clostache.parser :as tpl]
-            [medley.core :refer [map-vals]]))
-
+            [ardoq.swagger.model-utils :as model-utils]))
 
 (def implicit-reference-type-id 2)
-
 
 (defn create-overview-component [client spec-root-component workspace entry-type-name reference-type-name]
   (let [model-id (:componentModel workspace)

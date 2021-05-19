@@ -1,24 +1,17 @@
 (ns ardoq.swagger.api
-  (:require [ardoq.swagger.sync-swagger :as sync-swagger]
-            [ardoq.client :as c]
-            [ardoq.version :as version]
+  (:require [ardoq.client :as c]
+            [ardoq.swagger.socket :refer [handler socket-close]]
+            [ardoq.swagger.sync-swagger :as sync-swagger]
             [ardoq.swagger.util :refer [parse-swagger]]
-            [ardoq.swagger.validate :as validate]
-            [ardoq.swagger.socket :refer [handler socket-send socket-close]]
-            [org.httpkit.server :as srv]
-            [clojure.data.json :as json]
-            [clojure.walk :refer [keywordize-keys]]
-            [compojure.core :refer [routes POST GET]]
-            [superstring.core :as str]
-            [clojure.java.io :as io]
-            [cheshire.core :refer [generate-string parse-string]]
-            [ring.util.response :refer [redirect-after-post response]]
-            [clostache.parser :as tpl]
-            [yaml.core :as yaml]
-            [hiccup.core :refer [html]]
+            [ardoq.version :as version]
+            [cheshire.core :refer [generate-string]]
             [clj-http.client :as http]
-            [hiccup.form :refer [form-to submit-button text-field label hidden-field]]
-            [compojure.route :as route]))
+            [clojure.data.json :as json]
+            [clojure.java.io :as io]
+            [clostache.parser :as tpl]
+            [compojure.core :refer [routes POST GET]]
+            [compojure.route :as route]
+            [superstring.core :as str]))
 
 (defn- content-type
   "Return the content-type of the request, or nil if no content-type is set."
@@ -104,6 +97,8 @@
                     :as request}
      (let [merged-params (merge params multipart-params)
            ring-session-value (get-in cookies ["ring-session" :value])
+           _ (println "Swagger debug: Cookies" cookies)
+           _ (println "Swagger debug: Parsed ring session value:" ring-session-value)
            {:strs [url org swag wsname headers notifier overview-ws overview-comp-type overview-ref-type]} merged-params
            client (c/client {:url (:base-url config)
                              :ring-session ring-session-value

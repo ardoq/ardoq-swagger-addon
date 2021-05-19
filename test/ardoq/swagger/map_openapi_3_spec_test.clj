@@ -6,15 +6,12 @@
     [ardoq.swagger.util :as util]
     [clojure.test :refer :all]))
 
-
 (def parent-key "#/parent")
 
 (def initial-data {:should "be preserved"})
 
-
 (defn read-spec [name]
   (util/parse-swagger (slurp (str "test/ardoq/swagger/" name))))
-
 
 (deftest transform-schema-object-test
   (let [schema-object-spec (read-spec "schema-object-spec.yaml")

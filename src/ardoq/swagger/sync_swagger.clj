@@ -1,22 +1,12 @@
 (ns ardoq.swagger.sync-swagger
   (:require [ardoq.client :as api-client]
             [ardoq.swagger.common :as common]
-            [ardoq.swagger.model-utils :as model-utils]
-            [ardoq.swagger.socket :refer [socket-send]]
             [ardoq.swagger.map-openapi-3-spec :as map-openapi-3-spec]
             [ardoq.swagger.map-swagger-2-spec :as map-swagger-2-spec]
+            [ardoq.swagger.model-utils :as model-utils]
+            [ardoq.swagger.socket :refer [socket-send]]
             [ardoq.swagger.sync-overview-workspace :as sync-overview-workspace]
-            [cheshire.core :refer [generate-string parse-string]]
-            [org.httpkit.server :as srv]
-            [flatland.ordered.map :as maps]
-            [clojure.java.io :as io]
-            [clojure.string :as s]
-            [clojure.set :refer [difference]]
-            [clostache.parser :as tpl]
-            [medley.core :refer [map-vals]]))
-
-
-
+            [clojure.set :refer [difference]]))
 
 (defn sync-component [client ardoq-data parent-component-id [spec-key spec-data-item] transformer-definition]
   (if-let [existing-component (get-in ardoq-data [:key->component spec-key])]

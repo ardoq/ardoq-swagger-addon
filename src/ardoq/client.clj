@@ -42,6 +42,7 @@
                                                                       "User-Agent" "ardoq-clojure-client"}})}
         switch-org-response (http/get (str url "/api/switchOrg") (:options client))
         org-base-url (re-find #"^https?://[^/]+" (get-in switch-org-response [:headers "Location"]))
+        _ (println "Swagger debug:" (:options client))
         user-response (http/get (str org-base-url "/api/user/current_user") (:options client))]
     (-> client
         (assoc :user (-> user-response :body json/read-str keywordize-keys))
