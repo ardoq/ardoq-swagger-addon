@@ -65,7 +65,7 @@
                         (str (name spec-version) " - import - " (.format (java.text.SimpleDateFormat. "yyyy.MM.dd HH:mm") (new java.util.Date))))]
     (sync-swagger/sync-swagger client spec wsname spec-version overview)))
 
-(defn send-success-email! [wid org session client]
+(defn send-success-email! [wid org client]
   (let [url (str (:url client) "/api/user/notify/email")]
     (try 
       (->> {:subject "Workspace is ready" :body (str "Your Open API (Swagger) workspace is fully imported.\nYou can visit it at " (:url client) "/app/view/workspace/" wid "?org=" org "\nRegards Ardoq")} 
@@ -75,7 +75,7 @@
       (catch Exception e
         (println "Failed to send e-mail")))))
 
-(defn send-failure-email! [session client e]
+(defn send-failure-email! [client e]
   (let [url (str (:url client) "/api/user/notify/email")]
     (try
       (->> {:subject "Swagger import failed" :body (str "Your Open API (Swagger) workspace failed to import.\n" e)} 
@@ -93,27 +93,20 @@
    (GET "/status" {} {:status 200
                       :body version/string
                       })
-   (GET "/" {session :session
-             headers :headers
-             {:strs [org token]} :query-params :as request}
+   (GET "/" {{:strs [org]} :query-params :as request}
         {:status 200
          :body (tpl/render-resource "form.html" {:org-set (boolean org)
-                                                 :org org
-                                                 :token-set (boolean token)
-                                                 :token token})
-         :headers {"Content-Type" "text/html"}
-         :session (-> session
-                      (assoc :referer-host (some->> (get headers "referer") (re-find #"^https?://[^/]+")))
-                      (assoc :x-forwarded-host (some->> (get headers "X-Forwarded-Host") (re-find #"^https?://[^/]+"))))})
+                                                 :org org})
+         :headers {"Content-Type" "text/html"}})
    (POST "/import" {params :form-params
                     multipart-params :multipart-params
-                    session :session
+                    ring-session :ring-session
                     :as request}
      (let [merged-params (merge params multipart-params)
-           {:strs [url org token swag wsname headers notifier overview-ws overview-comp-type overview-ref-type]} merged-params
+           {:strs [url org swag wsname headers notifier overview-ws overview-comp-type overview-ref-type]} merged-params
            client (c/client {:url (:base-url config)
-                                 :org org
-                                 :token token})]
+                             :ring-session ring-session
+                             :org org})]
            (prn "importing" url org wsname client overview-ws overview-comp-type overview-ref-type)
            (try
              (let [sync-status (synchronize-specification client url wsname (read-headers headers) swag {:overview-workspace overview-ws
@@ -122,26 +115,26 @@
                    wid (:workspace-id sync-status)]
                (socket-close)
                (when notifier
-                 (send-success-email! wid org session client))
+                 (send-success-email! wid org client))
                (str (:url client) "/app/view/workspace/" wid))
              (catch com.fasterxml.jackson.core.JsonParseException e
                (.printStackTrace e)
                (when notifier
-                 (send-failure-email! session client "Failed to parse swagger endpoint"))
+                 (send-failure-email! client "Failed to parse swagger endpoint"))
                {:status 400
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (str "Unable to parse swagger endpoint.")})})
              (catch IllegalArgumentException e
                (.printStackTrace e)
                (when notifier
-                 (send-failure-email! session client (str "Failed reading request " (.getMessage e))))
+                 (send-failure-email! client (str "Failed reading request " (.getMessage e))))
                {:status 500
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (.getMessage e)})})
              (catch clojure.lang.ExceptionInfo e
                (.printStackTrace e)
                (when notifier
-                 (send-failure-email! session client (str "An unexpected error occured!")))
+                 (send-failure-email! client (str "An unexpected error occured!")))
                (cond
                  (-> e ex-data :mapping-key)
                    {:status 404
@@ -158,7 +151,7 @@
              (catch Exception e
                (.printStackTrace e)
                (when notifier
-                 (send-failure-email! session client "An unexpected error occured!"))
+                 (send-failure-email! client "An unexpected error occured!"))
                {:status 500
                 :headers {"Content-Type" "application/json"}
                 :body (json/write-str {:error (str "An unexpected error occurred! ")})}))))))

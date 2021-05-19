@@ -32,12 +32,12 @@
   (resource-path [_] "tag"))
 
 
-(defn client [{:keys [url token org]}]
+(defn client [{:keys [url ring-session org]}]
   (let [default-options {:timeout 2000
                          :redirect-strategy :none
                          :query-params {:org org}}
         client {:url url
-                :options (merge-with merge default-options {:headers {"Authorization" (str "Token token=" token)
+                :options (merge-with merge default-options {:headers {"Cookie" (str "ring-session=" ring-session)
                                                                       "Content-Type" "application/json"
                                                                       "User-Agent" "ardoq-clojure-client"}})}
         switch-org-response (http/get (str url "/api/switchOrg") (:options client))

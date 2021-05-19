@@ -57,8 +57,7 @@
 (defn o []
   (try
     (let [client (c/client {:url   "http://localhost:8080"
-                            :org   "piedpiper"
-                            :token "42f5d07007594f61bb7b66548c182b16"})
+                            :org   "piedpiper"})
           spec-text (slurp "test/spec.yaml")
           spec (util/parse-swagger spec-text)]
 
@@ -71,8 +70,7 @@
 (defn sw []
   (try
     (let [client (c/client {:url "http://localhost:8080"
-                            :org "piedpiper"
-                            :token "42f5d07007594f61bb7b66548c182b16"})
+                            :org "piedpiper"})
           spec-text (slurp "dev-resources/dnbswag.yaml")
           spec (util/parse-swagger spec-text)]
 
@@ -84,8 +82,7 @@
 (defn p []
   (try
     (let [client (c/client {:url "http://localhost:8080"
-                            :org "piedpiper"
-                            :token "42f5d07007594f61bb7b66548c182b16"})
+                            :org "piedpiper"})
           spec-text (slurp "http://petstore.swagger.io/v2/swagger.json")
           spec (util/parse-swagger spec-text)]
       #_(clojure.pprint/pprint spec)
@@ -99,8 +96,7 @@
 (defn e []
   (try
     (let [client (c/client {:url "http://localhost:8080"
-                            :org "piedpiper"
-                            :token "42f5d07007594f61bb7b66548c182b16"})]
+                            :org "piedpiper"})]
       (clojure.pprint/pprint
         (sync-overview-workspace/ensure-entry-in-overview-ws client {:name "Swagger spec"}
                                                              {:overview-workspace "App Portfolio"
