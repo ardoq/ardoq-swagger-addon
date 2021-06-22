@@ -10,7 +10,7 @@ then
 fi
 
 RESPONSE=$(curl --write-out %{http_code} --silent --output /dev/null -H "Authorization: Basic $DOCKER_AUTH" \
-                "https://index.docker.io/v1/repositories/$REPOSITORY/tags/$DOCKER_TAG")
+                "https://hub.docker.com/v1/repositories/$REPOSITORY/tags/$DOCKER_TAG")
 
 if [ $RESPONSE -eq 404 ]; then
     echo "Building docker container..."
