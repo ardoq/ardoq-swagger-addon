@@ -1,4 +1,18 @@
-version: 2
+version: 2.1
+
+orbs:
+  ardoq: ardoq/orby@0.2
+
+filter-master: &filter-master
+  branches:
+    only:
+      - master
+
+filter-test-internal-env: &filter-test-internal-env
+  branches:
+    only:
+      - test
+      - /internal-env-.*/
 
 jobs:
   test:
@@ -49,23 +63,7 @@ jobs:
       - run:
           command: ls -A
       - run:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                 .circleci/deploy-docker.sh
-            fi
-
-  deploy-aws:
-    docker:
-      - image: garland/aws-cli-docker:0.2
-    steps:
-      - checkout
-      - run:
-          command: ls -la
-      - run:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                 .circleci/deploy-aws.sh
-            fi
+          command: .circleci/deploy-docker.sh
 
 workflows:
     version: 2
@@ -77,9 +75,23 @@ workflows:
             requires:
               - test
               - uberjar
-        - deploy-aws:
-            requires:
-              - deploy-docker
+            filters:
+              branches:
+                only: [ master, test, /internal-env-.*/ ]
 
-
-
+        - ardoq/update-helm-app-version:
+            name: update-helm-master
+            requires: [deploy-docker]
+            filters: *filter-master
+            helm-chart-branch: master
+            ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
+            project: "ardoq-swagger"
+            appversion: $(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')
+        - ardoq/update-helm-app-version:
+            name: update-helm-test
+            requires: [deploy-docker]
+            filters: *filter-test-internal-env
+            helm-chart-branch: ${CIRCLE_BRANCH}
+            ssh-key-fingerprint: '26:9b:0f:9b:2d:89:ad:72:16:97:d0:3f:e6:01:0f:84'
+            project: "ardoq-swagger"
+            appversion: $(head -n 1 project.clj | awk '{gsub(/"/, "", $3); print $3}')-${CIRCLE_SHA1:0:7}
