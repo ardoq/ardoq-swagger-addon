@@ -72,10 +72,13 @@ workflows:
         - test
         - uberjar
         - deploy-docker:
-            requires: [test, uberjar]
+            requires:
+              - test
+              - uberjar
             filters:
               branches:
-                only: [master, test, /internal-env-.*/]
+                only: [ master, test, /internal-env-.*/ ]
+
         - ardoq/update-helm-app-version:
             name: update-helm-master
             requires: [deploy-docker]
