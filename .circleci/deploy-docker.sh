@@ -16,7 +16,6 @@ if [ $RESPONSE -eq 404 ]; then
     echo "Building docker container..."
 
     docker build -t $REPOSITORY:$DOCKER_TAG .
-    docker tag $REPOSITORY:$DOCKER_TAG
 
     echo "Pushing $REPOSITORY:$DOCKER_TAG to private registry..."
     echo "{\"https://index.docker.io/v1/\":{\"auth\":\"$DOCKER_AUTH\",\"email\":\"$DOCKER_EMAIL\"}}" >> ~/.dockercfg
