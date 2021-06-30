@@ -1,7 +1,7 @@
 window.onload = form;
 
 function form() {
-  var imp = "/import";
+  var imp = "/swagger/import";
   $("#fillerDiv").hide();
   $("#overview-sub-form").hide();
 
@@ -88,8 +88,8 @@ function form() {
 
 function getSocketAddress() {
   if(location.protocol === 'https:') {
-    return "wss://" + location.host +"/socket";
+    return "wss://" + location.host +"/swagger/socket";
   } else {
-    return "ws://" + location.host + "/socket";
+    return "ws://" + location.host + "/swagger/socket";
   }
 }
